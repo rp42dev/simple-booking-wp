@@ -104,6 +104,19 @@ class Simple_Booking_Service {
                 'sanitize_callback' => 'esc_url_raw',
             )
         );
+
+        // Create Google Event Toggle
+        register_post_meta(
+            self::POST_TYPE,
+            '_create_google_event',
+            array(
+                'type'         => 'boolean',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'rest_sanitize_boolean',
+                'default'      => true,
+            )
+        );
     }
 
     /**
@@ -132,6 +145,7 @@ class Simple_Booking_Service {
         $price_id     = get_post_meta( $post->ID, '_stripe_price_id', true );
         $meeting_link = get_post_meta( $post->ID, '_meeting_link', true );
         $is_active    = get_post_meta( $post->ID, '_service_active', true );
+        $create_google_event = get_post_meta( $post->ID, '_create_google_event', true );
 
         // Default values
         if ( '' === $duration ) {
@@ -139,6 +153,9 @@ class Simple_Booking_Service {
         }
         if ( '' === $is_active ) {
             $is_active = true;
+        }
+        if ( '' === $create_google_event ) {
+            $create_google_event = true;
         }
         ?>
         <table class="form-table">
@@ -199,6 +216,19 @@ class Simple_Booking_Service {
                 </td>
             </tr>
             <tr>
+                <th scope="row">
+                    <label for="create_google_event"><?php _e( 'Create Google Calendar Event', 'simple-booking' ); ?></label>
+                </th>
+                <td>
+                    <input type="checkbox"
+                           id="create_google_event"
+                           name="create_google_event"
+                           value="1"
+                           <?php checked( $create_google_event, true ); ?> />
+                    <label for="create_google_event"><?php _e( 'Automatically create Google Calendar event for bookings', 'simple-booking' ); ?></label>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><?php _e( 'Service Shortcode', 'simple-booking' ); ?></th>
                 <td>
                     <code>[simple_booking_form service_id="<?php echo esc_attr( $post->ID ); ?>"]</code>
@@ -247,6 +277,10 @@ class Simple_Booking_Service {
         // Save active status
         $is_active = isset( $_POST['service_active'] ) ? true : false;
         update_post_meta( $post_id, '_service_active', $is_active );
+
+        // Save Google event creation toggle
+        $create_google_event = isset( $_POST['create_google_event'] ) ? true : false;
+        update_post_meta( $post_id, '_create_google_event', $create_google_event );
     }
 
     /**
@@ -286,6 +320,7 @@ class Simple_Booking_Service {
             'stripe_price_id' => get_post_meta( $post->ID, '_stripe_price_id', true ),
             'meeting_link' => get_post_meta( $post->ID, '_meeting_link', true ),
             'is_active'    => get_post_meta( $post->ID, '_service_active', true ),
+            'create_google_event' => get_post_meta( $post->ID, '_create_google_event', true ),
         );
     }
 }

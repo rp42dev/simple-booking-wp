@@ -604,15 +604,13 @@ class Simple_Booking_Google_Calendar {
      * Format event description
      */
     private function format_event_description( $booking_data ) {
-        $description  = sprintf( "Customer: %s\n", $booking_data['customer_name'] );
-        $description .= sprintf( "Email: %s\n", $booking_data['customer_email'] );
-        $description .= sprintf( "Phone: %s\n", $booking_data['customer_phone'] );
-        $description .= sprintf( "Service: %s\n", $booking_data['service_name'] );
-        $description .= sprintf( "Time: %s - %s", $booking_data['start_datetime'], $booking_data['end_datetime'] );
+        $description  = sprintf( "Booking: %s\n\n", $booking_data['service_name'] );
+        $description .= sprintf( "Client: %s\n", $booking_data['customer_name'] );
+        $description .= sprintf( "Email: %s", $booking_data['customer_email'] );
 
         // Add meeting link if available
         if ( isset( $booking_data['meeting_link'] ) && ! empty( $booking_data['meeting_link'] ) ) {
-            $description .= sprintf( "\n\nMeeting Link:\n%s", $booking_data['meeting_link'] );
+            $description .= sprintf( "\n\nMeeting:\n%s", $booking_data['meeting_link'] );
         }
 
         return $description;

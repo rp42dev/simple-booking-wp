@@ -93,6 +93,23 @@ class Simple_Booking_Booking_Creator {
         self::debug_log( '=== Booking Creator: create_google_event START ===', 'BOOKING' );
         self::debug_log( 'Booking data: ' . json_encode( $booking_data ), 'BOOKING' );
 
+        // Check if service has Google event creation enabled
+        if ( isset( $booking_data['service_id'] ) ) {
+            $service_id = absint( $booking_data['service_id'] );
+            $create_google_event = get_post_meta( $service_id, '_create_google_event', true );
+            
+            // Default to true if not set for backward compatibility
+            if ( '' === $create_google_event ) {
+                $create_google_event = true;
+            }
+            
+            if ( ! $create_google_event ) {
+                self::debug_log( 'Google Calendar event creation disabled for this service - skipping', 'BOOKING' );
+                self::debug_log( '=== Booking Creator: create_google_event END ===', 'BOOKING' );
+                return ''; // Return empty string to indicate event creation was skipped
+            }
+        }
+
         // Check if Google Calendar class is available
         if ( ! class_exists( 'Simple_Booking_Google_Calendar' ) ) {
             self::debug_log( 'Google Calendar class not available - skipping event creation', 'BOOKING' );

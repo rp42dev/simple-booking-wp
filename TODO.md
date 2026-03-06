@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v1.15 (IN PROGRESS) → v1.16 (NEXT)
+v1.16 (IN PROGRESS) → v2.0 (NEXT)
 
 Core booking flow is operational.
 
@@ -245,7 +245,7 @@ intro sessions
 
 Allow multiple booking forms.
 
-Status: ✅ Implementation Complete (testing pending)
+Status: ✅ Implementation Complete and Tested
 
 Current shortcode:
 
@@ -280,6 +280,8 @@ Admin can copy shortcode and place it on pages.
 
 Improve calendar integration.
 
+Status: ✅ Implementation Complete
+
 ### Google Event Toggle
 
 Add service setting:
@@ -308,6 +310,16 @@ Email: john@email.com
 
 Meeting:
 https://zoom.us/j/xxxxx
+
+### Implementation Notes
+
+- New "Create Google Calendar Event" checkbox in service editor (default: enabled)
+- Service toggle defaults to true for backward compatibility
+- Event creation respects per-service toggle setting
+- Enhanced event description format with cleaner layout
+- Event description now shows "Booking:" instead of mixing fields
+- Meeting link section simplified to "Meeting:" with link below
+- Removed phone and time fields from description (time is in calendar event itself)
 
 ## v2.0 – Automation Integrations
 
