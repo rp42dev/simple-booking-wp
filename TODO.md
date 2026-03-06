@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v1.16 (IN PROGRESS) → v2.0 (NEXT)
+v2.0 (COMPLETED) → v2.1 (NEXT)
 
 Core booking flow is operational.
 
@@ -325,6 +325,8 @@ https://zoom.us/j/xxxxx
 
 Introduce automation compatibility.
 
+Status: ✅ Implementation Complete
+
 ### Webhook System
 
 Trigger event when booking is created.
@@ -359,6 +361,16 @@ Make
 CRM systems
 
 marketing automation
+
+### Implementation Notes
+
+- New "Webhook Settings" section in admin settings
+- Webhook URL field added with URL validation
+- Webhook sender class created (class-booking-webhook.php)
+- Webhook triggered after successful booking creation
+- Non-blocking implementation - failures don't break booking flow
+- Debug logging for webhook failures when debug mode enabled
+- Empty webhook URL safely skips webhook sending
 
 ## v2.1 – Booking Management Improvements
 

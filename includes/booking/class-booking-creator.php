@@ -83,6 +83,14 @@ class Simple_Booking_Booking_Creator {
             update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_id ) );
         }
 
+        // Send webhook notification (non-blocking, failures won't affect booking)
+        if ( class_exists( 'Simple_Booking_Booking_Webhook' ) ) {
+            $webhook_result = Simple_Booking_Booking_Webhook::send_booking_created( $data );
+            if ( is_wp_error( $webhook_result ) ) {
+                self::debug_log( 'Webhook failed: ' . $webhook_result->get_error_message(), 'BOOKING' );
+            }
+        }
+
         return $booking_id;
     }
 
