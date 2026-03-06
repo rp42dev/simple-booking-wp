@@ -64,6 +64,7 @@ class Simple_Booking_Post {
         add_filter( 'manage_edit-' . self::POST_TYPE . '_sortable_columns', array( __CLASS__, 'add_sortable_columns' ) );
         add_action( 'restrict_manage_posts', array( __CLASS__, 'add_admin_filters' ) );
         add_filter( 'parse_query', array( __CLASS__, 'filter_bookings_query' ) );
+        add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save_booking_meta' ), 10, 2 );
     }
 
     /**
@@ -313,6 +314,7 @@ class Simple_Booking_Post {
         $end_datetime    = get_post_meta( $post->ID, '_end_datetime', true );
         $stripe_payment_id = get_post_meta( $post->ID, '_stripe_payment_id', true );
         $google_event_id  = get_post_meta( $post->ID, '_google_event_id', true );
+        $meeting_link     = get_post_meta( $post->ID, '_meeting_link', true );
         $meeting_link_source = get_post_meta( $post->ID, '_meeting_link_source', true );
 
         // Get service name if available
@@ -361,6 +363,19 @@ class Simple_Booking_Post {
                 <td><?php echo esc_html( $google_event_id ); ?></td>
             </tr>
             <tr>
+                <th scope="row"><?php _e( 'Meeting Link', 'simple-booking' ); ?></th>
+                <td>
+                    <?php wp_nonce_field( 'simple_booking_meeting_link_nonce', 'simple_booking_meeting_link_nonce' ); ?>
+                    <input type="url"
+                           id="meeting_link"
+                           name="meeting_link"
+                           value="<?php echo esc_url( $meeting_link ); ?>"
+                           placeholder="https://meet.google.com/..."
+                           style="width: 100%; padding: 8px; margin-top: 4px;" />
+                    <p class="description"><?php _e( 'Edit or override the meeting link. Leave blank for none.', 'simple-booking' ); ?></p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><?php _e( 'Meeting Link Source', 'simple-booking' ); ?></th>
                 <td>
                     <?php
@@ -376,6 +391,34 @@ class Simple_Booking_Post {
             </tr>
         </table>
         <?php
+    }
+
+    /**
+     * Save booking meta from admin edit form
+     */
+    public static function save_booking_meta( $post_id, $post ) {
+        // Verify nonce
+        if ( ! isset( $_POST['simple_booking_meeting_link_nonce'] ) || 
+             ! wp_verify_nonce( $_POST['simple_booking_meeting_link_nonce'], 'simple_booking_meeting_link_nonce' ) ) {
+            return;
+        }
+
+        // Check user capability
+        if ( ! current_user_can( 'edit_post', $post_id ) ) {
+            return;
+        }
+
+        // Save meeting link if present
+        if ( isset( $_POST['meeting_link'] ) ) {
+            $meeting_link = sanitize_text_field( $_POST['meeting_link'] );
+            
+            // Validate as URL if not empty
+            if ( ! empty( $meeting_link ) && ! filter_var( $meeting_link, FILTER_VALIDATE_URL ) ) {
+                return; // Invalid URL, don't save
+            }
+
+            update_post_meta( $post_id, '_meeting_link', $meeting_link );
+        }
     }
 
     /**

@@ -543,6 +543,15 @@ Allow automatic meeting link creation with a per-service toggle.
     - `static` when service static meeting link is used
     - `none` when no meeting link exists
 
+### v2.3.8 Patch Notes
+
+- **Admin override capability:** Meeting Link field now editable in booking details metabox
+- Allows admins to manually fix/update meeting links if auto-generation failed or link is wrong
+- URL validation: invalid URLs are rejected, valid URLs and empty values accepted
+- Nonce protection: form submission validated with WordPress security tokens
+- Escape handling: URLs properly escaped and sanitized on input/output
+- Useful for support scenarios: admin can correct a broken link without recreating booking
+
 ### v2.3.7 Patch Notes
 
 - Fixed UI regression: Auto-Meet row dimming no longer affects other checkboxes
