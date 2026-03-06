@@ -152,10 +152,10 @@ class Simple_Booking_Service {
             $duration = 60;
         }
         if ( '' === $is_active ) {
-            $is_active = true;
+            $is_active = '1';
         }
         if ( '' === $create_google_event ) {
-            $create_google_event = true;
+            $create_google_event = '1';
         }
         ?>
         <table class="form-table">
@@ -211,7 +211,7 @@ class Simple_Booking_Service {
                            id="service_active"
                            name="service_active"
                            value="1"
-                           <?php checked( $is_active, true ); ?> />
+                           <?php checked( $is_active, '1' ); ?> />
                     <label for="service_active"><?php _e( 'Service is available for booking', 'simple-booking' ); ?></label>
                 </td>
             </tr>
@@ -224,7 +224,7 @@ class Simple_Booking_Service {
                            id="create_google_event"
                            name="create_google_event"
                            value="1"
-                           <?php checked( $create_google_event, true ); ?> />
+                           <?php checked( $create_google_event, '1' ); ?> />
                     <label for="create_google_event"><?php _e( 'Automatically create Google Calendar event for bookings', 'simple-booking' ); ?></label>
                 </td>
             </tr>
@@ -275,11 +275,11 @@ class Simple_Booking_Service {
         }
 
         // Save active status
-        $is_active = isset( $_POST['service_active'] ) ? true : false;
+        $is_active = isset( $_POST['service_active'] ) ? '1' : '0';
         update_post_meta( $post_id, '_service_active', $is_active );
 
         // Save Google event creation toggle
-        $create_google_event = isset( $_POST['create_google_event'] ) ? true : false;
+        $create_google_event = isset( $_POST['create_google_event'] ) ? '1' : '0';
         update_post_meta( $post_id, '_create_google_event', $create_google_event );
     }
 
@@ -294,7 +294,7 @@ class Simple_Booking_Service {
             'meta_query'     => array(
                 array(
                     'key'     => '_service_active',
-                    'value'   => true,
+                    'value'   => '1',
                     'compare' => '=',
                 ),
             ),
