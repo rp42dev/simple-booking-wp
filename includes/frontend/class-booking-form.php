@@ -598,6 +598,12 @@ class Simple_Booking_Form {
         if ( is_wp_error( $events ) ) {
             $debug[] = '[DEBUG]: get_existing_events error: ' . $events->get_error_message();
             wp_send_json_error( array( 'message' => $events->get_error_message(), 'debug' => $debug ) );
+
+                // Get service with availability settings
+                $service = Simple_Booking_Service::get_service( $service_id );
+                if ( ! $service ) {
+                    wp_send_json_error( array( 'message' => 'Service not found', 'debug' => $debug ) );
+                }
         }
 
         // build slots starting on each hour, respecting work hours if configured
@@ -659,6 +665,23 @@ class Simple_Booking_Form {
                 } else {
                     $reason = 'booked';
                     $debug[] = '[DEBUG]: slot from ' . $slotStart->format( DateTime::ATOM ) . ' to ' . $slotEnd->format( DateTime::ATOM ) . ' unavailable due to overlap';
+
+                            // Also check service availability settings (days, hours, buffer)
+                            if ( $available_flag ) {
+                                // Convert events to booking format for availability checker
+                                $existing_bookings = array_map( function( $event ) {
+                                    return array(
+                                        'start_datetime' => $event->start->dateTime ?: $event->start->date,
+                                        'end_datetime'   => $event->end->dateTime ?: $event->end->date,
+                                    );
+                                }, $events );
+
+                                $available_flag = Simple_Booking_Service::is_slot_available( $slotStart, $slotEnd, $service, $existing_bookings );
+                                if ( ! $available_flag ) {
+                                    $reason = 'unavailable';
+                                    $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' failed service availability check';
+                                }
+                            }
                 }
             }
 
