@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v2.2 (COMPLETED) → v2.3 (NEXT)
+v2.2.1 (IN PROGRESS) → v2.3 (NEXT)
 
 Core booking flow is operational.
 
@@ -430,6 +430,26 @@ Booking form now shows only available slots respecting all constraints.
 - Compatibility with global plugin scheduling settings
 - Existing bookings checked against buffer time to prevent overlap
 - Non-blocking implementation - uses service-level settings only if configured
+
+## v2.2.1 – Schedule Mode Hardening (Staged)
+
+Refine scheduling UX so global schedule and service schedule are explicit and non-conflicting.
+
+Status: 🟡 In Progress (Micro Stage 1 Complete)
+
+### Stage Plan
+
+- **Micro Stage 1 (Completed):** Add `Schedule Mode` to each service (`Inherit Global` / `Custom Service`)
+- **Micro Stage 2 (Next):** Hide/disable custom day/hour controls when mode is `Inherit`
+- **Micro Stage 3 (Next):** Per-day time ranges in structured format (separate intervals per weekday)
+- **Micro Stage 4 (Next):** "Effective Schedule" preview and conflict messaging in admin UI
+
+### Micro Stage 1 Notes
+
+- Added service-level `schedule_mode` meta with default `inherit`
+- Availability checks now apply service day/hour restrictions only in `custom` mode
+- Buffer enforcement remains active for both modes
+- Keeps backward compatibility with existing global Working Schedule
 
 ## v2.3 – Google Meet Auto Generation
 

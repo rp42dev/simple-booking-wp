@@ -169,6 +169,19 @@ class Simple_Booking_Service {
                 'default'      => 0,
             )
         );
+
+        // Schedule Mode (inherit global or custom per service)
+        register_post_meta(
+            self::POST_TYPE,
+            '_schedule_mode',
+            array(
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'sanitize_text_field',
+                'default'      => 'inherit',
+            )
+        );
     }
 
     /**
@@ -214,6 +227,7 @@ class Simple_Booking_Service {
         $available_hours_start = get_post_meta( $post->ID, '_available_hours_start', true );
         $available_hours_end = get_post_meta( $post->ID, '_available_hours_end', true );
         $buffer_time = get_post_meta( $post->ID, '_buffer_time', true );
+        $schedule_mode = get_post_meta( $post->ID, '_schedule_mode', true );
 
         // Default values
         if ( '' === $duration ) {
@@ -236,6 +250,9 @@ class Simple_Booking_Service {
         }
         if ( '' === $buffer_time ) {
             $buffer_time = 0;
+        }
+        if ( '' === $schedule_mode ) {
+            $schedule_mode = 'inherit';
         }
         ?>
         <table class="form-table">
@@ -312,6 +329,19 @@ class Simple_Booking_Service {
             <!-- Availability Settings -->
             <tr style="border-top: 2px solid #ddd; padding-top: 20px;">
                 <th colspan="2"><strong><?php _e( '⏰ Availability Settings', 'simple-booking' ); ?></strong></th>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="schedule_mode"><?php _e( 'Schedule Mode', 'simple-booking' ); ?></label>
+                </th>
+                <td>
+                    <select id="schedule_mode" name="schedule_mode">
+                        <option value="inherit" <?php selected( $schedule_mode, 'inherit' ); ?>><?php _e( 'Inherit Global Schedule', 'simple-booking' ); ?></option>
+                        <option value="custom" <?php selected( $schedule_mode, 'custom' ); ?>><?php _e( 'Use Custom Service Schedule', 'simple-booking' ); ?></option>
+                    </select>
+                    <p class="description"><?php _e( 'Inherit uses plugin Working Schedule. Custom applies day/hour rules below for this service.', 'simple-booking' ); ?></p>
+                </td>
             </tr>
 
             <tr>
@@ -468,6 +498,13 @@ class Simple_Booking_Service {
         if ( isset( $_POST['buffer_time'] ) ) {
             update_post_meta( $post_id, '_buffer_time', absint( $_POST['buffer_time'] ) );
         }
+
+        // Save schedule mode
+        $schedule_mode = isset( $_POST['schedule_mode'] ) ? sanitize_text_field( $_POST['schedule_mode'] ) : 'inherit';
+        if ( ! in_array( $schedule_mode, array( 'inherit', 'custom' ), true ) ) {
+            $schedule_mode = 'inherit';
+        }
+        update_post_meta( $post_id, '_schedule_mode', $schedule_mode );
     }
 
     /**
@@ -512,6 +549,7 @@ class Simple_Booking_Service {
             'available_hours_start' => get_post_meta( $post->ID, '_available_hours_start', true ),
             'available_hours_end'  => get_post_meta( $post->ID, '_available_hours_end', true ),
             'buffer_time'          => absint( get_post_meta( $post->ID, '_buffer_time', true ) ),
+            'schedule_mode'        => get_post_meta( $post->ID, '_schedule_mode', true ) ?: 'inherit',
         );
     }
 
@@ -525,24 +563,30 @@ class Simple_Booking_Service {
      * @return bool True if slot is available
      */
     public static function is_slot_available( DateTime $start, DateTime $end, array $service, array $existing_bookings = array() ) {
-        // Check if the day is available
-        $weekday = (int) $start->format( 'N' ); // 1=Mon, 7=Sun
-        $available_days = ! empty( $service['available_days'] ) ? $service['available_days'] : '1,2,3,4,5';
-        $available_days_arr = array_map( 'intval', explode( ',', trim( $available_days ) ) );
-        
-        if ( ! in_array( $weekday, $available_days_arr, true ) ) {
-            return false; // Day not available
-        }
+        $schedule_mode = isset( $service['schedule_mode'] ) && in_array( $service['schedule_mode'], array( 'inherit', 'custom' ), true )
+            ? $service['schedule_mode']
+            : 'inherit';
 
-        // Check if the time is within available hours
-        $available_hours_start = ! empty( $service['available_hours_start'] ) ? $service['available_hours_start'] : '09:00';
-        $available_hours_end = ! empty( $service['available_hours_end'] ) ? $service['available_hours_end'] : '17:00';
+        if ( 'custom' === $schedule_mode ) {
+            // Check if the day is available
+            $weekday = (int) $start->format( 'N' ); // 1=Mon, 7=Sun
+            $available_days = ! empty( $service['available_days'] ) ? $service['available_days'] : '1,2,3,4,5';
+            $available_days_arr = array_map( 'intval', explode( ',', trim( $available_days ) ) );
 
-        $start_time = $start->format( 'H:i' );
-        $end_time = $end->format( 'H:i' );
+            if ( ! in_array( $weekday, $available_days_arr, true ) ) {
+                return false;
+            }
 
-        if ( $start_time < $available_hours_start || $end_time > $available_hours_end ) {
-            return false; // Outside available hours
+            // Check if the time is within available hours
+            $available_hours_start = ! empty( $service['available_hours_start'] ) ? $service['available_hours_start'] : '09:00';
+            $available_hours_end = ! empty( $service['available_hours_end'] ) ? $service['available_hours_end'] : '17:00';
+
+            $start_time = $start->format( 'H:i' );
+            $end_time = $end->format( 'H:i' );
+
+            if ( $start_time < $available_hours_start || $end_time > $available_hours_end ) {
+                return false;
+            }
         }
 
         // Check buffer time with existing bookings
