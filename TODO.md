@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v1.12 (IN PROGRESS) → v1.13 (NEXT)
+v1.13 (IN PROGRESS) → v1.14 (NEXT)
 
 Core booking flow is operational.
 
@@ -115,7 +115,7 @@ Success page should later support dynamic booking display.
 
 Allow services to define external meeting links.
 
-Status: ✅ Implementation Complete (testing pending)
+Status: ✅ Implementation Complete and Tested
 
 Add service field:
 
@@ -158,10 +158,13 @@ https://zoom.us/j/xxxxx
 - Meeting link included in confirmation emails
 - Meeting link included in Google Calendar event descriptions
 - Optional field with graceful fallback if empty
+- Tested and confirmed working in production
 
 ## v1.13 – Email Customization
 
 Allow administrators to edit booking emails.
+
+Status: ✅ Implementation Complete (testing pending)
 
 Add settings fields:
 
@@ -175,6 +178,8 @@ Support template variables:
 {booking_date}
 {booking_time}
 {meeting_link}
+{timezone}
+{site_name}
 
 Example template:
 
@@ -191,6 +196,16 @@ Join your meeting:
 Thank you.
 
 Templates should be stored in WordPress options.
+
+### Implementation Notes
+
+- New "Email Customization" section in admin settings
+- Email subject field with template variable support
+- Email body textarea with template variable support
+- Template variables replaced at email send time
+- Graceful fallback to default email format if templates not set
+- Date formatting: `{booking_date}` as "March 6, 2026", `{booking_time}` as "2:30 PM"
+- Empty meeting links handled cleanly
 
 ## v1.14 – Free Booking Support
 

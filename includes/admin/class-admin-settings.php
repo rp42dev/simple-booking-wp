@@ -188,6 +188,39 @@ class Simple_Booking_Admin_Settings {
             self::PAGE_SLUG,
             'simple_booking_hours'
         );
+
+        // Email Customization
+        add_settings_section(
+            'simple_booking_email',
+            __( 'Email Customization', 'simple-booking' ),
+            array( $this, 'render_email_section' ),
+            self::PAGE_SLUG
+        );
+
+        add_settings_field(
+            'email_subject',
+            __( 'Email Subject', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_email',
+            array(
+                'name'        => 'email_subject',
+                'placeholder' => 'Booking Confirmed - {service_name}',
+            )
+        );
+
+        add_settings_field(
+            'email_body',
+            __( 'Email Body Template', 'simple-booking' ),
+            array( $this, 'render_textarea_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_email',
+            array(
+                'name'        => 'email_body',
+                'placeholder' => "Dear {customer_name},\n\nYour booking has been confirmed!\n\nService: {service_name}\nDate: {booking_date}\nTime: {booking_time}\n\nMeeting Link: {meeting_link}\n\nThank you!",
+                'rows'        => 10,
+            )
+        );
     }
 
     /**
@@ -214,6 +247,12 @@ class Simple_Booking_Admin_Settings {
 
         // Debug toggle
         $sanitized['debug_mode'] = ! empty( $input['debug_mode'] ) ? 1 : 0;
+
+        // Email customization
+        $sanitized['email_subject'] = isset( $input['email_subject'] ) ?
+            sanitize_text_field( $input['email_subject'] ) : '';
+        $sanitized['email_body'] = isset( $input['email_body'] ) ?
+            sanitize_textarea_field( $input['email_body'] ) : '';
 
         // Working schedule: per-day enabled and start/end times
         $sanitized['schedule'] = array();
@@ -366,6 +405,14 @@ class Simple_Booking_Admin_Settings {
     }
 
     /**
+     * Render Email section
+     */
+    public function render_email_section() {
+        echo '<p>' . __( 'Customize the confirmation email sent to customers after booking.', 'simple-booking' ) . '</p>';
+        echo '<p>' . __( 'Available template variables:', 'simple-booking' ) . ' <code>{customer_name}</code>, <code>{service_name}</code>, <code>{booking_date}</code>, <code>{booking_time}</code>, <code>{meeting_link}</code>, <code>{timezone}</code></p>';
+    }
+
+    /**
      * Render working days checkboxes (unused but kept for backward compatibility)
      */
     public function render_working_days() {
@@ -459,6 +506,21 @@ class Simple_Booking_Admin_Settings {
                value="<?php echo esc_attr( $value ); ?>"
                placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
                class="regular-text" />
+        <?php
+    }
+
+    /**
+     * Render textarea field
+     */
+    public function render_textarea_field( $args ) {
+        $options = get_option( 'simple_booking_settings', array() );
+        $value   = isset( $options[ $args['name'] ] ) ? $options[ $args['name'] ] : '';
+        $rows    = isset( $args['rows'] ) ? $args['rows'] : 5;
+        ?>
+        <textarea name="simple_booking_settings[<?php echo esc_attr( $args['name'] ); ?>]"
+                  rows="<?php echo esc_attr( $rows ); ?>"
+                  class="large-text code"
+                  placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
         <?php
     }
 

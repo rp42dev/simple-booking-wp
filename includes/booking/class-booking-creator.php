@@ -133,8 +133,6 @@ class Simple_Booking_Booking_Creator {
             return;
         }
 
-        $subject = get_bloginfo( 'name' ) . ' - Booking Confirmed';
-
         $customer_name   = get_post_meta( $booking_id, '_customer_name', true );
         $service_id      = get_post_meta( $booking_id, '_service_id', true );
         $start_datetime = get_post_meta( $booking_id, '_start_datetime', true );
@@ -146,27 +144,63 @@ class Simple_Booking_Booking_Creator {
 
         $timezone = wp_timezone_string();
 
-        $meeting_info = '';
-        if ( ! empty( $meeting_link ) ) {
-            $meeting_info = sprintf( "\n\nMeeting Link:\n%s", $meeting_link );
+        // Parse datetime for template variables
+        $timezone_obj = wp_timezone();
+        $start_dt = new DateTime( $start_datetime, $timezone_obj );
+        $booking_date = $start_dt->format( 'F j, Y' ); // e.g., "March 6, 2026"
+        $booking_time = $start_dt->format( 'g:i A' );  // e.g., "2:30 PM"
+
+        // Get custom templates from settings (or use defaults)
+        $email_subject = simple_booking()->get_setting( 'email_subject', '' );
+        $email_body = simple_booking()->get_setting( 'email_body', '' );
+
+        // Default templates if not set
+        if ( empty( $email_subject ) ) {
+            $email_subject = get_bloginfo( 'name' ) . ' - Booking Confirmed';
         }
 
-        $message = sprintf(
-            "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s%s\n\nThank you for your booking.\n\n%s",
-            $customer_name,
-            $service_name,
-            $start_datetime,
-            $end_datetime,
-            $timezone,
-            $meeting_info,
-            get_bloginfo( 'name' )
-        );
+        if ( empty( $email_body ) ) {
+            $meeting_info = '';
+            if ( ! empty( $meeting_link ) ) {
+                $meeting_info = sprintf( "\n\nMeeting Link:\n%s", $meeting_link );
+            }
+
+            $email_body = sprintf(
+                "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s%s\n\nThank you for your booking.\n\n%s",
+                $customer_name,
+                $service_name,
+                $start_datetime,
+                $end_datetime,
+                $timezone,
+                $meeting_info,
+                get_bloginfo( 'name' )
+            );
+        } else {
+            // Replace template variables
+            $variables = array(
+                '{customer_name}' => $customer_name,
+                '{service_name}'  => $service_name,
+                '{booking_date}'  => $booking_date,
+                '{booking_time}'  => $booking_time,
+                '{meeting_link}'  => ! empty( $meeting_link ) ? $meeting_link : '',
+                '{timezone}'      => $timezone,
+                '{site_name}'     => get_bloginfo( 'name' ),
+            );
+
+            $email_subject = str_replace( array_keys( $variables ), array_values( $variables ), $email_subject );
+            $email_body = str_replace( array_keys( $variables ), array_values( $variables ), $email_body );
+
+            // Remove meeting link line if empty
+            if ( empty( $meeting_link ) ) {
+                $email_body = preg_replace( '/Meeting Link:\s*\n/', '', $email_body );
+            }
+        }
 
         $headers = array(
             'Content-Type: text/plain; charset=UTF-8',
             'From: ' . get_bloginfo( 'name' ) . ' <' . get_option( 'admin_email' ) . '>',
         );
 
-        wp_mail( $to, $subject, $message, $headers );
+        wp_mail( $to, $email_subject, $email_body, $headers );
     }
 }

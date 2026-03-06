@@ -5,7 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.12] - In Progress
+## [1.13] - In Progress
+
+### Added
+- **Email Customization**: Administrators can customize email subject and body templates
+- **Template Variables**: Support for dynamic variables in emails: `{customer_name}`, `{service_name}`, `{booking_date}`, `{booking_time}`, `{meeting_link}`, `{timezone}`, `{site_name}`
+- **Admin UI**: New settings section for email customization with subject and body fields
+- **Default Templates**: Falls back to original email format if no custom template is set
+
+### Technical
+- **Settings Fields**: New `email_subject` and `email_body` settings
+- **Variable Replacement**: Template engine replaces variables at email send time
+- **Graceful Fallback**: Empty meeting links handled cleanly in templates
+- **Date Formatting**: `{booking_date}` formatted as "March 6, 2026", `{booking_time}` as "2:30 PM"
+
+---
+
+## [1.12] - 2026-03-06
 
 ### Added
 - **Meeting Link Support**: Services can now include external meeting links (Zoom, Google Meet, etc.)
