@@ -61,6 +61,7 @@
 				const bufferInput = document.querySelector( `.day-buffer[data-day="${day}"]` );
 
 				if ( checkbox.checked ) {
+
 					// Day is enabled
 					row.style.opacity = '1';
 					row.style.backgroundColor = '';

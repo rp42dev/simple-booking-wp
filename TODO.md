@@ -435,7 +435,7 @@ Booking form now shows only available slots respecting all constraints.
 
 Refine scheduling UX so global schedule and service schedule are explicit and non-conflicting.
 
-Status: 🟡 In Progress (Micro Stage 3 Complete)
+Status: ✅ Complete (Micro Stage 4 Complete - v2.2.5 Released)
 
 ### Stage Plan
 
@@ -443,6 +443,7 @@ Status: 🟡 In Progress (Micro Stage 3 Complete)
 - **Micro Stage 2 (Completed):** Hide/disable custom day/hour controls when mode is `Inherit`
 - **Micro Stage 3 (Completed):** Per-day time ranges in structured format (separate intervals per weekday)
 - **Micro Stage 4 (Next):** "Effective Schedule" preview and conflict messaging in admin UI
+- **Micro Stage 4 (Completed):** "Effective Schedule" preview displaying effective availability in admin UI
 
 ### Micro Stage 1 Notes
 
@@ -470,13 +471,20 @@ Status: 🟡 In Progress (Micro Stage 3 Complete)
 
 ### Admin Global Schedule Additions (v2.2.4)
 
-- Added per-day buffer field to global Working Schedule settings (same as service-level)
-- Admin can now set different buffer times for each day (e.g., Mon 30min, Wed no buffer)
-- Updated admin UI to match service-level table format (Day, Open, Start, End, Buffer)
-- JavaScript dims/disables fields for closed days in admin settings
-- When services use "Inherit Global" mode, they now respect both global timing AND per-day buffers
-- is_slot_available() function now accepts optional global_schedule parameter
-- Frontend passes global schedule to availability checker for inherit mode buffer calculation
+
+### Micro Stage 4 Notes
+
+- Added "Effective Schedule Preview" section to service editor
+- Read-only preview table showing what the final effective availability will be
+- For "Inherit Global" mode: displays global Working Schedule (Days, Open/Closed, Hours, Buffer)
+- For "Custom Service Schedule" mode: displays service-level per-day schedule
+- Color-coded status: Green "✓ Open" vs Red "✗ Closed" for visual clarity
+- Open days show hours and buffer time; closed days show "—" (dashes)
+- Preview updates in real-time as admin changes schedule settings
+- JavaScript: updateSchedulePreview() triggers on mode toggle and any day/time/buffer change
+- Admin PHP method: build_schedule_preview() generates preview HTML table
+- Helps admin understand final availability before saving service
+- New method: Simple_Booking_Service::build_schedule_preview( $mode, $schedule )
 
 ## v2.3 – Google Meet Auto Generation
 

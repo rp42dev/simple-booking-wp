@@ -214,6 +214,75 @@ class Simple_Booking_Service {
         );
     }
 
+        /**
+         * Build effective schedule preview HTML (read-only)
+         *
+         * @param string $schedule_mode 'inherit' or 'custom'
+         * @param array $service_schedule Service schedule (for custom mode)
+         * @return string HTML for preview table
+         */
+        public static function build_schedule_preview( $schedule_mode, $service_schedule = array() ) {
+            $days = array(
+                '1' => __( 'Monday', 'simple-booking' ),
+                '2' => __( 'Tuesday', 'simple-booking' ),
+                '3' => __( 'Wednesday', 'simple-booking' ),
+                '4' => __( 'Thursday', 'simple-booking' ),
+                '5' => __( 'Friday', 'simple-booking' ),
+                '6' => __( 'Saturday', 'simple-booking' ),
+                '7' => __( 'Sunday', 'simple-booking' ),
+            );
+
+            // Use service schedule if custom, otherwise use default
+            if ( 'custom' === $schedule_mode ) {
+                $schedule = ! empty( $service_schedule ) ? $service_schedule : self::get_default_schedule();
+            } else {
+                $schedule = self::get_default_schedule();
+            }
+
+            $html = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
+            $html .= '<thead>';
+            $html .= '<tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd;">';
+            $html .= '<th style="padding: 10px; text-align: left; width: 15%; border: 1px solid #ddd;">' . __( 'Day', 'simple-booking' ) . '</th>';
+            $html .= '<th style="padding: 10px; text-align: center; width: 10%; border: 1px solid #ddd;">' . __( 'Status', 'simple-booking' ) . '</th>';
+            $html .= '<th style="padding: 10px; text-align: center; width: 20%; border: 1px solid #ddd;">' . __( 'Hours', 'simple-booking' ) . '</th>';
+            $html .= '<th style="padding: 10px; text-align: center; width: 20%; border: 1px solid #ddd;">' . __( 'Buffer', 'simple-booking' ) . '</th>';
+            $html .= '</tr>';
+            $html .= '</thead>';
+            $html .= '<tbody>';
+
+            foreach ( $days as $day_num => $day_name ) {
+                $day_data = $schedule[ $day_num ] ?? array();
+                $is_enabled = $day_data['enabled'] ?? false;
+                $start_time = $day_data['start'] ?? '09:00';
+                $end_time = $day_data['end'] ?? '17:00';
+                $buffer = $day_data['buffer'] ?? 0;
+
+                if ( $is_enabled ) {
+                    $status = '<span style="color: #28a745; font-weight: bold;">✓ Open</span>';
+                    $hours = esc_html( $start_time . ' – ' . $end_time );
+                    $buffer_text = $buffer > 0 ? esc_html( $buffer . ' min' ) : '—';
+                    $row_style = 'background-color: #f9fff9;';
+                } else {
+                    $status = '<span style="color: #dc3545; font-weight: bold;">✗ Closed</span>';
+                    $hours = '—';
+                    $buffer_text = '—';
+                    $row_style = 'background-color: #fff5f5; opacity: 0.7;';
+                }
+
+                $html .= '<tr style="border-bottom: 1px solid #eee; ' . $row_style . '">';
+                $html .= '<td style="padding: 10px; border: 1px solid #ddd;"><strong>' . esc_html( $day_name ) . '</strong></td>';
+                $html .= '<td style="padding: 10px; text-align: center; border: 1px solid #ddd;">' . $status . '</td>';
+                $html .= '<td style="padding: 10px; text-align: center; border: 1px solid #ddd;">' . $hours . '</td>';
+                $html .= '<td style="padding: 10px; text-align: center; border: 1px solid #ddd;">' . $buffer_text . '</td>';
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody>';
+            $html .= '</table>';
+
+            return $html;
+        }
+
     /**
      * Sanitize service schedule (per-day format)
      *
@@ -530,6 +599,31 @@ class Simple_Booking_Service {
             </tbody>
             <tr>
                 <th scope="row"><?php _e( 'Service Shortcode', 'simple-booking' ); ?></th>
+                <tr style="border-top: 2px solid #ddd;">
+                    <th colspan="2"><strong><?php _e( '📅 Effective Schedule Preview', 'simple-booking' ); ?></strong></th>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding: 10px;">
+                        <div id="schedule-preview-container">
+                            <?php
+                            // Generate initial preview
+                            echo self::build_schedule_preview( $schedule_mode, $service_schedule );
+                            ?>
+                        </div>
+                        <p class="description" style="margin-top: 15px;">
+                            <?php
+                            if ( 'inherit' === $schedule_mode ) {
+                                _e( 'This service uses the global Working Schedule. Effective availability is determined by plugin-level settings.', 'simple-booking' );
+                            } else {
+                                _e( 'This service uses custom availability. Shows your configured per-day schedule above.', 'simple-booking' );
+                            }
+                            ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row"><?php _e( 'Service Shortcode', 'simple-booking' ); ?></th>
                 <td>
                     <code>[simple_booking_form service_id="<?php echo esc_attr( $post->ID ); ?>"]</code>
                     <p class="description"><?php _e( 'Use this shortcode to show a booking form for this service only.', 'simple-booking' ); ?></p>
