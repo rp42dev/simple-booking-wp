@@ -93,8 +93,13 @@
             });
         }
 
-        // initialize datepicker with disabled weekdays
+        // initialize date input (jQuery UI datepicker with native fallback)
         (function() {
+            var dateInput = $('#booking_date');
+            if (!dateInput.length) {
+                return;
+            }
+
             // compute disabled weekday indexes (0=Sunday..6)
             var disabled = [];
             if (simpleBooking.schedule) {
@@ -110,21 +115,42 @@
                     }
                 });
             }
-            $('#booking_date').datepicker({
-                dateFormat: 'yy-mm-dd',
-                minDate: simpleBooking.minDate || null,
-                beforeShowDay: function(date) {
-                    var wd = date.getDay();
-                    if (disabled.indexOf(wd) !== -1) {
-                        return [false, 'unavailable'];
-                    }
-                    return [true, ''];
-                },
-                onSelect: function() {
+
+            var initialized = false;
+            if ($.fn && typeof $.fn.datepicker === 'function') {
+                try {
+                    dateInput.datepicker({
+                        dateFormat: 'yy-mm-dd',
+                        minDate: simpleBooking.minDate || null,
+                        beforeShowDay: function(date) {
+                            var wd = date.getDay();
+                            if (disabled.indexOf(wd) !== -1) {
+                                return [false, 'unavailable'];
+                            }
+                            return [true, ''];
+                        },
+                        onSelect: function() {
+                            loadSlots();
+                            clearEndEstimate();
+                        }
+                    });
+                    initialized = true;
+                } catch (e) {
+                    console.warn('Datepicker init failed, falling back to native date input', e);
+                }
+            }
+
+            if (!initialized) {
+                dateInput.prop('readonly', false);
+                dateInput.attr('type', 'date');
+                if (simpleBooking.minDate) {
+                    dateInput.attr('min', simpleBooking.minDate);
+                }
+                dateInput.on('change', function() {
                     loadSlots();
                     clearEndEstimate();
-                }
-            });
+                });
+            }
         })();
 
         // pick up changes
