@@ -65,6 +65,7 @@ class Simple_Booking_Post {
         add_action( 'restrict_manage_posts', array( __CLASS__, 'add_admin_filters' ) );
         add_filter( 'parse_query', array( __CLASS__, 'filter_bookings_query' ) );
         add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save_booking_meta' ), 10, 2 );
+        add_action( 'admin_notices', array( __CLASS__, 'maybe_show_admin_notices' ) );
     }
 
     /**
@@ -410,15 +411,44 @@ class Simple_Booking_Post {
 
         // Save meeting link if present
         if ( isset( $_POST['meeting_link'] ) ) {
-            $meeting_link = sanitize_text_field( $_POST['meeting_link'] );
+            $meeting_link = trim( wp_unslash( $_POST['meeting_link'] ) );
             
             // Validate as URL if not empty
             if ( ! empty( $meeting_link ) && ! filter_var( $meeting_link, FILTER_VALIDATE_URL ) ) {
-                return; // Invalid URL, don't save
+                add_filter( 'redirect_post_location', array( __CLASS__, 'add_invalid_meeting_link_query_arg' ) );
+                return;
             }
 
-            update_post_meta( $post_id, '_meeting_link', $meeting_link );
+            update_post_meta( $post_id, '_meeting_link', esc_url_raw( $meeting_link ) );
         }
+    }
+
+    /**
+     * Add meeting link validation error to redirect location
+     */
+    public static function add_invalid_meeting_link_query_arg( $location ) {
+        return add_query_arg( 'sb_meeting_link_error', 'invalid_url', $location );
+    }
+
+    /**
+     * Show admin notices for booking edit actions
+     */
+    public static function maybe_show_admin_notices() {
+        if ( ! function_exists( 'get_current_screen' ) ) {
+            return;
+        }
+
+        $screen = get_current_screen();
+        if ( ! $screen || self::POST_TYPE !== $screen->post_type ) {
+            return;
+        }
+
+        $error = isset( $_GET['sb_meeting_link_error'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_meeting_link_error'] ) ) : '';
+        if ( 'invalid_url' !== $error ) {
+            return;
+        }
+
+        echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Meeting Link was not saved. Please enter a valid URL including http:// or https://.', 'simple-booking' ) . '</p></div>';
     }
 
     /**

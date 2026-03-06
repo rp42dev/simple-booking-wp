@@ -552,6 +552,13 @@ Allow automatic meeting link creation with a per-service toggle.
 - Escape handling: URLs properly escaped and sanitized on input/output
 - Useful for support scenarios: admin can correct a broken link without recreating booking
 
+### v2.3.9 Patch Notes
+
+- Added visible admin error notice when Meeting Link save fails URL validation
+- Invalid URL now redirects back with explicit feedback instead of silent failure
+- Notice text guides admin to include `http://` or `https://`
+- Save path now normalizes input with `wp_unslash()` + `trim()` and stores via `esc_url_raw()`
+
 ### v2.3.7 Patch Notes
 
 - Fixed UI regression: Auto-Meet row dimming no longer affects other checkboxes
