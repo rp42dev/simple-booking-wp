@@ -11,6 +11,45 @@ v2.4.0 (RELEASED) → v3.0 (NEXT)
 
 Core booking flow is operational.
 
+## Release Control (Mandatory Before New Feature Work)
+
+Before starting any new implementation milestone, complete this checklist:
+
+1. **Version Sync**
+    - `simple-booking.php` header version matches `SIMPLE_BOOKING_VERSION`
+    - `README.md` current release matches shipped tag
+
+2. **Changelog Sync**
+    - Add release entry in `CHANGELOG.md` using Keep a Changelog sections
+    - Include Added/Changed/Fixed with short business-facing notes
+
+3. **Roadmap Sync**
+    - Update `TODO.md` Current Version line
+    - Mark completed stage/micro-stage status
+    - Add/adjust next immediate stage so there is always one clear next target
+
+4. **Git Release Sync**
+    - Commit on `main`
+    - Merge `main` → `master`
+    - Push `master`
+    - Create and push release tag
+    - Return to `main`
+
+## Roadmap Exit & Next-Roadmap Planning
+
+When a roadmap milestone is completed (example: v3.x phase finish), immediately do:
+
+1. **Milestone Closure**
+    - Add a short “What shipped / What validated / What deferred” note in `TODO.md`
+
+2. **Next Roadmap Draft**
+    - Define next major milestone with 3-6 micro stages
+    - Add one-line acceptance criteria per stage
+    - Order stages by dependency (data model → business logic → UI → polish)
+
+3. **Kickoff Gate**
+    - Start next roadmap only after Release Control checklist above is fully complete
+
 ## Implemented Features
 
 ✔ Services Custom Post Type

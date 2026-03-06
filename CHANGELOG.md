@@ -5,6 +5,96 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Planned
+- v3.0 kickoff in micro-stages: staff data model, staff-aware availability, timezone rendering, reschedule/cancel workflow
+
+## [2.4.0] - 2026-03-06
+
+### Added
+- Booking admin now shows a success notice when a valid Meeting Link is saved
+
+### Changed
+- Booking edit notices now provide both positive (saved) and negative (invalid URL) feedback
+
+## [2.3.9] - 2026-03-06
+
+### Added
+- Visible admin error notice when booking Meeting Link fails URL validation
+
+### Changed
+- Meeting Link save path normalizes and sanitizes values using `wp_unslash()`, `trim()`, and `esc_url_raw()`
+
+## [2.3.8] - 2026-03-06
+
+### Added
+- Booking details now support manual Meeting Link override (editable URL field)
+
+### Security
+- Nonce-validated save path for booking Meeting Link edits
+
+## [2.3.7] - 2026-03-06
+
+### Fixed
+- Auto-Meet dependency dimming now targets only relevant label/input controls (no visual bleed)
+
+## [2.3.6] - 2026-03-06
+
+### Changed
+- Auto-Meet checkbox disabled when Google Event creation is off to enforce prerequisite dependency
+
+## [2.3.5] - 2026-03-06
+
+### Fixed
+- Meeting Link disable state now depends only on Auto-Meet (business-rule correction)
+
+## [2.3.4] - 2026-03-06
+
+### Fixed
+- Corrected service-editor lock behavior for Meeting Link input under toggle state combinations
+
+## [2.3.3] - 2026-03-06
+
+### Added
+- Booking-level meeting link source audit metadata: `generated`, `static`, `none`
+- Admin booking list column and booking details display for source tracking
+
+## [2.3.2] - 2026-03-06
+
+### Changed
+- Service editor visually disables/dims static Meeting Link when auto-generated Meet mode is active
+
+## [2.3.1] - 2026-03-06
+
+### Added
+- Service editor guidance text clarifying generated Meet precedence over static links
+
+## [2.3.0] - 2026-03-06
+
+### Added
+- Optional per-service auto-generated Google Meet links during Google Calendar event creation
+- Booking-level storage and email usage of generated meeting links
+
+## [2.2.7] - 2026-03-06
+
+### Added
+- Live effective schedule preview updates while editing service schedule mode and per-day values
+
+## [2.2.6] - 2026-03-06
+
+### Fixed
+- Inherited schedule preview now correctly reflects global day buffers and configured hours
+
+## [2.2.5] - 2026-03-06
+
+### Added
+- Effective schedule preview UI for service editor (inherit/custom visibility)
+
+---
+
+## Legacy Release Notes
+
 ## [1.15] - In Progress
 
 ### Added
