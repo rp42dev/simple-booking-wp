@@ -214,14 +214,59 @@ class Simple_Booking_Service {
         );
     }
 
-        /**
-         * Build effective schedule preview HTML (read-only)
-         *
-         * @param string $schedule_mode 'inherit' or 'custom'
-         * @param array $service_schedule Service schedule (for custom mode)
-         * @return string HTML for preview table
-         */
-        public static function build_schedule_preview( $schedule_mode, $service_schedule = array() ) {
+    /**
+     * Get global schedule normalized to numeric day keys used by service schedule
+     *
+     * @return array
+     */
+    private static function get_global_schedule_for_preview() {
+        $default_schedule = self::get_default_schedule();
+
+        if ( ! function_exists( 'simple_booking' ) ) {
+            return $default_schedule;
+        }
+
+        $global_schedule = simple_booking()->get_setting( 'schedule', array() );
+        if ( empty( $global_schedule ) || ! is_array( $global_schedule ) ) {
+            return $default_schedule;
+        }
+
+        $map = array(
+            '1' => 'monday',
+            '2' => 'tuesday',
+            '3' => 'wednesday',
+            '4' => 'thursday',
+            '5' => 'friday',
+            '6' => 'saturday',
+            '7' => 'sunday',
+        );
+
+        $normalized = array();
+        foreach ( $map as $day_num => $day_name ) {
+            $default_day = $default_schedule[ $day_num ];
+            $day_data = isset( $global_schedule[ $day_name ] ) && is_array( $global_schedule[ $day_name ] )
+                ? $global_schedule[ $day_name ]
+                : array();
+
+            $normalized[ $day_num ] = array(
+                'enabled' => ! empty( $day_data['enabled'] ),
+                'start'   => ! empty( $day_data['start'] ) ? sanitize_text_field( $day_data['start'] ) : $default_day['start'],
+                'end'     => ! empty( $day_data['end'] ) ? sanitize_text_field( $day_data['end'] ) : $default_day['end'],
+                'buffer'  => isset( $day_data['buffer'] ) ? absint( $day_data['buffer'] ) : $default_day['buffer'],
+            );
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Build effective schedule preview HTML (read-only)
+     *
+     * @param string $schedule_mode 'inherit' or 'custom'
+     * @param array $service_schedule Service schedule (for custom mode)
+     * @return string HTML for preview table
+     */
+    public static function build_schedule_preview( $schedule_mode, $service_schedule = array() ) {
             $days = array(
                 '1' => __( 'Monday', 'simple-booking' ),
                 '2' => __( 'Tuesday', 'simple-booking' ),
@@ -232,11 +277,11 @@ class Simple_Booking_Service {
                 '7' => __( 'Sunday', 'simple-booking' ),
             );
 
-            // Use service schedule if custom, otherwise use default
+            // Use service schedule if custom, otherwise use global admin schedule
             if ( 'custom' === $schedule_mode ) {
                 $schedule = ! empty( $service_schedule ) ? $service_schedule : self::get_default_schedule();
             } else {
-                $schedule = self::get_default_schedule();
+                $schedule = self::get_global_schedule_for_preview();
             }
 
             $html = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
@@ -597,33 +642,30 @@ class Simple_Booking_Service {
                 </td>
             </tr>
             </tbody>
+            <tr style="border-top: 2px solid #ddd;">
+                <th colspan="2"><strong><?php _e( '📅 Effective Schedule Preview', 'simple-booking' ); ?></strong></th>
+            </tr>
+            <tr>
+                <td colspan="2" style="padding: 10px;">
+                    <div id="schedule-preview-container">
+                        <?php
+                        echo self::build_schedule_preview( $schedule_mode, $service_schedule );
+                        ?>
+                    </div>
+                    <p class="description" style="margin-top: 15px;">
+                        <?php
+                        if ( 'inherit' === $schedule_mode ) {
+                            _e( 'This service uses the global Working Schedule. Effective availability is determined by plugin-level settings.', 'simple-booking' );
+                        } else {
+                            _e( 'This service uses custom availability. Shows your configured per-day schedule above.', 'simple-booking' );
+                        }
+                        ?>
+                    </p>
+                </td>
+            </tr>
+
             <tr>
                 <th scope="row"><?php _e( 'Service Shortcode', 'simple-booking' ); ?></th>
-                <tr style="border-top: 2px solid #ddd;">
-                    <th colspan="2"><strong><?php _e( '📅 Effective Schedule Preview', 'simple-booking' ); ?></strong></th>
-                </tr>
-                <tr>
-                    <td colspan="2" style="padding: 10px;">
-                        <div id="schedule-preview-container">
-                            <?php
-                            // Generate initial preview
-                            echo self::build_schedule_preview( $schedule_mode, $service_schedule );
-                            ?>
-                        </div>
-                        <p class="description" style="margin-top: 15px;">
-                            <?php
-                            if ( 'inherit' === $schedule_mode ) {
-                                _e( 'This service uses the global Working Schedule. Effective availability is determined by plugin-level settings.', 'simple-booking' );
-                            } else {
-                                _e( 'This service uses custom availability. Shows your configured per-day schedule above.', 'simple-booking' );
-                            }
-                            ?>
-                        </p>
-                    </td>
-                </tr>
-
-                <tr>
-                    <th scope="row"><?php _e( 'Service Shortcode', 'simple-booking' ); ?></th>
                 <td>
                     <code>[simple_booking_form service_id="<?php echo esc_attr( $post->ID ); ?>"]</code>
                     <p class="description"><?php _e( 'Use this shortcode to show a booking form for this service only.', 'simple-booking' ); ?></p>

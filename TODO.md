@@ -486,6 +486,12 @@ Status: ✅ Complete (Micro Stage 4 Complete - v2.2.5 Released)
 - Helps admin understand final availability before saving service
 - New method: Simple_Booking_Service::build_schedule_preview( $mode, $schedule )
 
+### v2.2.6 Patch Notes
+
+- Fixed Inherit mode preview to read actual global Working Schedule values (including per-day buffer)
+- Effective Schedule Preview now shows inherited buffer minutes correctly instead of defaults/dashes
+- Cleaned preview table markup around Service Shortcode row
+
 ## v2.3 – Google Meet Auto Generation
 
 Allow automatic meeting link creation.
