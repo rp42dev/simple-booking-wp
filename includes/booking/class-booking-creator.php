@@ -144,11 +144,17 @@ class Simple_Booking_Booking_Creator {
 
         $timezone = wp_timezone_string();
 
-        // Parse datetime for template variables
-        $timezone_obj = wp_timezone();
-        $start_dt = new DateTime( $start_datetime, $timezone_obj );
-        $booking_date = $start_dt->format( 'F j, Y' ); // e.g., "March 6, 2026"
-        $booking_time = $start_dt->format( 'g:i A' );  // e.g., "2:30 PM"
+        // Parse datetime for template variables (fail-safe)
+        $booking_date = $start_datetime;
+        $booking_time = $start_datetime;
+        try {
+            $timezone_obj = wp_timezone();
+            $start_dt = new DateTime( $start_datetime, $timezone_obj );
+            $booking_date = $start_dt->format( 'F j, Y' ); // e.g., "March 6, 2026"
+            $booking_time = $start_dt->format( 'g:i A' );  // e.g., "2:30 PM"
+        } catch ( Exception $e ) {
+            self::debug_log( 'Email template datetime parse failed: ' . $e->getMessage(), 'EMAIL' );
+        }
 
         // Get custom templates from settings (or use defaults)
         $email_subject = simple_booking()->get_setting( 'email_subject', '' );
@@ -194,6 +200,22 @@ class Simple_Booking_Booking_Creator {
             if ( empty( $meeting_link ) ) {
                 $email_body = preg_replace( '/Meeting Link:\s*\n/', '', $email_body );
             }
+        }
+
+        // Final guardrails: never send empty subject/body
+        if ( empty( trim( $email_subject ) ) ) {
+            $email_subject = get_bloginfo( 'name' ) . ' - Booking Confirmed';
+        }
+        if ( empty( trim( $email_body ) ) ) {
+            $email_body = sprintf(
+                "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s\n\nThank you for your booking.\n\n%s",
+                $customer_name,
+                $service_name,
+                $start_datetime,
+                $end_datetime,
+                $timezone,
+                get_bloginfo( 'name' )
+            );
         }
 
         $headers = array(
