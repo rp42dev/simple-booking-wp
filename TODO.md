@@ -468,6 +468,16 @@ Status: 🟡 In Progress (Micro Stage 3 Complete)
 - Availability checker reads per-day schedule: checks if day enabled, validates time range, applies per-day buffer
 - Backward compatible: old format still supported, defaults to standard 9-17 all weekdays if no per-day schedule exists
 
+### Admin Global Schedule Additions (v2.2.4)
+
+- Added per-day buffer field to global Working Schedule settings (same as service-level)
+- Admin can now set different buffer times for each day (e.g., Mon 30min, Wed no buffer)
+- Updated admin UI to match service-level table format (Day, Open, Start, End, Buffer)
+- JavaScript dims/disables fields for closed days in admin settings
+- When services use "Inherit Global" mode, they now respect both global timing AND per-day buffers
+- is_slot_available() function now accepts optional global_schedule parameter
+- Frontend passes global schedule to availability checker for inherit mode buffer calculation
+
 ## v2.3 – Google Meet Auto Generation
 
 Allow automatic meeting link creation.

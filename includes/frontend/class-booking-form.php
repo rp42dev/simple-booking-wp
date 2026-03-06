@@ -72,7 +72,16 @@ class Simple_Booking_Form {
                         'enabled' => in_array( (string) ( $i + 1 ), (array) $old_days, true ) ? 1 : 0,
                         'start'   => $old_start,
                         'end'     => $old_end,
+                        'buffer'  => 0,
                     );
+                }
+            }
+        } else {
+            // Ensure buffer field exists for all days
+            $names = array( 'monday','tuesday','wednesday','thursday','friday','saturday','sunday' );
+            foreach ( $names as $name ) {
+                if ( ! isset( $schedule[ $name ]['buffer'] ) ) {
+                    $schedule[ $name ]['buffer'] = 0;
                 }
             }
         }
@@ -676,7 +685,10 @@ class Simple_Booking_Form {
                                     );
                                 }, $events );
 
-                                $available_flag = Simple_Booking_Service::is_slot_available( $slotStart, $slotEnd, $service, $existing_bookings );
+                                // Get global schedule for inherit mode buffer checking
+                                $global_schedule = simple_booking()->get_setting( 'schedule', array() );
+
+                                $available_flag = Simple_Booking_Service::is_slot_available( $slotStart, $slotEnd, $service, $existing_bookings, $global_schedule );
                                 if ( ! $available_flag ) {
                                     $reason = 'unavailable';
                                     $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' failed service availability check';

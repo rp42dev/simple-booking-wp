@@ -684,9 +684,10 @@ class Simple_Booking_Service {
      * @param DateTime $end End datetime
      * @param array $service Service array with availability settings
      * @param array $existing_bookings Array of existing bookings to check for conflicts
+     * @param array $global_schedule Optional global working schedule
      * @return bool True if slot is available
      */
-    public static function is_slot_available( DateTime $start, DateTime $end, array $service, array $existing_bookings = array() ) {
+    public static function is_slot_available( DateTime $start, DateTime $end, array $service, array $existing_bookings = array(), array $global_schedule = array() ) {
         $schedule_mode = isset( $service['schedule_mode'] ) && in_array( $service['schedule_mode'], array( 'inherit', 'custom' ), true )
             ? $service['schedule_mode']
             : 'inherit';
@@ -740,22 +741,35 @@ class Simple_Booking_Service {
                 }
             }
         } else {
-            // Inherit mode: only check buffer time, skip day/hour restrictions
-            if ( ! empty( $existing_bookings ) ) {
-                $buffer_time = isset( $service['buffer_time'] ) ? absint( $service['buffer_time'] ) : 0;
+            // Inherit mode: use global schedule with its per-day buffers
+            if ( ! empty( $existing_bookings ) && ! empty( $global_schedule ) ) {
+                // Map weekday number to day name for lookup
+                $state = $start->format( 'w' );
+                $weekday_names = array( 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday' );
+                $day_name = $weekday_names[ $state ] ?? 'monday';
 
-                foreach ( $existing_bookings as $booking ) {
-                    $booking_start = new DateTime( $booking['start_datetime'] );
-                    $booking_end = new DateTime( $booking['end_datetime'] );
+                // Get global schedule for this day
+                if ( isset( $global_schedule[ $day_name ] ) ) {
+                    $day_schedule = $global_schedule[ $day_name ];
+                    $day_buffer = $day_schedule['buffer'] ?? 0;
 
-                    // Check if new booking starts before existing booking ends + buffer
-                    if ( $buffer_time > 0 ) {
-                        $booking_end->modify( "+{$buffer_time} minutes" );
-                    }
+                    foreach ( $existing_bookings as $booking ) {
+                        $booking_start = new DateTime( $booking['start_datetime'] );
+                        $booking_end = new DateTime( $booking['end_datetime'] );
 
-                    // Check for conflict
-                    if ( $start < $booking_end && $end > $booking_start ) {
-                        return false;
+                        // Check if new booking starts before existing booking ends + buffer
+                        if ( $day_buffer > 0 ) {
+                            $booking_end_copy = clone $booking_end;
+                            $booking_end_copy->modify( "+{$day_buffer} minutes" );
+                            if ( $start < $booking_end_copy && $end > $booking_start ) {
+                                return false;
+                            }
+                        } else {
+                            // Check for direct conflict
+                            if ( $start < $booking_end && $end > $booking_start ) {
+                                return false;
+                            }
+                        }
                     }
                 }
             }

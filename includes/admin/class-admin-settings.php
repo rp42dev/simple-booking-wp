@@ -279,7 +279,7 @@ class Simple_Booking_Admin_Settings {
         $sanitized['webhook_url'] = isset( $input['webhook_url'] ) ?
             esc_url_raw( $input['webhook_url'] ) : '';
 
-        // Working schedule: per-day enabled and start/end times
+        // Working schedule: per-day enabled, start/end times, and buffer
         $sanitized['schedule'] = array();
         $days = array( 'monday','tuesday','wednesday','thursday','friday','saturday','sunday' );
         if ( isset( $input['schedule'] ) && is_array( $input['schedule'] ) ) {
@@ -288,6 +288,7 @@ class Simple_Booking_Admin_Settings {
                     'enabled' => 0,
                     'start'   => '',
                     'end'     => '',
+                    'buffer'  => 0,
                 );
                 if ( isset( $input['schedule'][ $day ] ) && is_array( $input['schedule'][ $day ] ) ) {
                     $item['enabled'] = ! empty( $input['schedule'][ $day ]['enabled'] ) ? 1 : 0;
@@ -296,6 +297,9 @@ class Simple_Booking_Admin_Settings {
                     }
                     if ( ! empty( $input['schedule'][ $day ]['end'] ) && preg_match( '/^\d{2}:\d{2}$/', $input['schedule'][ $day ]['end'] ) ) {
                         $item['end'] = sanitize_text_field( $input['schedule'][ $day ]['end'] );
+                    }
+                    if ( ! empty( $input['schedule'][ $day ]['buffer'] ) ) {
+                        $item['buffer'] = absint( $input['schedule'][ $day ]['buffer'] );
                     }
                 }
                 $sanitized['schedule'][ $day ] = $item;
@@ -482,22 +486,64 @@ class Simple_Booking_Admin_Settings {
             'saturday'  => __( 'Saturday', 'simple-booking' ),
             'sunday'    => __( 'Sunday', 'simple-booking' ),
         );
-        echo '<table class="form-table" id="schedule-table"><tbody>';
+        echo '<table class="form-table" style="width: 100%; border-collapse: collapse;"><thead>';
+        echo '<tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd;">';
+        echo '<th style="padding: 10px; text-align: left; width: 15%;">' . esc_html( __( 'Day', 'simple-booking' ) ) . '</th>';
+        echo '<th style="padding: 10px; text-align: center; width: 10%;">' . esc_html( __( 'Open', 'simple-booking' ) ) . '</th>';
+        echo '<th style="padding: 10px; text-align: center; width: 20%;">' . esc_html( __( 'Start Time', 'simple-booking' ) ) . '</th>';
+        echo '<th style="padding: 10px; text-align: center; width: 20%;">' . esc_html( __( 'End Time', 'simple-booking' ) ) . '</th>';
+        echo '<th style="padding: 10px; text-align: center; width: 20%;">' . esc_html( __( 'Buffer (min)', 'simple-booking' ) ) . '</th>';
+        echo '</tr>';
+        echo '</thead><tbody>';
         foreach ( $days as $key => $label ) {
             $item = isset( $schedule[ $key ] ) ? $schedule[ $key ] : array();
             $enabled = ! empty( $item['enabled'] );
             $start = isset( $item['start'] ) ? $item['start'] : '';
             $end   = isset( $item['end'] ) ? $item['end'] : '';
-            echo '<tr>';
-            echo '<th scope="row">' . esc_html( $label ) . '</th>';
-            echo '<td>';
-            echo '<label><input type="checkbox" name="simple_booking_settings[schedule][' . esc_attr( $key ) . '][enabled]" value="1" ' . checked( $enabled, true, false ) . '> ' . __( 'Open', 'simple-booking' ) . '</label> ';
-            echo '<input type="time" name="simple_booking_settings[schedule][' . esc_attr( $key ) . '][start]" value="' . esc_attr( $start ) . '" class="small-text" placeholder="08:00"> &ndash; ';
-            echo '<input type="time" name="simple_booking_settings[schedule][' . esc_attr( $key ) . '][end]" value="' . esc_attr( $end ) . '" class="small-text" placeholder="17:00">';
-            echo '</td>';
+            $buffer = isset( $item['buffer'] ) ? absint( $item['buffer'] ) : 0;
+            $row_style = $enabled ? '' : 'opacity: 0.6; background-color: #fafafa;';
+            echo '<tr style="border-bottom: 1px solid #eee; ' . esc_attr( $row_style ) . '">';
+            echo '<td style="padding: 10px;"><strong>' . esc_html( $label ) . '</strong></td>';
+            echo '<td style="padding: 10px; text-align: center;"><input type="checkbox" name="simple_booking_settings[schedule][' . esc_attr( $key ) . '][enabled]" value="1" class="day-enabled-checkbox" data-day="' . esc_attr( $key ) . '" ' . checked( $enabled, true, false ) . '></td>';
+            echo '<td style="padding: 10px; text-align: center;"><input type="time" name="simple_booking_settings[schedule][' . esc_attr( $key ) . '][start]" value="' . esc_attr( $start ) . '" class="day-start-time" data-day="' . esc_attr( $key ) . '" style="width: 100px;"></td>';
+            echo '<td style="padding: 10px; text-align: center;"><input type="time" name="simple_booking_settings[schedule][' . esc_attr( $key ) . '][end]" value="' . esc_attr( $end ) . '" class="day-end-time" data-day="' . esc_attr( $key ) . '" style="width: 100px;"></td>';
+            echo '<td style="padding: 10px; text-align: center;"><input type="number" name="simple_booking_settings[schedule][' . esc_attr( $key ) . '][buffer]" value="' . esc_attr( $buffer ) . '" min="0" step="5" class="day-buffer" data-day="' . esc_attr( $key ) . '" style="width: 80px; text-align: center;"></td>';
             echo '</tr>';
         }
         echo '</tbody></table>';
+        ?>
+        <script>
+        ( function() {
+            const enabledCheckboxes = document.querySelectorAll( '.day-enabled-checkbox' );
+            enabledCheckboxes.forEach( ( checkbox ) => {
+                function updateDayRow() {
+                    const day = checkbox.getAttribute( 'data-day' );
+                    const row = checkbox.closest( 'tr' );
+                    const startInput = document.querySelector( `.day-start-time[data-day="${day}"]` );
+                    const endInput = document.querySelector( `.day-end-time[data-day="${day}"]` );
+                    const bufferInput = document.querySelector( `.day-buffer[data-day="${day}"]` );
+
+                    if ( checkbox.checked ) {
+                        row.style.opacity = '1';
+                        row.style.backgroundColor = '';
+                        if ( startInput ) startInput.disabled = false;
+                        if ( endInput ) endInput.disabled = false;
+                        if ( bufferInput ) bufferInput.disabled = false;
+                    } else {
+                        row.style.opacity = '0.6';
+                        row.style.backgroundColor = '#fafafa';
+                        if ( startInput ) startInput.disabled = true;
+                        if ( endInput ) endInput.disabled = true;
+                        if ( bufferInput ) bufferInput.disabled = true;
+                    }
+                }
+
+                updateDayRow();
+                checkbox.addEventListener( 'change', updateDayRow );
+            } );
+        } )();
+        </script>
+        <?php
     }
 
     /**
