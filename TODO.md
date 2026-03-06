@@ -533,6 +533,16 @@ Allow automatic meeting link creation with a per-service toggle.
 - Preserves existing static link value as fallback (value is not deleted)
 - Reduces admin confusion about which link is active for new bookings
 
+### v2.3.3 Patch Notes
+
+- Added booking-level audit metadata: `_meeting_link_source` (`generated`, `static`, `none`)
+- Booking list now shows new **Meeting Link Source** column
+- Booking details screen now displays Meeting Link Source value
+- Source logic:
+    - `generated` when Google Meet is auto-created and saved on booking
+    - `static` when service static meeting link is used
+    - `none` when no meeting link exists
+
 ## v3.0 – Advanced Booking Platform
 
 Major expansion of system.

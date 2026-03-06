@@ -77,6 +77,7 @@ class Simple_Booking_Post {
         $columns['service']        = __( 'Service', 'simple-booking' );
         $columns['customer']       = __( 'Customer', 'simple-booking' );
         $columns['booking_date']   = __( 'Booking Date', 'simple-booking' );
+        $columns['meeting_source'] = __( 'Meeting Link Source', 'simple-booking' );
         $columns['payment_status'] = __( 'Payment', 'simple-booking' );
 
         return $columns;
@@ -136,6 +137,17 @@ class Simple_Booking_Post {
                     echo '<span style="color: #46b450;">● ' . __( 'Paid', 'simple-booking' ) . '</span>';
                 } else {
                     echo '<span style="color: #00a0d2;">● ' . __( 'Free', 'simple-booking' ) . '</span>';
+                }
+                break;
+
+            case 'meeting_source':
+                $meeting_source = get_post_meta( $post_id, '_meeting_link_source', true );
+                if ( 'generated' === $meeting_source ) {
+                    echo '<span style="color: #46b450;">● ' . __( 'Generated (Google Meet)', 'simple-booking' ) . '</span>';
+                } elseif ( 'static' === $meeting_source ) {
+                    echo '<span style="color: #00a0d2;">● ' . __( 'Static Service Link', 'simple-booking' ) . '</span>';
+                } else {
+                    echo '<span style="color: #666;">● ' . __( 'None', 'simple-booking' ) . '</span>';
                 }
                 break;
         }
@@ -237,6 +249,18 @@ class Simple_Booking_Post {
             )
         );
 
+        // Booking Meeting Link Source: generated|static|none
+        register_post_meta(
+            self::POST_TYPE,
+            '_meeting_link_source',
+            array(
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'sanitize_text_field',
+            )
+        );
+
         // Stripe Payment ID
         register_post_meta(
             self::POST_TYPE,
@@ -289,6 +313,7 @@ class Simple_Booking_Post {
         $end_datetime    = get_post_meta( $post->ID, '_end_datetime', true );
         $stripe_payment_id = get_post_meta( $post->ID, '_stripe_payment_id', true );
         $google_event_id  = get_post_meta( $post->ID, '_google_event_id', true );
+        $meeting_link_source = get_post_meta( $post->ID, '_meeting_link_source', true );
 
         // Get service name if available
         $service_name = '';
@@ -334,6 +359,20 @@ class Simple_Booking_Post {
             <tr>
                 <th scope="row"><?php _e( 'Google Event ID', 'simple-booking' ); ?></th>
                 <td><?php echo esc_html( $google_event_id ); ?></td>
+            </tr>
+            <tr>
+                <th scope="row"><?php _e( 'Meeting Link Source', 'simple-booking' ); ?></th>
+                <td>
+                    <?php
+                    if ( 'generated' === $meeting_link_source ) {
+                        echo esc_html__( 'Generated (Google Meet)', 'simple-booking' );
+                    } elseif ( 'static' === $meeting_link_source ) {
+                        echo esc_html__( 'Static Service Link', 'simple-booking' );
+                    } else {
+                        echo esc_html__( 'None', 'simple-booking' );
+                    }
+                    ?>
+                </td>
             </tr>
         </table>
         <?php

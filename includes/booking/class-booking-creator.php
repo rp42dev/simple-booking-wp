@@ -76,6 +76,10 @@ class Simple_Booking_Booking_Creator {
             return $booking_id;
         }
 
+        // Record initial meeting link source from payload
+        $initial_meeting_source = ! empty( $data['meeting_link'] ) ? 'static' : 'none';
+        update_post_meta( $booking_id, '_meeting_link_source', $initial_meeting_source );
+
         // Try to create Google Calendar event
         $google_event_result = self::create_google_event( $data );
 
@@ -86,6 +90,7 @@ class Simple_Booking_Booking_Creator {
                 }
                 if ( ! empty( $google_event_result['meeting_link'] ) ) {
                     update_post_meta( $booking_id, '_meeting_link', esc_url_raw( $google_event_result['meeting_link'] ) );
+                    update_post_meta( $booking_id, '_meeting_link_source', 'generated' );
                 }
             } else {
                 update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_result ) );
