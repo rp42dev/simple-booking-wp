@@ -543,6 +543,13 @@ Allow automatic meeting link creation with a per-service toggle.
     - `static` when service static meeting link is used
     - `none` when no meeting link exists
 
+### v2.3.5 Patch Notes
+
+- **Corrected** auto-meet behavior: Meeting Link field disabled based **only** on Auto-Meet state
+- Business rule clarification: Auto-Meet toggle controls the static link field (when ON, field is locked; when OFF, field is editable)
+- Google Calendar Event setting is orthogonal—does not affect Meeting Link field disable state
+- Simplified JavaScript toggle logic (removed unnecessary dependency on create_google_event checkbox)
+
 ### v2.3.4 Patch Notes
 
 - Fixed Meeting Link input lock condition in service editor
