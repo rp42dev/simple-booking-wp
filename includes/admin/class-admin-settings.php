@@ -221,6 +221,27 @@ class Simple_Booking_Admin_Settings {
                 'rows'        => 10,
             )
         );
+
+        // Webhook Settings
+        add_settings_section(
+            'simple_booking_webhook',
+            __( 'Webhook Settings', 'simple-booking' ),
+            array( $this, 'render_webhook_section' ),
+            self::PAGE_SLUG
+        );
+
+        add_settings_field(
+            'webhook_url',
+            __( 'Webhook URL', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_webhook',
+            array(
+                'name'        => 'webhook_url',
+                'placeholder' => 'https://example.com/webhook',
+                'description' => __( 'Optional endpoint for future booking.created automation.', 'simple-booking' ),
+            )
+        );
     }
 
     /**
@@ -253,6 +274,10 @@ class Simple_Booking_Admin_Settings {
             sanitize_text_field( $input['email_subject'] ) : '';
         $sanitized['email_body'] = isset( $input['email_body'] ) ?
             sanitize_textarea_field( $input['email_body'] ) : '';
+
+        // Webhook
+        $sanitized['webhook_url'] = isset( $input['webhook_url'] ) ?
+            esc_url_raw( $input['webhook_url'] ) : '';
 
         // Working schedule: per-day enabled and start/end times
         $sanitized['schedule'] = array();
@@ -413,6 +438,13 @@ class Simple_Booking_Admin_Settings {
     }
 
     /**
+     * Render Webhook section
+     */
+    public function render_webhook_section() {
+        echo '<p>' . __( 'Configure automation endpoint settings.', 'simple-booking' ) . '</p>';
+    }
+
+    /**
      * Render working days checkboxes (unused but kept for backward compatibility)
      */
     public function render_working_days() {
@@ -506,6 +538,9 @@ class Simple_Booking_Admin_Settings {
                value="<?php echo esc_attr( $value ); ?>"
                placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
                class="regular-text" />
+        <?php if ( ! empty( $args['description'] ) ) : ?>
+            <p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+        <?php endif; ?>
         <?php
     }
 
