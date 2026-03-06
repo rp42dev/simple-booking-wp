@@ -113,6 +113,7 @@ class Simple_Booking_Stripe_Webhook {
             'end_datetime'    => $end_datetime,
             'stripe_payment_id' => $session->id,
             'meeting_link'    => isset( $service['meeting_link'] ) ? $service['meeting_link'] : '',
+            'auto_google_meet' => isset( $service['auto_google_meet'] ) ? $service['auto_google_meet'] : '0',
         );
 
         // Create booking

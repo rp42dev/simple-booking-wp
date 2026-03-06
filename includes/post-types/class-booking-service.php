@@ -118,6 +118,19 @@ class Simple_Booking_Service {
             )
         );
 
+        // Auto Generate Google Meet Link Toggle
+        register_post_meta(
+            self::POST_TYPE,
+            '_auto_google_meet',
+            array(
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => array( __CLASS__, 'sanitize_checkbox_value' ),
+                'default'      => '0',
+            )
+        );
+
         // Available Days (comma-separated: 1-7 for Mon-Sun)
         register_post_meta(
             self::POST_TYPE,
@@ -429,6 +442,7 @@ class Simple_Booking_Service {
         $meeting_link = get_post_meta( $post->ID, '_meeting_link', true );
         $is_active    = get_post_meta( $post->ID, '_service_active', true );
         $create_google_event = get_post_meta( $post->ID, '_create_google_event', true );
+        $auto_google_meet = get_post_meta( $post->ID, '_auto_google_meet', true );
         $available_days = get_post_meta( $post->ID, '_available_days', true );
         $available_hours_start = get_post_meta( $post->ID, '_available_hours_start', true );
         $available_hours_end = get_post_meta( $post->ID, '_available_hours_end', true );
@@ -447,6 +461,9 @@ class Simple_Booking_Service {
         }
         if ( '' === $create_google_event ) {
             $create_google_event = '1';
+        }
+        if ( '' === $auto_google_meet ) {
+            $auto_google_meet = '0';
         }
         if ( '' === $available_days ) {
             $available_days = '1,2,3,4,5';
@@ -532,6 +549,20 @@ class Simple_Booking_Service {
                            value="1"
                            <?php checked( $create_google_event, '1' ); ?> />
                     <label for="create_google_event"><?php _e( 'Automatically create Google Calendar event for bookings', 'simple-booking' ); ?></label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="auto_google_meet"><?php _e( 'Auto-Create Google Meet Link', 'simple-booking' ); ?></label>
+                </th>
+                <td>
+                    <input type="checkbox"
+                           id="auto_google_meet"
+                           name="auto_google_meet"
+                           value="1"
+                           <?php checked( $auto_google_meet, '1' ); ?> />
+                    <label for="auto_google_meet"><?php _e( 'Generate Google Meet link when creating Google Calendar events', 'simple-booking' ); ?></label>
+                    <p class="description"><?php _e( 'Requires "Create Google Calendar Event" enabled and connected Google Calendar account.', 'simple-booking' ); ?></p>
                 </td>
             </tr>
 
@@ -720,6 +751,10 @@ class Simple_Booking_Service {
         $create_google_event = isset( $_POST['create_google_event'] ) ? '1' : '0';
         update_post_meta( $post_id, '_create_google_event', $create_google_event );
 
+        // Save auto Google Meet toggle
+        $auto_google_meet = isset( $_POST['auto_google_meet'] ) ? '1' : '0';
+        update_post_meta( $post_id, '_auto_google_meet', $auto_google_meet );
+
         // Save available days
         if ( isset( $_POST['available_days_check'] ) && is_array( $_POST['available_days_check'] ) ) {
             $days = array_map( 'absint', $_POST['available_days_check'] );
@@ -806,6 +841,7 @@ class Simple_Booking_Service {
             'meeting_link'         => get_post_meta( $post->ID, '_meeting_link', true ),
             'is_active'            => get_post_meta( $post->ID, '_service_active', true ),
             'create_google_event'  => get_post_meta( $post->ID, '_create_google_event', true ),
+            'auto_google_meet'     => get_post_meta( $post->ID, '_auto_google_meet', true ) ?: '0',
             'available_days'       => get_post_meta( $post->ID, '_available_days', true ),
             'available_hours_start' => get_post_meta( $post->ID, '_available_hours_start', true ),
             'available_hours_end'  => get_post_meta( $post->ID, '_available_hours_end', true ),

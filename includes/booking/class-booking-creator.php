@@ -77,10 +77,19 @@ class Simple_Booking_Booking_Creator {
         }
 
         // Try to create Google Calendar event
-        $google_event_id = self::create_google_event( $data );
+        $google_event_result = self::create_google_event( $data );
 
-        if ( ! is_wp_error( $google_event_id ) && ! empty( $google_event_id ) ) {
-            update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_id ) );
+        if ( ! is_wp_error( $google_event_result ) && ! empty( $google_event_result ) ) {
+            if ( is_array( $google_event_result ) ) {
+                if ( ! empty( $google_event_result['event_id'] ) ) {
+                    update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_result['event_id'] ) );
+                }
+                if ( ! empty( $google_event_result['meeting_link'] ) ) {
+                    update_post_meta( $booking_id, '_meeting_link', esc_url_raw( $google_event_result['meeting_link'] ) );
+                }
+            } else {
+                update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_result ) );
+            }
         }
 
         // Send webhook notification (non-blocking, failures won't affect booking)
@@ -141,6 +150,11 @@ class Simple_Booking_Booking_Creator {
             self::debug_log( 'ERROR: create_event returned WP_Error: ' . $result->get_error_code() . ' - ' . $result->get_error_message(), 'BOOKING' );
         } elseif ( empty( $result ) ) {
             self::debug_log( 'WARNING: create_event returned empty (no event ID)', 'BOOKING' );
+        } elseif ( is_array( $result ) ) {
+            self::debug_log( 'SUCCESS: Google event ID: ' . ( isset( $result['event_id'] ) ? $result['event_id'] : '' ), 'BOOKING' );
+            if ( ! empty( $result['meeting_link'] ) ) {
+                self::debug_log( 'SUCCESS: Google Meet link generated', 'BOOKING' );
+            }
         } else {
             self::debug_log( 'SUCCESS: Google event ID: ' . $result, 'BOOKING' );
         }
@@ -165,7 +179,10 @@ class Simple_Booking_Booking_Creator {
 
         $service = get_post( $service_id );
         $service_name = $service ? $service->post_title : '';
-        $meeting_link = get_post_meta( $service_id, '_meeting_link', true );
+        $meeting_link = get_post_meta( $booking_id, '_meeting_link', true );
+        if ( empty( $meeting_link ) ) {
+            $meeting_link = get_post_meta( $service_id, '_meeting_link', true );
+        }
 
         $timezone = wp_timezone_string();
 

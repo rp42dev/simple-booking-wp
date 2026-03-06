@@ -388,12 +388,27 @@ class Simple_Booking_Google_Calendar {
             ),
         );
 
+        $auto_google_meet_enabled = isset( $booking_data['auto_google_meet'] ) && '1' === (string) $booking_data['auto_google_meet'];
+        if ( $auto_google_meet_enabled ) {
+            $event['conferenceData'] = array(
+                'createRequest' => array(
+                    'requestId' => wp_generate_uuid4(),
+                    'conferenceSolutionKey' => array(
+                        'type' => 'hangoutsMeet',
+                    ),
+                ),
+            );
+        }
+
         $this->debug_log( 'Event payload: ' . json_encode( $event ), 'EVENT' );
 
         $url = sprintf(
             'https://www.googleapis.com/calendar/v3/calendars/%s/events',
             urlencode( $calendar_id )
         );
+        if ( $auto_google_meet_enabled ) {
+            $url = add_query_arg( 'conferenceDataVersion', '1', $url );
+        }
 
         $this->debug_log( 'API URL: ' . $url, 'EVENT' );
         $this->debug_log( 'Authorization header: Bearer ' . substr( $access_token, 0, 20 ) . '...', 'EVENT' );
@@ -427,10 +442,29 @@ class Simple_Booking_Google_Calendar {
         }
 
         $event_id = isset( $body['id'] ) ? $body['id'] : null;
+        $meeting_link = '';
+
+        if ( ! empty( $body['hangoutLink'] ) ) {
+            $meeting_link = esc_url_raw( $body['hangoutLink'] );
+        } elseif ( ! empty( $body['conferenceData']['entryPoints'] ) && is_array( $body['conferenceData']['entryPoints'] ) ) {
+            foreach ( $body['conferenceData']['entryPoints'] as $entry_point ) {
+                if ( isset( $entry_point['entryPointType'], $entry_point['uri'] ) && 'video' === $entry_point['entryPointType'] ) {
+                    $meeting_link = esc_url_raw( $entry_point['uri'] );
+                    break;
+                }
+            }
+        }
+
         $this->debug_log( 'Created event ID: ' . $event_id, 'EVENT' );
+        if ( ! empty( $meeting_link ) ) {
+            $this->debug_log( 'Generated Meet link: ' . $meeting_link, 'EVENT' );
+        }
         $this->debug_log( '=== create_event END ===', 'EVENT' );
 
-        return $event_id;
+        return array(
+            'event_id'     => $event_id,
+            'meeting_link' => $meeting_link,
+        );
     }
 
     /**

@@ -225,6 +225,18 @@ class Simple_Booking_Post {
             )
         );
 
+        // Booking Meeting Link
+        register_post_meta(
+            self::POST_TYPE,
+            '_meeting_link',
+            array(
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'esc_url_raw',
+            )
+        );
+
         // Stripe Payment ID
         register_post_meta(
             self::POST_TYPE,
@@ -378,6 +390,9 @@ class Simple_Booking_Post {
         update_post_meta( $post_id, '_start_datetime', sanitize_text_field( $data['start_datetime'] ) );
         update_post_meta( $post_id, '_end_datetime', sanitize_text_field( $data['end_datetime'] ) );
         update_post_meta( $post_id, '_stripe_payment_id', sanitize_text_field( $data['stripe_payment_id'] ) );
+        if ( ! empty( $data['meeting_link'] ) ) {
+            update_post_meta( $post_id, '_meeting_link', esc_url_raw( $data['meeting_link'] ) );
+        }
 
         if ( ! empty( $data['google_event_id'] ) ) {
             update_post_meta( $post_id, '_google_event_id', sanitize_text_field( $data['google_event_id'] ) );

@@ -443,6 +443,7 @@ class Simple_Booking_Form {
                 'start_datetime'    => $booking_datetime,
                 'end_datetime'      => $end_datetime,
                 'meeting_link'      => isset( $service['meeting_link'] ) ? $service['meeting_link'] : '',
+                'auto_google_meet'  => isset( $service['auto_google_meet'] ) ? $service['auto_google_meet'] : '0',
                 'stripe_payment_id' => '',
             );
 

@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v2.2.1 (IN PROGRESS) → v2.3 (NEXT)
+v2.3.0 (RELEASED) → v3.0 (NEXT)
 
 Core booking flow is operational.
 
@@ -501,19 +501,26 @@ Status: ✅ Complete (Micro Stage 4 Complete - v2.2.5 Released)
 
 ## v2.3 – Google Meet Auto Generation
 
-Allow automatic meeting link creation.
+Status: ✅ Released (v2.3.0)
 
-When Google event is created:
+Allow automatic meeting link creation with a per-service toggle.
 
-generate Google Meet link automatically
+### Implemented
 
-Requires Google Calendar API conferenceData.
+- Added service-level toggle: **Auto-Create Google Meet Link**
+- Meet generation runs only when:
+    - service has **Create Google Calendar Event** enabled, and
+    - service has **Auto-Create Google Meet Link** enabled
+- Google event creation now requests `conferenceData` (`hangoutsMeet`)
+- Generated Meet link is extracted from Google API response and stored on booking
+- Confirmation email now prefers booking-level meeting link (generated Meet), then falls back to static service meeting link
+- Works for both paid (Stripe webhook) and free-booking flows
 
-Generated link should appear in:
+### Notes
 
-confirmation email
-
-calendar event
+- Existing services remain backward compatible (`auto_google_meet` defaults to off)
+- Google Meet links are now booking-specific when auto-generated
+- Event creation still works without Meet when toggle is disabled
 
 ## v3.0 – Advanced Booking Platform
 
