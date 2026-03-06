@@ -98,6 +98,38 @@
 	}
 
 	/**
+	 * Toggle static meeting link field when auto Google Meet is enabled
+	 */
+	function initAutoMeetToggle() {
+		const autoMeetInput = document.getElementById( 'auto_google_meet' );
+		const meetingLinkInput = document.getElementById( 'meeting_link' );
+
+		if ( ! autoMeetInput || ! meetingLinkInput ) {
+			return;
+		}
+
+		const meetingLinkRow = meetingLinkInput.closest( 'tr' );
+
+		function updateMeetingLinkState() {
+			const autoMeetEnabled = autoMeetInput.checked;
+
+			meetingLinkInput.disabled = autoMeetEnabled;
+			meetingLinkInput.setAttribute( 'aria-disabled', autoMeetEnabled ? 'true' : 'false' );
+
+			if ( meetingLinkRow ) {
+				meetingLinkRow.style.opacity = autoMeetEnabled ? '0.65' : '1';
+			}
+
+			meetingLinkInput.title = autoMeetEnabled
+				? 'Auto Google Meet is enabled. Static link is kept as fallback and will not be used for new generated Meet bookings.'
+				: '';
+		}
+
+		updateMeetingLinkState();
+		autoMeetInput.addEventListener( 'change', updateMeetingLinkState );
+	}
+
+	/**
 	 * Parse JSON from hidden input safely
 	 */
 	function parseHiddenJson( inputId ) {
@@ -215,11 +247,13 @@
 	// Initialize when DOM is ready
 	if ( 'loading' === document.readyState ) {
 		document.addEventListener( 'DOMContentLoaded', function() {
+			initAutoMeetToggle();
 			initScheduleModeToggle();
 			initPerDayScheduleUI();
 			updateSchedulePreview();
 		} );
 	} else {
+		initAutoMeetToggle();
 		initScheduleModeToggle();
 		initPerDayScheduleUI();
 		updateSchedulePreview();

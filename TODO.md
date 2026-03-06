@@ -527,6 +527,12 @@ Allow automatic meeting link creation with a per-service toggle.
 - Added service editor hint under Meeting Link clarifying Auto-Meet precedence
 - Clarifies that generated per-booking Google Meet link overrides static Meeting Link in confirmations when enabled
 
+### v2.3.2 Patch Notes
+
+- Service editor now disables/dims static Meeting Link input when Auto-Create Google Meet Link is enabled
+- Preserves existing static link value as fallback (value is not deleted)
+- Reduces admin confusion about which link is active for new bookings
+
 ## v3.0 – Advanced Booking Platform
 
 Major expansion of system.
