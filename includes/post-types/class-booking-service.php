@@ -197,6 +197,30 @@ class Simple_Booking_Service {
     }
 
     /**
+     * Enqueue admin scripts and styles
+     */
+    public static function enqueue_admin_scripts( $hook ) {
+        // Only load on service editor page
+        if ( 'post.php' !== $hook && 'post-new.php' !== $hook ) {
+            return;
+        }
+
+        // Check if we're editing a booking service
+        global $post;
+        if ( ! $post || self::POST_TYPE !== $post->post_type ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'simple-booking-admin-service-settings',
+            plugin_dir_url( __FILE__ ) . '../../assets/js/admin-service-settings.js',
+            array(),
+            SIMPLE_BOOKING_VERSION,
+            true
+        );
+    }
+
+    /**
      * Add meta boxes
      */
     public static function add_meta_boxes() {
@@ -344,6 +368,8 @@ class Simple_Booking_Service {
                 </td>
             </tr>
 
+            <!-- Custom Availability Settings (shown only when mode is Custom) -->
+            <tbody id="custom-availability-section">
             <tr>
                 <th scope="row">
                     <label for="available_days"><?php _e( 'Available Days', 'simple-booking' ); ?></label>
@@ -419,6 +445,7 @@ class Simple_Booking_Service {
                     <p class="description"><?php _e( 'Minimum gap required between the end of one booking and the start of the next', 'simple-booking' ); ?></p>
                 </td>
             </tr>
+            </tbody>
             <tr>
                 <th scope="row"><?php _e( 'Service Shortcode', 'simple-booking' ); ?></th>
                 <td>
@@ -615,3 +642,6 @@ class Simple_Booking_Service {
 
 // Save meta on post save
 add_action( 'save_post_booking_service', array( 'Simple_Booking_Service', 'save_meta' ), 10, 2 );
+
+// Enqueue admin scripts
+add_action( 'admin_enqueue_scripts', array( 'Simple_Booking_Service', 'enqueue_admin_scripts' ) );

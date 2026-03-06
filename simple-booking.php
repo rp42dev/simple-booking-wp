@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants
-define( 'SIMPLE_BOOKING_VERSION', '2.2.1' );
+define( 'SIMPLE_BOOKING_VERSION', '2.2.2' );
 define( 'SIMPLE_BOOKING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SIMPLE_BOOKING_URL', plugin_dir_url( __FILE__ ) );
 define( 'SIMPLE_BOOKING_INCLUDES', SIMPLE_BOOKING_PATH . 'includes/' );

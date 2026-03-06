@@ -435,12 +435,12 @@ Booking form now shows only available slots respecting all constraints.
 
 Refine scheduling UX so global schedule and service schedule are explicit and non-conflicting.
 
-Status: 🟡 In Progress (Micro Stage 1 Complete)
+Status: 🟡 In Progress (Micro Stage 2 Complete)
 
 ### Stage Plan
 
 - **Micro Stage 1 (Completed):** Add `Schedule Mode` to each service (`Inherit Global` / `Custom Service`)
-- **Micro Stage 2 (Next):** Hide/disable custom day/hour controls when mode is `Inherit`
+- **Micro Stage 2 (Completed):** Hide/disable custom day/hour controls when mode is `Inherit`
 - **Micro Stage 3 (Next):** Per-day time ranges in structured format (separate intervals per weekday)
 - **Micro Stage 4 (Next):** "Effective Schedule" preview and conflict messaging in admin UI
 
@@ -450,6 +450,13 @@ Status: 🟡 In Progress (Micro Stage 1 Complete)
 - Availability checks now apply service day/hour restrictions only in `custom` mode
 - Buffer enforcement remains active for both modes
 - Keeps backward compatibility with existing global Working Schedule
+
+### Micro Stage 2 Notes
+
+- Added admin JavaScript to conditionally show/hide custom availability controls
+- Custom section (days, hours, buffer) only visible when mode is set to `Custom`
+- When mode is `Inherit`, these controls are hidden to reduce UI confusion
+- User clearly sees: `inherit` mode = use global schedule, `custom` mode = override with service-specific rules
 
 ## v2.3 – Google Meet Auto Generation
 
