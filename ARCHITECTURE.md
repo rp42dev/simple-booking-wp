@@ -8,6 +8,8 @@ A lightweight WordPress booking engine with Stripe payment processing and Google
 - Frontend booking form with Stripe Checkout
 - Automatic booking creation via Stripe webhooks
 - Google Calendar event creation for bookings
+- Optional auto-generated Google Meet links per service
+- Booking-level meeting link source auditing and admin override support
 
 ## 2. Folder Structure
 

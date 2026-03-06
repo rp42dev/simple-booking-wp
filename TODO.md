@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v2.3.0 (RELEASED) → v3.0 (NEXT)
+v2.3.9 (RELEASED) → v3.0 (NEXT)
 
 Core booking flow is operational.
 
@@ -442,7 +442,6 @@ Status: ✅ Complete (Micro Stage 4 Complete - v2.2.5 Released)
 - **Micro Stage 1 (Completed):** Add `Schedule Mode` to each service (`Inherit Global` / `Custom Service`)
 - **Micro Stage 2 (Completed):** Hide/disable custom day/hour controls when mode is `Inherit`
 - **Micro Stage 3 (Completed):** Per-day time ranges in structured format (separate intervals per weekday)
-- **Micro Stage 4 (Next):** "Effective Schedule" preview and conflict messaging in admin UI
 - **Micro Stage 4 (Completed):** "Effective Schedule" preview displaying effective availability in admin UI
 
 ### Micro Stage 1 Notes
