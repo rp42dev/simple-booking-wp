@@ -420,6 +420,7 @@ class Simple_Booking_Post {
             }
 
             update_post_meta( $post_id, '_meeting_link', esc_url_raw( $meeting_link ) );
+            add_filter( 'redirect_post_location', array( __CLASS__, 'add_meeting_link_updated_query_arg' ) );
         }
     }
 
@@ -428,6 +429,13 @@ class Simple_Booking_Post {
      */
     public static function add_invalid_meeting_link_query_arg( $location ) {
         return add_query_arg( 'sb_meeting_link_error', 'invalid_url', $location );
+    }
+
+    /**
+     * Add meeting link update success state to redirect location
+     */
+    public static function add_meeting_link_updated_query_arg( $location ) {
+        return add_query_arg( 'sb_meeting_link_updated', '1', $location );
     }
 
     /**
@@ -444,11 +452,15 @@ class Simple_Booking_Post {
         }
 
         $error = isset( $_GET['sb_meeting_link_error'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_meeting_link_error'] ) ) : '';
-        if ( 'invalid_url' !== $error ) {
+        if ( 'invalid_url' === $error ) {
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Meeting Link was not saved. Please enter a valid URL including http:// or https://.', 'simple-booking' ) . '</p></div>';
             return;
         }
 
-        echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Meeting Link was not saved. Please enter a valid URL including http:// or https://.', 'simple-booking' ) . '</p></div>';
+        $updated = isset( $_GET['sb_meeting_link_updated'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_meeting_link_updated'] ) ) : '';
+        if ( '1' === $updated ) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Meeting Link saved successfully.', 'simple-booking' ) . '</p></div>';
+        }
     }
 
     /**

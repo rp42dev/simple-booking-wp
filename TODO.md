@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v2.3.9 (RELEASED) → v3.0 (NEXT)
+v2.4.0 (RELEASED) → v3.0 (NEXT)
 
 Core booking flow is operational.
 
@@ -557,6 +557,12 @@ Allow automatic meeting link creation with a per-service toggle.
 - Invalid URL now redirects back with explicit feedback instead of silent failure
 - Notice text guides admin to include `http://` or `https://`
 - Save path now normalizes input with `wp_unslash()` + `trim()` and stores via `esc_url_raw()`
+
+### v2.4.0 Patch Notes
+
+- Added visible admin success notice when Meeting Link saves with a valid value
+- Booking edit redirect now carries explicit success state for meeting-link updates
+- Success and error notices now complement each other for clear admin feedback
 
 ### v2.3.7 Patch Notes
 
