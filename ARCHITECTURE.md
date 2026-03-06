@@ -54,8 +54,11 @@ simple-booking/
    - Creates Stripe Checkout Session with metadata:
      - `customer_name`, `customer_email`, `customer_phone`
      - `service_id`, `start_datetime`
-   - Success URL: `?booking=success&session_id={CHECKOUT_SESSION_ID}`
-   - Cancel URL: `?booking=cancelled`
+    - Success URL: `booking-confirmed` page URL with `session_id={CHECKOUT_SESSION_ID}` appended
+    - Cancel URL: `booking-cancelled` page URL
+    - Fallback behavior if page options are stale/missing:
+       - Success URL falls back to homepage and appends `session_id`
+       - Cancel URL falls back to homepage
 
 3. **Customer Redirect**
    - Customer redirected to Stripe Checkout
@@ -228,6 +231,8 @@ simple-booking/
 | `simple_booking_settings` | array | Plugin settings (Stripe keys, Google credentials) |
 | `simple_booking_google_tokens` | array | OAuth tokens (access_token, refresh_token, expires_in, created) |
 | `simple_booking_google_oauth_state` | string | Temporary OAuth state (UUID4) |
+| `simple_booking_success_page` | integer | WordPress page ID used for Stripe success redirect |
+| `simple_booking_cancel_page` | integer | WordPress page ID used for Stripe cancel redirect |
 
 ### 7.3 Settings Array Structure
 

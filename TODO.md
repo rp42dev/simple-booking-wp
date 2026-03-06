@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v1.10 → v1.11 (IN PROGRESS)
+v1.11 (COMPLETED) → v1.12 (NEXT)
 
 Core booking flow is operational.
 
@@ -73,6 +73,8 @@ email received
 
 Improve user experience after payment.
 
+Status: ✅ Completed and tested
+
 ### Auto Create Pages
 
 When plugin activates, automatically create pages if they do not exist.
@@ -101,6 +103,13 @@ Cancel redirect:
 /booking-cancelled
 
 Success page should later support dynamic booking display.
+
+### v1.11 Validation Notes
+
+- Success redirect to Booking Confirmed page works
+- Success page can be manually customized
+- Fallback redirect works when success page is deleted
+- Fallback now uses a valid URL format with session_id query parameter
 
 ## v1.12 – Meeting Link Support
 
