@@ -543,6 +543,14 @@ Allow automatic meeting link creation with a per-service toggle.
     - `static` when service static meeting link is used
     - `none` when no meeting link exists
 
+### v2.3.4 Patch Notes
+
+- Fixed Meeting Link input lock condition in service editor
+- Meeting Link is now disabled only when BOTH are enabled:
+    - `Create Google Calendar Event`
+    - `Auto-Create Google Meet Link`
+- If Google Calendar Event creation is OFF, Meeting Link remains editable (no gray lock)
+
 ## v3.0 – Advanced Booking Platform
 
 Major expansion of system.

@@ -102,6 +102,7 @@
 	 */
 	function initAutoMeetToggle() {
 		const autoMeetInput = document.getElementById( 'auto_google_meet' );
+		const createGoogleEventInput = document.getElementById( 'create_google_event' );
 		const meetingLinkInput = document.getElementById( 'meeting_link' );
 
 		if ( ! autoMeetInput || ! meetingLinkInput ) {
@@ -111,7 +112,8 @@
 		const meetingLinkRow = meetingLinkInput.closest( 'tr' );
 
 		function updateMeetingLinkState() {
-			const autoMeetEnabled = autoMeetInput.checked;
+			const createGoogleEventEnabled = createGoogleEventInput ? createGoogleEventInput.checked : true;
+			const autoMeetEnabled = autoMeetInput.checked && createGoogleEventEnabled;
 
 			meetingLinkInput.disabled = autoMeetEnabled;
 			meetingLinkInput.setAttribute( 'aria-disabled', autoMeetEnabled ? 'true' : 'false' );
@@ -127,6 +129,9 @@
 
 		updateMeetingLinkState();
 		autoMeetInput.addEventListener( 'change', updateMeetingLinkState );
+		if ( createGoogleEventInput ) {
+			createGoogleEventInput.addEventListener( 'change', updateMeetingLinkState );
+		}
 	}
 
 	/**
