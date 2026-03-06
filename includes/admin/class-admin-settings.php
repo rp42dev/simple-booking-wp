@@ -219,27 +219,27 @@ class Simple_Booking_Admin_Settings {
                 'name'        => 'email_body',
                 'placeholder' => "Dear {customer_name},\n\nYour booking has been confirmed!\n\nService: {service_name}\nDate: {booking_date}\nTime: {booking_time}\n\nMeeting Link: {meeting_link}\n\nThank you!",
                 'rows'        => 10,
+            )
+        );
 
-                    // Webhook Settings
-                    add_settings_section(
-                        'simple_booking_webhook',
-                        __( 'Webhook Settings', 'simple-booking' ),
-                        array( $this, 'render_webhook_section' ),
-                        self::PAGE_SLUG
-                    );
+        // Webhook Settings
+        add_settings_section(
+            'simple_booking_webhook',
+            __( 'Webhook Settings', 'simple-booking' ),
+            array( $this, 'render_webhook_section' ),
+            self::PAGE_SLUG
+        );
 
-                    add_settings_field(
-                        'webhook_url',
-                        __( 'Webhook URL', 'simple-booking' ),
-                        array( $this, 'render_text_field' ),
-                        self::PAGE_SLUG,
-                        'simple_booking_webhook',
-                        array(
-                            'name'        => 'webhook_url',
-                            'placeholder' => 'https://example.com/webhook',
-                            'description' => __( 'Optional: URL to receive booking.created events', 'simple-booking' ),
-                        )
-                    );
+        add_settings_field(
+            'webhook_url',
+            __( 'Webhook URL', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_webhook',
+            array(
+                'name'        => 'webhook_url',
+                'placeholder' => 'https://example.com/webhook',
+                'description' => __( 'Optional: URL to receive booking.created events', 'simple-booking' ),
             )
         );
     }
