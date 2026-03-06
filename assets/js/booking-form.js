@@ -7,7 +7,7 @@
     console.log('simple-booking-form.js loaded');
 
     $(document).ready(function() {
-        $('.simple-booking-form').each(function() {
+        $('.simple-booking-form').each(function(formIndex) {
         const form = $(this);
         const submitBtn = form.find('#booking-submit');
         const messageEl = form.find('#booking-message');
@@ -19,6 +19,24 @@
         const emailField = form.find('[name="customer_email"]');
         const phoneField = form.find('[name="customer_phone"]');
         const timeContainer = form.find('#time-container');
+
+        // Ensure unique element IDs per form instance (datepicker is sensitive to duplicate IDs)
+        const idSuffix = '_' + formIndex;
+        const fieldsToUniq = [
+            { el: serviceField, old: 'service_id' },
+            { el: dateField, old: 'booking_date' },
+            { el: timeField, old: 'booking_time' },
+            { el: nameField, old: 'customer_name' },
+            { el: emailField, old: 'customer_email' },
+            { el: phoneField, old: 'customer_phone' }
+        ];
+        fieldsToUniq.forEach(function(item) {
+            if (item.el && item.el.length) {
+                const newId = item.old + idSuffix;
+                item.el.attr('id', newId);
+                form.find('label[for="' + item.old + '"]').attr('for', newId);
+            }
+        });
 
         function getServiceMeta() {
             const serviceFieldRef = serviceField;
@@ -122,6 +140,11 @@
                         disabled.push(idx);
                     }
                 });
+
+                // Safety guard: never block all dates in the picker UI
+                if (disabled.length === 7) {
+                    disabled = [];
+                }
             }
 
             var initialized = false;
