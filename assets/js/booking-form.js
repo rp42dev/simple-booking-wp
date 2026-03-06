@@ -99,9 +99,13 @@
             var disabled = [];
             if (simpleBooking.schedule) {
                 var names = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+                var hasScheduleConfig = names.some(function(name) {
+                    var cfg = simpleBooking.schedule[name];
+                    return cfg && (cfg.enabled === 1 || cfg.enabled === '1' || cfg.enabled === true);
+                });
                 names.forEach(function(name, idx) {
                     var cfg = simpleBooking.schedule[name];
-                    if (!cfg || !cfg.enabled) {
+                    if (hasScheduleConfig && (!cfg || !cfg.enabled)) {
                         disabled.push(idx);
                     }
                 });
