@@ -50,6 +50,103 @@ class Simple_Booking_Post {
 
         // Register meta fields
         self::register_meta();
+
+        // Register admin hooks
+        self::register_admin_hooks();
+    }
+
+    /**
+     * Register admin hooks
+     */
+    private static function register_admin_hooks() {
+        add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( __CLASS__, 'add_custom_columns' ) );
+        add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'render_custom_columns' ), 10, 2 );
+        add_filter( 'manage_edit-' . self::POST_TYPE . '_sortable_columns', array( __CLASS__, 'add_sortable_columns' ) );
+        add_action( 'restrict_manage_posts', array( __CLASS__, 'add_admin_filters' ) );
+        add_filter( 'parse_query', array( __CLASS__, 'filter_bookings_query' ) );
+    }
+
+    /**
+     * Add custom columns to booking list
+     */
+    public static function add_custom_columns( $columns ) {
+        // Remove date column
+        unset( $columns['date'] );
+
+        // Add custom columns
+        $columns['service']        = __( 'Service', 'simple-booking' );
+        $columns['customer']       = __( 'Customer', 'simple-booking' );
+        $columns['booking_date']   = __( 'Booking Date', 'simple-booking' );
+        $columns['payment_status'] = __( 'Payment', 'simple-booking' );
+
+        return $columns;
+    }
+
+    /**
+     * Render custom columns
+     */
+    public static function render_custom_columns( $column, $post_id ) {
+        switch ( $column ) {
+            case 'service':
+                $service_id = get_post_meta( $post_id, '_service_id', true );
+                if ( $service_id ) {
+                    $service = get_post( $service_id );
+                    if ( $service ) {
+                        echo '<strong>' . esc_html( $service->post_title ) . '</strong>';
+                    } else {
+                        echo '—';
+                    }
+                } else {
+                    echo '—';
+                }
+                break;
+
+            case 'customer':
+                $customer_name  = get_post_meta( $post_id, '_customer_name', true );
+                $customer_email = get_post_meta( $post_id, '_customer_email', true );
+                if ( $customer_name ) {
+                    echo '<strong>' . esc_html( $customer_name ) . '</strong>';
+                    if ( $customer_email ) {
+                        echo '<br><small>' . esc_html( $customer_email ) . '</small>';
+                    }
+                } else {
+                    echo '—';
+                }
+                break;
+
+            case 'booking_date':
+                $start_datetime = get_post_meta( $post_id, '_start_datetime', true );
+                if ( $start_datetime ) {
+                    try {
+                        $timezone = wp_timezone();
+                        $date     = new DateTime( $start_datetime, $timezone );
+                        echo '<strong>' . $date->format( 'M j, Y' ) . '</strong>';
+                        echo '<br><small>' . $date->format( 'g:i A' ) . '</small>';
+                    } catch ( Exception $e ) {
+                        echo esc_html( $start_datetime );
+                    }
+                } else {
+                    echo '—';
+                }
+                break;
+
+            case 'payment_status':
+                $stripe_payment_id = get_post_meta( $post_id, '_stripe_payment_id', true );
+                if ( ! empty( $stripe_payment_id ) ) {
+                    echo '<span style="color: #46b450;">● ' . __( 'Paid', 'simple-booking' ) . '</span>';
+                } else {
+                    echo '<span style="color: #00a0d2;">● ' . __( 'Free', 'simple-booking' ) . '</span>';
+                }
+                break;
+        }
+    }
+
+    /**
+     * Make columns sortable
+     */
+    public static function add_sortable_columns( $columns ) {
+        $columns['booking_date'] = 'booking_date';
+        return $columns;
     }
 
     /**
@@ -287,5 +384,142 @@ class Simple_Booking_Post {
         }
 
         return $post_id;
+    }
+
+    /**
+     * Add admin filters
+     */
+    public static function add_admin_filters( $post_type ) {
+        if ( self::POST_TYPE !== $post_type ) {
+            return;
+        }
+
+        // Service filter
+        $services = get_posts( array(
+            'post_type'      => 'booking_service',
+            'posts_per_page' => -1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+            'post_status'    => 'publish',
+        ) );
+
+        if ( ! empty( $services ) ) {
+            $selected_service = isset( $_GET['filter_service'] ) ? absint( $_GET['filter_service'] ) : '';
+            echo '<select name="filter_service">';
+            echo '<option value="">' . __( 'All Services', 'simple-booking' ) . '</option>';
+            foreach ( $services as $service ) {
+                printf(
+                    '<option value="%d" %s>%s</option>',
+                    $service->ID,
+                    selected( $selected_service, $service->ID, false ),
+                    esc_html( $service->post_title )
+                );
+            }
+            echo '</select>';
+        }
+
+        // Date filter (month/year)
+        global $wpdb;
+        $months = $wpdb->get_results( "
+            SELECT DISTINCT YEAR(meta_value) as year, MONTH(meta_value) as month
+            FROM {$wpdb->postmeta}
+            WHERE meta_key = '_start_datetime'
+            AND meta_value != ''
+            ORDER BY meta_value DESC
+        " );
+
+        if ( ! empty( $months ) ) {
+            $selected_date = isset( $_GET['filter_date'] ) ? sanitize_text_field( $_GET['filter_date'] ) : '';
+            echo '<select name="filter_date">';
+            echo '<option value="">' . __( 'All Dates', 'simple-booking' ) . '</option>';
+            foreach ( $months as $month ) {
+                $value = sprintf( '%d-%02d', $month->year, $month->month );
+                $label = date_i18n( 'F Y', strtotime( $value . '-01' ) );
+                printf(
+                    '<option value="%s" %s>%s</option>',
+                    esc_attr( $value ),
+                    selected( $selected_date, $value, false ),
+                    esc_html( $label )
+                );
+            }
+            echo '</select>';
+        }
+
+        // Payment status filter
+        $selected_payment = isset( $_GET['filter_payment'] ) ? sanitize_text_field( $_GET['filter_payment'] ) : '';
+        echo '<select name="filter_payment">';
+        echo '<option value="">' . __( 'All Payments', 'simple-booking' ) . '</option>';
+        echo '<option value="paid" ' . selected( $selected_payment, 'paid', false ) . '>' . __( 'Paid', 'simple-booking' ) . '</option>';
+        echo '<option value="free" ' . selected( $selected_payment, 'free', false ) . '>' . __( 'Free', 'simple-booking' ) . '</option>';
+        echo '</select>';
+    }
+
+    /**
+     * Filter bookings query based on selected filters
+     */
+    public static function filter_bookings_query( $query ) {
+        global $pagenow;
+
+        if ( ! is_admin() || 'edit.php' !== $pagenow || ! isset( $query->query_vars['post_type'] ) || self::POST_TYPE !== $query->query_vars['post_type'] ) {
+            return;
+        }
+
+        $meta_query = array();
+
+        // Service filter
+        if ( ! empty( $_GET['filter_service'] ) ) {
+            $meta_query[] = array(
+                'key'     => '_service_id',
+                'value'   => absint( $_GET['filter_service'] ),
+                'compare' => '=',
+            );
+        }
+
+        // Date filter
+        if ( ! empty( $_GET['filter_date'] ) ) {
+            $date_parts = explode( '-', sanitize_text_field( $_GET['filter_date'] ) );
+            if ( count( $date_parts ) === 2 ) {
+                $year  = intval( $date_parts[0] );
+                $month = intval( $date_parts[1] );
+                $start = sprintf( '%d-%02d-01', $year, $month );
+                $end   = date( 'Y-m-t', strtotime( $start ) );
+
+                $meta_query[] = array(
+                    'key'     => '_start_datetime',
+                    'value'   => array( $start, $end . ' 23:59:59' ),
+                    'compare' => 'BETWEEN',
+                    'type'    => 'DATETIME',
+                );
+            }
+        }
+
+        // Payment status filter
+        if ( ! empty( $_GET['filter_payment'] ) ) {
+            $payment_status = sanitize_text_field( $_GET['filter_payment'] );
+            if ( 'paid' === $payment_status ) {
+                $meta_query[] = array(
+                    'key'     => '_stripe_payment_id',
+                    'value'   => '',
+                    'compare' => '!=',
+                );
+            } elseif ( 'free' === $payment_status ) {
+                $meta_query[] = array(
+                    'key'     => '_stripe_payment_id',
+                    'compare' => 'NOT EXISTS',
+                );
+            }
+        }
+
+        // Apply meta query
+        if ( ! empty( $meta_query ) ) {
+            $meta_query['relation'] = 'AND';
+            $query->set( 'meta_query', $meta_query );
+        }
+
+        // Handle sorting by booking date
+        if ( isset( $query->query_vars['orderby'] ) && 'booking_date' === $query->query_vars['orderby'] ) {
+            $query->set( 'meta_key', '_start_datetime' );
+            $query->set( 'orderby', 'meta_value' );
+        }
     }
 }
