@@ -43,11 +43,57 @@
 		scheduleModeSelect.addEventListener( 'change', updateVisibility );
 	}
 
+	/**
+	 * Handle per-day schedule UI interactions
+	 */
+	function initPerDayScheduleUI() {
+		const enabledCheckboxes = document.querySelectorAll( '.day-enabled-checkbox' );
+
+		enabledCheckboxes.forEach( ( checkbox ) => {
+			/**
+			 * Update row styling and input disabled state based on enabled checkbox
+			 */
+			function updateDayRow() {
+				const day = checkbox.getAttribute( 'data-day' );
+				const row = checkbox.closest( 'tr' );
+				const startInput = document.querySelector( `.day-start-time[data-day="${day}"]` );
+				const endInput = document.querySelector( `.day-end-time[data-day="${day}"]` );
+				const bufferInput = document.querySelector( `.day-buffer[data-day="${day}"]` );
+
+				if ( checkbox.checked ) {
+					// Day is enabled
+					row.style.opacity = '1';
+					row.style.backgroundColor = '';
+					if ( startInput ) startInput.disabled = false;
+					if ( endInput ) endInput.disabled = false;
+					if ( bufferInput ) bufferInput.disabled = false;
+				} else {
+					// Day is disabled
+					row.style.opacity = '0.6';
+					row.style.backgroundColor = '#fafafa';
+					if ( startInput ) startInput.disabled = true;
+					if ( endInput ) endInput.disabled = true;
+					if ( bufferInput ) bufferInput.disabled = true;
+				}
+			}
+
+			// Initial state
+			updateDayRow();
+
+			// Listen for changes
+			checkbox.addEventListener( 'change', updateDayRow );
+		} );
+	}
+
 	// Initialize when DOM is ready
 	if ( 'loading' === document.readyState ) {
-		document.addEventListener( 'DOMContentLoaded', initScheduleModeToggle );
+		document.addEventListener( 'DOMContentLoaded', function() {
+			initScheduleModeToggle();
+			initPerDayScheduleUI();
+		} );
 	} else {
 		initScheduleModeToggle();
+		initPerDayScheduleUI();
 	}
 
 } )();

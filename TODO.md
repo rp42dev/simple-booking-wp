@@ -435,13 +435,13 @@ Booking form now shows only available slots respecting all constraints.
 
 Refine scheduling UX so global schedule and service schedule are explicit and non-conflicting.
 
-Status: 🟡 In Progress (Micro Stage 2 Complete)
+Status: 🟡 In Progress (Micro Stage 3 Complete)
 
 ### Stage Plan
 
 - **Micro Stage 1 (Completed):** Add `Schedule Mode` to each service (`Inherit Global` / `Custom Service`)
 - **Micro Stage 2 (Completed):** Hide/disable custom day/hour controls when mode is `Inherit`
-- **Micro Stage 3 (Next):** Per-day time ranges in structured format (separate intervals per weekday)
+- **Micro Stage 3 (Completed):** Per-day time ranges in structured format (separate intervals per weekday)
 - **Micro Stage 4 (Next):** "Effective Schedule" preview and conflict messaging in admin UI
 
 ### Micro Stage 1 Notes
@@ -457,6 +457,16 @@ Status: 🟡 In Progress (Micro Stage 2 Complete)
 - Custom section (days, hours, buffer) only visible when mode is set to `Custom`
 - When mode is `Inherit`, these controls are hidden to reduce UI confusion
 - User clearly sees: `inherit` mode = use global schedule, `custom` mode = override with service-specific rules
+
+### Micro Stage 3 Notes
+
+- Replaced comma-separated flat format with per-day schedule JSON structure
+- Each day now has: enabled flag, start time, end time, buffer time (individual for each day)
+- Updated UI to table showing Mon-Sun with individual controls per day
+- JavaScript disables/dims inputs for disabled days
+- Per-day buffers allow different gap requirements (e.g., Mon 30min buffer, Wed no buffer)
+- Availability checker reads per-day schedule: checks if day enabled, validates time range, applies per-day buffer
+- Backward compatible: old format still supported, defaults to standard 9-17 all weekdays if no per-day schedule exists
 
 ## v2.3 – Google Meet Auto Generation
 

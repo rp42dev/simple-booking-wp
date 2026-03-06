@@ -182,6 +182,74 @@ class Simple_Booking_Service {
                 'default'      => 'inherit',
             )
         );
+
+        // Per-Day Schedule (JSON format with per-day time windows and buffer)
+        register_post_meta(
+            self::POST_TYPE,
+            '_service_schedule',
+            array(
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => array( __CLASS__, 'sanitize_service_schedule' ),
+                'default'      => '',
+            )
+        );
+    }
+
+    /**
+     * Get default per-day schedule structure
+     *
+     * @return array
+     */
+    public static function get_default_schedule() {
+        return array(
+            '1' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '2' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '3' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '4' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '5' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '6' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '7' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+        );
+    }
+
+    /**
+     * Sanitize service schedule (per-day format)
+     *
+     * @param mixed $value
+     * @return string JSON
+     */
+    public static function sanitize_service_schedule( $value ) {
+        if ( empty( $value ) ) {
+            return wp_json_encode( self::get_default_schedule() );
+        }
+
+        if ( is_string( $value ) ) {
+            $schedule = json_decode( $value, true );
+        } else {
+            $schedule = $value;
+        }
+
+        if ( ! is_array( $schedule ) ) {
+            return wp_json_encode( self::get_default_schedule() );
+        }
+
+        $default = self::get_default_schedule();
+        $sanitized = array();
+
+        foreach ( $default as $day => $defaults ) {
+            $day_data = isset( $schedule[ $day ] ) ? $schedule[ $day ] : array();
+
+            $sanitized[ $day ] = array(
+                'enabled' => isset( $day_data['enabled'] ) ? (bool) $day_data['enabled'] : $defaults['enabled'],
+                'start'   => isset( $day_data['start'] ) ? sanitize_text_field( $day_data['start'] ) : $defaults['start'],
+                'end'     => isset( $day_data['end'] ) ? sanitize_text_field( $day_data['end'] ) : $defaults['end'],
+                'buffer'  => isset( $day_data['buffer'] ) ? absint( $day_data['buffer'] ) : $defaults['buffer'],
+            );
+        }
+
+        return wp_json_encode( $sanitized );
     }
 
     /**
@@ -252,6 +320,8 @@ class Simple_Booking_Service {
         $available_hours_end = get_post_meta( $post->ID, '_available_hours_end', true );
         $buffer_time = get_post_meta( $post->ID, '_buffer_time', true );
         $schedule_mode = get_post_meta( $post->ID, '_schedule_mode', true );
+        $service_schedule_json = get_post_meta( $post->ID, '_service_schedule', true );
+        $service_schedule = $service_schedule_json ? json_decode( $service_schedule_json, true ) : null;
 
         // Default values
         if ( '' === $duration ) {
@@ -371,78 +441,90 @@ class Simple_Booking_Service {
             <!-- Custom Availability Settings (shown only when mode is Custom) -->
             <tbody id="custom-availability-section">
             <tr>
-                <th scope="row">
-                    <label for="available_days"><?php _e( 'Available Days', 'simple-booking' ); ?></label>
+                <th colspan="2">
+                    <strong><?php _e( 'Per-Day Schedule Configuration', 'simple-booking' ); ?></strong>
+                    <p class="description" style="margin-top: 8px;"><?php _e( 'Set custom hours and buffer for each day of the week', 'simple-booking' ); ?></p>
                 </th>
-                <td>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; max-width: 300px;">
-                        <?php
-                        $days = array(
-                            '1' => __( 'Monday', 'simple-booking' ),
-                            '2' => __( 'Tuesday', 'simple-booking' ),
-                            '3' => __( 'Wednesday', 'simple-booking' ),
-                            '4' => __( 'Thursday', 'simple-booking' ),
-                            '5' => __( 'Friday', 'simple-booking' ),
-                            '6' => __( 'Saturday', 'simple-booking' ),
-                            '7' => __( 'Sunday', 'simple-booking' ),
-                        );
-                        $available_days_arr = array_map( 'trim', explode( ',', $available_days ) );
-                        foreach ( $days as $day_num => $day_name ) {
-                            $checked = in_array( $day_num, $available_days_arr, true );
-                            ?>
-                            <label style="display: flex; align-items: center; gap: 8px;">
-                                <input type="checkbox"
-                                       name="available_days_check[]"
-                                       value="<?php echo esc_attr( $day_num ); ?>"
-                                       <?php checked( $checked ); ?> />
-                                <?php echo esc_html( $day_name ); ?>
-                            </label>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd;">
+                                <th style="padding: 10px; text-align: left; width: 15%;"><?php _e( 'Day', 'simple-booking' ); ?></th>
+                                <th style="padding: 10px; text-align: center; width: 10%;"><?php _e( 'Enabled', 'simple-booking' ); ?></th>
+                                <th style="padding: 10px; text-align: center; width: 20%;"><?php _e( 'Start Time', 'simple-booking' ); ?></th>
+                                <th style="padding: 10px; text-align: center; width: 20%;"><?php _e( 'End Time', 'simple-booking' ); ?></th>
+                                <th style="padding: 10px; text-align: center; width: 20%;"><?php _e( 'Buffer (min)', 'simple-booking' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             <?php
-                        }
-                        ?>
-                    </div>
-                    <p class="description"><?php _e( 'Select which days of the week the service is available', 'simple-booking' ); ?></p>
-                </td>
-            </tr>
+                            $days = array(
+                                '1' => __( 'Monday', 'simple-booking' ),
+                                '2' => __( 'Tuesday', 'simple-booking' ),
+                                '3' => __( 'Wednesday', 'simple-booking' ),
+                                '4' => __( 'Thursday', 'simple-booking' ),
+                                '5' => __( 'Friday', 'simple-booking' ),
+                                '6' => __( 'Saturday', 'simple-booking' ),
+                                '7' => __( 'Sunday', 'simple-booking' ),
+                            );
 
-            <tr>
-                <th scope="row">
-                    <label for="available_hours_start"><?php _e( 'Available Hours', 'simple-booking' ); ?></label>
-                </th>
-                <td>
-                    <div style="display: flex; gap: 10px; align-items: center; max-width: 300px;">
-                        <input type="time"
-                               id="available_hours_start"
-                               name="available_hours_start"
-                               value="<?php echo esc_attr( $available_hours_start ); ?>"
-                               style="flex: 1;" />
-                        <span><?php _e( 'to', 'simple-booking' ); ?></span>
-                        <input type="time"
-                               id="available_hours_end"
-                               name="available_hours_end"
-                               value="<?php echo esc_attr( $available_hours_end ); ?>"
-                               style="flex: 1;" />
-                    </div>
-                    <p class="description"><?php _e( 'Set the available time window for bookings each day', 'simple-booking' ); ?></p>
-                </td>
-            </tr>
+                            // Use per-day schedule if available, otherwise use default
+                            if ( ! $service_schedule ) {
+                                $service_schedule = self::get_default_schedule();
+                            }
 
-            <tr>
-                <th scope="row">
-                    <label for="buffer_time"><?php _e( 'Buffer Time Between Bookings', 'simple-booking' ); ?></label>
-                </th>
-                <td>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="number"
-                               id="buffer_time"
-                               name="buffer_time"
-                               value="<?php echo esc_attr( $buffer_time ); ?>"
-                               min="0"
-                               step="5"
-                               style="width: 100px;" />
-                        <span><?php _e( 'minutes', 'simple-booking' ); ?></span>
-                    </div>
-                    <p class="description"><?php _e( 'Minimum gap required between the end of one booking and the start of the next', 'simple-booking' ); ?></p>
+                            foreach ( $days as $day_num => $day_name ) {
+                                $day_data = $service_schedule[ $day_num ] ?? self::get_default_schedule()[ $day_num ];
+                                $is_enabled = $day_data['enabled'] ?? true;
+                                $start_time = $day_data['start'] ?? '09:00';
+                                $end_time = $day_data['end'] ?? '17:00';
+                                $buffer = $day_data['buffer'] ?? 0;
+                                $row_style = $is_enabled ? '' : 'opacity: 0.6; background-color: #fafafa;';
+                                ?>
+                                <tr style="border-bottom: 1px solid #eee; <?php echo esc_attr( $row_style ); ?>">
+                                    <td style="padding: 10px;">
+                                        <strong><?php echo esc_html( $day_name ); ?></strong>
+                                    </td>
+                                    <td style="padding: 10px; text-align: center;">
+                                        <input type="checkbox"
+                                               name="service_schedule[<?php echo esc_attr( $day_num ); ?>][enabled]"
+                                               value="1"
+                                               class="day-enabled-checkbox"
+                                               data-day="<?php echo esc_attr( $day_num ); ?>"
+                                               <?php checked( $is_enabled ); ?> />
+                                    </td>
+                                    <td style="padding: 10px; text-align: center;">
+                                        <input type="time"
+                                               name="service_schedule[<?php echo esc_attr( $day_num ); ?>][start]"
+                                               value="<?php echo esc_attr( $start_time ); ?>"
+                                               class="day-start-time"
+                                               data-day="<?php echo esc_attr( $day_num ); ?>" />
+                                    </td>
+                                    <td style="padding: 10px; text-align: center;">
+                                        <input type="time"
+                                               name="service_schedule[<?php echo esc_attr( $day_num ); ?>][end]"
+                                               value="<?php echo esc_attr( $end_time ); ?>"
+                                               class="day-end-time"
+                                               data-day="<?php echo esc_attr( $day_num ); ?>" />
+                                    </td>
+                                    <td style="padding: 10px; text-align: center;">
+                                        <input type="number"
+                                               name="service_schedule[<?php echo esc_attr( $day_num ); ?>][buffer]"
+                                               value="<?php echo esc_attr( $buffer ); ?>"
+                                               min="0"
+                                               step="5"
+                                               style="width: 60px; text-align: center;"
+                                               class="day-buffer"
+                                               data-day="<?php echo esc_attr( $day_num ); ?>" />
+                                    </td>
+                                </tr>
+                                <?php
+                            }
+                            ?>
+                        </tbody>
+                    </table>
                 </td>
             </tr>
             </tbody>
@@ -532,6 +614,12 @@ class Simple_Booking_Service {
             $schedule_mode = 'inherit';
         }
         update_post_meta( $post_id, '_schedule_mode', $schedule_mode );
+
+        // Save per-day schedule (new format)
+        if ( isset( $_POST['service_schedule'] ) && is_array( $_POST['service_schedule'] ) ) {
+            $schedule = self::sanitize_service_schedule( $_POST['service_schedule'] );
+            update_post_meta( $post_id, '_service_schedule', $schedule );
+        }
     }
 
     /**
@@ -564,6 +652,14 @@ class Simple_Booking_Service {
             return null;
         }
 
+        $service_schedule_json = get_post_meta( $post->ID, '_service_schedule', true );
+        $service_schedule = $service_schedule_json ? json_decode( $service_schedule_json, true ) : null;
+
+        // If no per-day schedule exists, use default
+        if ( ! $service_schedule ) {
+            $service_schedule = self::get_default_schedule();
+        }
+
         return array(
             'id'                   => $post->ID,
             'name'                 => $post->post_title,
@@ -577,6 +673,7 @@ class Simple_Booking_Service {
             'available_hours_end'  => get_post_meta( $post->ID, '_available_hours_end', true ),
             'buffer_time'          => absint( get_post_meta( $post->ID, '_buffer_time', true ) ),
             'schedule_mode'        => get_post_meta( $post->ID, '_schedule_mode', true ) ?: 'inherit',
+            'service_schedule'     => $service_schedule,
         );
     }
 
@@ -595,43 +692,71 @@ class Simple_Booking_Service {
             : 'inherit';
 
         if ( 'custom' === $schedule_mode ) {
-            // Check if the day is available
-            $weekday = (int) $start->format( 'N' ); // 1=Mon, 7=Sun
-            $available_days = ! empty( $service['available_days'] ) ? $service['available_days'] : '1,2,3,4,5';
-            $available_days_arr = array_map( 'intval', explode( ',', trim( $available_days ) ) );
+            // Use per-day schedule if available
+            $service_schedule = isset( $service['service_schedule'] ) && is_array( $service['service_schedule'] )
+                ? $service['service_schedule']
+                : self::get_default_schedule();
 
-            if ( ! in_array( $weekday, $available_days_arr, true ) ) {
+            // Get weekday (1=Mon, 7=Sun)
+            $weekday = (int) $start->format( 'N' );
+            $day_schedule = isset( $service_schedule[ $weekday ] ) ? $service_schedule[ $weekday ] : null;
+
+            // If day is not in schedule or not enabled, slot is not available
+            if ( ! $day_schedule || ! $day_schedule['enabled'] ) {
                 return false;
             }
 
-            // Check if the time is within available hours
-            $available_hours_start = ! empty( $service['available_hours_start'] ) ? $service['available_hours_start'] : '09:00';
-            $available_hours_end = ! empty( $service['available_hours_end'] ) ? $service['available_hours_end'] : '17:00';
-
+            // Check if the time is within available hours for this day
             $start_time = $start->format( 'H:i' );
             $end_time = $end->format( 'H:i' );
+            $day_start = $day_schedule['start'] ?? '09:00';
+            $day_end = $day_schedule['end'] ?? '17:00';
 
-            if ( $start_time < $available_hours_start || $end_time > $available_hours_end ) {
+            if ( $start_time < $day_start || $end_time > $day_end ) {
                 return false;
             }
-        }
 
-        // Check buffer time with existing bookings
-        if ( ! empty( $existing_bookings ) ) {
-            $buffer_time = isset( $service['buffer_time'] ) ? absint( $service['buffer_time'] ) : 0;
-            
-            foreach ( $existing_bookings as $booking ) {
-                $booking_start = new DateTime( $booking['start_datetime'] );
-                $booking_end = new DateTime( $booking['end_datetime'] );
+            // Use per-day buffer if available
+            if ( ! empty( $existing_bookings ) ) {
+                $day_buffer = $day_schedule['buffer'] ?? 0;
 
-                // Check if new booking starts before existing booking ends + buffer
-                if ( $buffer_time > 0 ) {
-                    $booking_end->modify( "+{$buffer_time} minutes" );
+                foreach ( $existing_bookings as $booking ) {
+                    $booking_start = new DateTime( $booking['start_datetime'] );
+                    $booking_end = new DateTime( $booking['end_datetime'] );
+
+                    // Check if new booking starts before existing booking ends + buffer
+                    if ( $day_buffer > 0 ) {
+                        $booking_end_copy = clone $booking_end;
+                        $booking_end_copy->modify( "+{$day_buffer} minutes" );
+                        if ( $start < $booking_end_copy && $end > $booking_start ) {
+                            return false;
+                        }
+                    } else {
+                        // Check for direct conflict
+                        if ( $start < $booking_end && $end > $booking_start ) {
+                            return false;
+                        }
+                    }
                 }
+            }
+        } else {
+            // Inherit mode: only check buffer time, skip day/hour restrictions
+            if ( ! empty( $existing_bookings ) ) {
+                $buffer_time = isset( $service['buffer_time'] ) ? absint( $service['buffer_time'] ) : 0;
 
-                // Check for conflict
-                if ( $start < $booking_end && $end > $booking_start ) {
-                    return false;
+                foreach ( $existing_bookings as $booking ) {
+                    $booking_start = new DateTime( $booking['start_datetime'] );
+                    $booking_end = new DateTime( $booking['end_datetime'] );
+
+                    // Check if new booking starts before existing booking ends + buffer
+                    if ( $buffer_time > 0 ) {
+                        $booking_end->modify( "+{$buffer_time} minutes" );
+                    }
+
+                    // Check for conflict
+                    if ( $start < $booking_end && $end > $booking_start ) {
+                        return false;
+                    }
                 }
             }
         }
