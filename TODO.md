@@ -543,6 +543,13 @@ Allow automatic meeting link creation with a per-service toggle.
     - `static` when service static meeting link is used
     - `none` when no meeting link exists
 
+### v2.3.7 Patch Notes
+
+- Fixed UI regression: Auto-Meet row dimming no longer affects other checkboxes
+- Changed from row-level opacity to selective label + input dimming
+- Active checkbox now remains fully visible and interactive when Auto-Meet is disabled
+- More surgical CSS approach prevents visual interference with neighboring controls
+
 ### v2.3.6 Patch Notes
 
 - **Dependency validation:** Auto-Meet checkbox now disabled when Google Calendar Event creation is OFF

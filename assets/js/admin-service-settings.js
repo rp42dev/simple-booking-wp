@@ -110,7 +110,7 @@
 		}
 
 		const meetingLinkRow = meetingLinkInput.closest( 'tr' );
-		const autoMeetRow = autoMeetInput.closest( 'tr' );
+		const autoMeetLabels = document.querySelectorAll( 'label[for="auto_google_meet"]' );
 
 		function updateToggleState() {
 			const eventCreationEnabled = createGoogleEventInput ? createGoogleEventInput.checked : true;
@@ -120,9 +120,11 @@
 			autoMeetInput.disabled = ! eventCreationEnabled;
 			autoMeetInput.setAttribute( 'aria-disabled', ! eventCreationEnabled ? 'true' : 'false' );
 
-			if ( autoMeetRow ) {
-				autoMeetRow.style.opacity = ! eventCreationEnabled ? '0.65' : '1';
-			}
+			// Dim only the labels and input, not the entire row
+			autoMeetLabels.forEach( ( label ) => {
+				label.style.opacity = ! eventCreationEnabled ? '0.65' : '1';
+			} );
+			autoMeetInput.style.opacity = ! eventCreationEnabled ? '0.65' : '1';
 
 			autoMeetInput.title = ! eventCreationEnabled
 				? 'Enable "Create Google Calendar Event" first to use auto-generated Google Meet links.'
