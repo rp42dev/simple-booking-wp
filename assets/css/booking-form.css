@@ -1,0 +1,158 @@
+/**
+ * Simple Booking Form Styles
+ */
+
+#simple-booking-form-wrapper {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+}
+
+#simple-booking-form {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.booking-field {
+    margin-bottom: 20px;
+}
+
+.booking-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.booking-field input[type="text"],
+.booking-field input[type="email"],
+.booking-field input[type="tel"],
+.booking-field input[type="datetime-local"],
+.booking-field select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+.booking-field input:focus,
+.booking-field select:focus {
+    outline: none;
+    border-color: #2271b1;
+    box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.1);
+}
+
+.booking-button {
+    width: 100%;
+    padding: 14px 24px;
+    background: #2271b1;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.booking-button:hover {
+    background: #135e96;
+}
+
+.booking-button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+.booking-message {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.booking-message.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.booking-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.booking-timezone-notice {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+}
+
+/* Loading spinner */
+.booking-button.loading::after {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: booking-spin 0.8s linear infinite;
+}
+
+@keyframes booking-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* visually de-emphasize disabled time options */
+.booking-field select option[disabled] {
+    color: #999;
+}
+
+/* end-time estimate and warnings */
+#end-estimate {
+    margin: 8px 0 0;
+    font-size: 14px;
+    color: #333;
+}
+#closing-warning {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: #b91c1c;
+    font-weight: 600;
+}
+
+/* datepicker unavailable days styling */
+.ui-datepicker td.unavailable a {
+    background: #f0f0f0 !important;
+    color: #999 !important;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    #simple-booking-form-wrapper {
+        padding: 12px;
+    }
+
+    #simple-booking-form {
+        padding: 16px;
+    }
+
+    .booking-field input,
+    .booking-field select {
+        font-size: 14px;
+    }
+}

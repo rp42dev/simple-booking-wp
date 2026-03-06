@@ -1,0 +1,13 @@
+{
+    "name": "simple-booking/wp-booking-plugin",
+    "description": "A lightweight WordPress booking engine with Stripe and Google Calendar integration",
+    "type": "wordpress-plugin",
+    "require": {
+        "stripe/stripe-php": "^13.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SimpleBooking\\": "includes/"
+        }
+    }
+}

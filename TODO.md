@@ -1,0 +1,459 @@
+# Simple Booking – Development Roadmap
+
+A lightweight modular WordPress booking engine with Stripe payments and Google Calendar integration.
+
+This roadmap defines future development phases to expand the plugin while keeping the architecture simple, maintainable, and modular.
+
+Each version milestone should be implemented incrementally and tested before progressing.
+
+## Current Version
+v1.10 → v1.11 (IN PROGRESS)
+
+Core booking flow is operational.
+
+## Implemented Features
+
+✔ Services Custom Post Type
+✔ Bookings Custom Post Type
+✔ Stripe Checkout integration
+✔ Stripe Webhook booking creation
+✔ Stripe price per service
+✔ Booking form shortcode [simple_booking_form]
+✔ Email confirmation system
+✔ Google Calendar OAuth connection
+✔ Google Calendar event creation
+✔ Google Calendar uses service duration
+✔ Debug logging system for calendar testing
+
+Stripe price is stored in service settings and validated before checkout.
+
+Google Calendar integration creates an event after a successful booking.
+
+## Testing Phase (Before Next Version)
+
+Before continuing development:
+
+Perform Multiple Tests
+
+Test full flow several times:
+
+Open booking form
+
+Select service
+
+Select time
+
+Enter contact details
+
+Complete Stripe payment
+
+Verify webhook triggers booking creation
+
+Verify booking post created
+
+Verify Google Calendar event created
+
+Verify confirmation email sent
+
+Verify:
+
+Stripe payment success
+
+webhook response
+
+booking stored
+
+Google event created
+
+correct event duration
+
+email received
+
+## v1.11 – Redirect & Success Page System
+
+Improve user experience after payment.
+
+### Auto Create Pages
+
+When plugin activates, automatically create pages if they do not exist.
+
+Pages:
+
+**Booking Confirmed**
+Slug: booking-confirmed
+
+**Booking Cancelled**
+Slug: booking-cancelled
+
+Store page IDs in options:
+
+simple_booking_success_page
+simple_booking_cancel_page
+
+### Stripe Redirect Configuration
+
+Stripe checkout success redirect:
+
+/booking-confirmed?session_id={CHECKOUT_SESSION_ID}
+
+Cancel redirect:
+
+/booking-cancelled
+
+Success page should later support dynamic booking display.
+
+## v1.12 – Meeting Link Support
+
+Allow services to define external meeting links.
+
+Add service field:
+
+**Meeting Link** (optional)
+
+Examples:
+
+Zoom
+Google Meet
+Microsoft Teams
+Custom meeting URL
+
+Example values:
+
+https://zoom.us/j/xxxxx
+https://meet.google.com/xxxx
+
+If meeting link exists:
+
+Include it in:
+
+confirmation email
+
+Google Calendar event description
+
+Example event description:
+
+Service: Consultation
+
+Client: John Smith
+Email: john@email.com
+
+Meeting Link:
+https://zoom.us/j/xxxxx
+
+## v1.13 – Email Customization
+
+Allow administrators to edit booking emails.
+
+Add settings fields:
+
+**Email Subject**
+**Email Body Template**
+
+Support template variables:
+
+{customer_name}
+{service_name}
+{booking_date}
+{booking_time}
+{meeting_link}
+
+Example template:
+
+Hello {customer_name},
+
+Your booking for {service_name} has been confirmed.
+
+Date: {booking_date}
+Time: {booking_time}
+
+Join your meeting:
+{meeting_link}
+
+Thank you.
+
+Templates should be stored in WordPress options.
+
+## v1.14 – Free Booking Support
+
+Allow services without payment.
+
+If service has no Stripe Price ID:
+
+skip Stripe checkout
+create booking immediately
+create Google event
+send confirmation email
+
+Logic:
+
+if stripe_price_id empty
+→ direct booking flow
+
+Useful for:
+
+free consultations
+
+discovery calls
+
+intro sessions
+
+## v1.15 – Service Specific Forms
+
+Allow multiple booking forms.
+
+Current shortcode:
+
+[simple_booking_form]
+
+Add support:
+
+[simple_booking_form service="consultation"]
+
+or
+
+[simple_booking_form service_id="123"]
+
+Admin UI should display shortcode for each service:
+
+Example:
+
+Consultation Service
+
+[simple_booking_form service_id="123"]
+
+Admin can copy shortcode and place it on pages.
+
+## v1.16 – Google Calendar Improvements
+
+Improve calendar integration.
+
+### Google Event Toggle
+
+Add service setting:
+
+**Create Google Calendar Event**
+
+If disabled:
+
+skip Google event creation
+
+### Enhanced Event Description
+
+Google Calendar event should include:
+
+Customer name
+Customer email
+Service name
+Meeting link
+
+Example:
+
+Booking: Consultation
+
+Client: John Smith
+Email: john@email.com
+
+Meeting:
+https://zoom.us/j/xxxxx
+
+## v2.0 – Automation Integrations
+
+Introduce automation compatibility.
+
+### Webhook System
+
+Trigger event when booking is created.
+
+Webhook name:
+
+booking.created
+
+Payload example:
+
+{
+ service_name
+ customer_name
+ email
+ date
+ time
+ meeting_link
+}
+
+Admin setting:
+
+**Webhook URL**
+
+Send POST request when booking is created.
+
+Allows integration with:
+
+Zapier
+
+Make
+
+CRM systems
+
+marketing automation
+
+## v2.1 – Booking Management Improvements
+
+Improve WordPress admin experience.
+
+Add booking filters:
+
+Service filter
+Date filter
+Payment status
+
+Booking details page should show:
+
+Customer name
+Customer email
+Service
+Booking date
+Stripe session ID
+Google event ID
+
+## v2.2 – Availability Control
+
+Add scheduling logic.
+
+Service settings should support:
+
+Available days
+Available hours
+Buffer time between bookings
+
+Booking form should only show available slots.
+
+## v2.3 – Google Meet Auto Generation
+
+Allow automatic meeting link creation.
+
+When Google event is created:
+
+generate Google Meet link automatically
+
+Requires Google Calendar API conferenceData.
+
+Generated link should appear in:
+
+confirmation email
+
+calendar event
+
+## v3.0 – Advanced Booking Platform
+
+Major expansion of system.
+
+### Multi Staff Support
+
+Services can assign staff members.
+
+Each staff member has:
+
+own calendar
+own availability
+
+Booking system chooses available staff.
+
+### Timezone Detection
+
+Detect customer timezone automatically.
+
+Display booking time in:
+
+customer local timezone
+
+### Reschedule / Cancel Links
+
+Email should include:
+
+Reschedule booking link
+Cancel booking link
+
+Customer can manage booking without admin.
+
+## Debug System (Temporary)
+
+Current debug system exists for Google Calendar testing.
+
+File:
+
+debug-google.txt
+
+Controlled by:
+
+debug_mode checkbox
+
+After debugging is complete:
+
+Remove:
+
+debug_log()
+debug constants
+debug documentation
+
+Debug logging should not remain in production releases.
+
+## Code Architecture Requirements
+
+Future features must follow modular structure.
+
+includes/
+    admin/
+    booking/
+    stripe/
+    google/
+    email/
+    integrations/
+
+Code must follow WordPress standards.
+
+## Security Requirements
+
+All features must include:
+
+input sanitization
+output escaping
+nonce verification
+Stripe webhook signature verification
+
+## GitHub Strategy (Recommended)
+
+Recommended repository structure:
+
+simple-booking-core
+
+Public open-source repository.
+
+Benefits:
+
+transparency
+
+credibility
+
+developer contributions
+
+portfolio value
+
+Possible future product:
+
+Simple Booking Pro
+
+Premium features could include:
+
+multi staff
+advanced scheduling
+SMS reminders
+CRM integrations
+
+## Future Ideas (Not Scheduled)
+
+Possible future features:
+
+Recurring bookings
+Package bookings
+Membership bookings
+SMS reminders
+WhatsApp notifications
