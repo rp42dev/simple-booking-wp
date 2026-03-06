@@ -53,6 +53,7 @@ class Simple_Booking {
 
         // Webhook
         require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php';
+        require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-booking-webhook.php';
 
         // Google Calendar
         require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
