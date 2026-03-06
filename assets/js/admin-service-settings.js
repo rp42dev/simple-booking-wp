@@ -40,7 +40,10 @@
 		updateVisibility();
 
 		// Listen for changes
-		scheduleModeSelect.addEventListener( 'change', updateVisibility );
+		scheduleModeSelect.addEventListener( 'change', function() {
+			updateVisibility();
+			updateSchedulePreview();
+		} );
 	}
 
 	/**
@@ -76,6 +79,8 @@
 					if ( endInput ) endInput.disabled = true;
 					if ( bufferInput ) bufferInput.disabled = true;
 				}
+
+				updateSchedulePreview();
 			}
 
 			// Initial state
@@ -84,6 +89,127 @@
 			// Listen for changes
 			checkbox.addEventListener( 'change', updateDayRow );
 		} );
+
+		const customInputs = document.querySelectorAll( '.day-start-time, .day-end-time, .day-buffer' );
+		customInputs.forEach( ( input ) => {
+			input.addEventListener( 'change', updateSchedulePreview );
+			input.addEventListener( 'input', updateSchedulePreview );
+		} );
+	}
+
+	/**
+	 * Parse JSON from hidden input safely
+	 */
+	function parseHiddenJson( inputId ) {
+		const el = document.getElementById( inputId );
+		if ( ! el || ! el.value ) {
+			return null;
+		}
+
+		try {
+			return JSON.parse( el.value );
+		} catch ( e ) {
+			return null;
+		}
+	}
+
+	/**
+	 * Build schedule object from current custom per-day controls
+	 */
+	function getCustomScheduleFromForm() {
+		const schedule = {};
+
+		for ( let day = 1; day <= 7; day++ ) {
+			const enabledInput = document.querySelector( `.day-enabled-checkbox[data-day="${day}"]` );
+			const startInput = document.querySelector( `.day-start-time[data-day="${day}"]` );
+			const endInput = document.querySelector( `.day-end-time[data-day="${day}"]` );
+			const bufferInput = document.querySelector( `.day-buffer[data-day="${day}"]` );
+
+			schedule[ String( day ) ] = {
+				enabled: !! ( enabledInput && enabledInput.checked ),
+				start: startInput && startInput.value ? startInput.value : '09:00',
+				end: endInput && endInput.value ? endInput.value : '17:00',
+				buffer: bufferInput && bufferInput.value ? parseInt( bufferInput.value, 10 ) : 0,
+			};
+		}
+
+		return schedule;
+	}
+
+	/**
+	 * Render effective schedule preview table HTML
+	 */
+	function renderSchedulePreviewTable( schedule ) {
+		const dayNames = {
+			'1': 'Monday',
+			'2': 'Tuesday',
+			'3': 'Wednesday',
+			'4': 'Thursday',
+			'5': 'Friday',
+			'6': 'Saturday',
+			'7': 'Sunday',
+		};
+
+		let html = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
+		html += '<thead>';
+		html += '<tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd;">';
+		html += '<th style="padding: 10px; text-align: left; width: 15%; border: 1px solid #ddd;">Day</th>';
+		html += '<th style="padding: 10px; text-align: center; width: 10%; border: 1px solid #ddd;">Status</th>';
+		html += '<th style="padding: 10px; text-align: center; width: 20%; border: 1px solid #ddd;">Hours</th>';
+		html += '<th style="padding: 10px; text-align: center; width: 20%; border: 1px solid #ddd;">Buffer</th>';
+		html += '</tr>';
+		html += '</thead><tbody>';
+
+		Object.keys( dayNames ).forEach( ( day ) => {
+			const dayData = schedule[ day ] || { enabled: false, start: '09:00', end: '17:00', buffer: 0 };
+			const isEnabled = !! dayData.enabled;
+			const status = isEnabled
+				? '<span style="color: #28a745; font-weight: bold;">✓ Open</span>'
+				: '<span style="color: #dc3545; font-weight: bold;">✗ Closed</span>';
+			const hours = isEnabled ? `${dayData.start} – ${dayData.end}` : '—';
+			const buffer = isEnabled
+				? ( ( Number( dayData.buffer ) > 0 ) ? `${Number( dayData.buffer )} min` : '—' )
+				: '—';
+			const rowStyle = isEnabled
+				? 'background-color: #f9fff9;'
+				: 'background-color: #fff5f5; opacity: 0.7;';
+
+			html += `<tr style="border-bottom: 1px solid #eee; ${rowStyle}">`;
+			html += `<td style="padding: 10px; border: 1px solid #ddd;"><strong>${dayNames[ day ]}</strong></td>`;
+			html += `<td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${status}</td>`;
+			html += `<td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${hours}</td>`;
+			html += `<td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${buffer}</td>`;
+			html += '</tr>';
+		} );
+
+		html += '</tbody></table>';
+		return html;
+	}
+
+	/**
+	 * Update preview based on schedule mode + current values
+	 */
+	function updateSchedulePreview() {
+		const modeInput = document.getElementById( 'schedule_mode' );
+		const container = document.getElementById( 'schedule-preview-container' );
+		const note = document.getElementById( 'schedule-preview-note' );
+
+		if ( ! modeInput || ! container ) {
+			return;
+		}
+
+		const isCustom = 'custom' === modeInput.value;
+		const globalSchedule = parseHiddenJson( 'preview-global-schedule' ) || {};
+		const customSchedule = getCustomScheduleFromForm();
+		const effectiveSchedule = isCustom ? customSchedule : globalSchedule;
+
+		container.innerHTML = renderSchedulePreviewTable( effectiveSchedule );
+
+		if ( note ) {
+			note.textContent = isCustom
+				? 'This service uses custom availability. Shows your configured per-day schedule above.'
+				: 'This service uses the global Working Schedule. Effective availability is determined by plugin-level settings.';
+		}
 	}
 
 	// Initialize when DOM is ready
@@ -91,10 +217,12 @@
 		document.addEventListener( 'DOMContentLoaded', function() {
 			initScheduleModeToggle();
 			initPerDayScheduleUI();
+			updateSchedulePreview();
 		} );
 	} else {
 		initScheduleModeToggle();
 		initPerDayScheduleUI();
+		updateSchedulePreview();
 	}
 
 } )();

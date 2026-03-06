@@ -492,6 +492,13 @@ Status: ✅ Complete (Micro Stage 4 Complete - v2.2.5 Released)
 - Effective Schedule Preview now shows inherited buffer minutes correctly instead of defaults/dashes
 - Cleaned preview table markup around Service Shortcode row
 
+### v2.2.7 Patch Notes
+
+- Effective Schedule Preview now updates live when switching Schedule Mode between Inherit and Custom
+- In Inherit mode, preview uses global admin Working Schedule (including per-day buffers)
+- In Custom mode, preview reflects current unsaved per-day custom edits immediately
+- Preview note text now switches live with mode selection
+
 ## v2.3 – Google Meet Auto Generation
 
 Allow automatic meeting link creation.

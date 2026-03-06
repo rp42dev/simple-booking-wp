@@ -436,6 +436,7 @@ class Simple_Booking_Service {
         $schedule_mode = get_post_meta( $post->ID, '_schedule_mode', true );
         $service_schedule_json = get_post_meta( $post->ID, '_service_schedule', true );
         $service_schedule = $service_schedule_json ? json_decode( $service_schedule_json, true ) : null;
+        $global_schedule_for_preview = self::get_global_schedule_for_preview();
 
         // Default values
         if ( '' === $duration ) {
@@ -647,12 +648,13 @@ class Simple_Booking_Service {
             </tr>
             <tr>
                 <td colspan="2" style="padding: 10px;">
+                    <input type="hidden" id="preview-global-schedule" value="<?php echo esc_attr( wp_json_encode( $global_schedule_for_preview ) ); ?>" />
                     <div id="schedule-preview-container">
                         <?php
                         echo self::build_schedule_preview( $schedule_mode, $service_schedule );
                         ?>
                     </div>
-                    <p class="description" style="margin-top: 15px;">
+                    <p id="schedule-preview-note" class="description" style="margin-top: 15px;">
                         <?php
                         if ( 'inherit' === $schedule_mode ) {
                             _e( 'This service uses the global Working Schedule. Effective availability is determined by plugin-level settings.', 'simple-booking' );
