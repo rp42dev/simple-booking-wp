@@ -113,13 +113,44 @@ class Simple_Booking_Form {
     /**
      * Render shortcode
      */
-    public function render_shortcode() {
+    public function render_shortcode( $atts = array() ) {
+        $atts = shortcode_atts(
+            array(
+                'service'    => '',
+                'service_id' => 0,
+            ),
+            $atts,
+            self::SHORTCODE
+        );
+
         // Get active services
         $services = Simple_Booking_Service::get_active_services();
+
+        // Optional service filtering via shortcode attributes
+        $selected_service_id = 0;
+
+        if ( ! empty( $atts['service_id'] ) ) {
+            $selected_service_id = absint( $atts['service_id'] );
+        } elseif ( ! empty( $atts['service'] ) ) {
+            $selected_service_id = $this->find_service_id_by_slug_or_title( $atts['service'], $services );
+        }
+
+        if ( $selected_service_id ) {
+            $services = array_values(
+                array_filter(
+                    $services,
+                    function( $service ) use ( $selected_service_id ) {
+                        return absint( $service->ID ) === $selected_service_id;
+                    }
+                )
+            );
+        }
 
         if ( empty( $services ) ) {
             return '<p>' . __( 'No services available at the moment.', 'simple-booking' ) . '</p>';
         }
+
+        $is_single_service_form = count( $services ) === 1;
 
         // Get timezone
         $timezone = wp_timezone_string();
@@ -146,8 +177,10 @@ class Simple_Booking_Form {
                 <!-- Service Selection -->
                 <div class="booking-field">
                     <label for="service_id"><?php _e( 'Select Service', 'simple-booking' ); ?> *</label>
-                    <select id="service_id" name="service_id" required>
-                        <option value=""><?php _e( 'Choose a service...', 'simple-booking' ); ?></option>
+                    <select id="service_id" name="service_id" required <?php echo $is_single_service_form ? 'aria-readonly="true"' : ''; ?>>
+                        <?php if ( ! $is_single_service_form ) : ?>
+                            <option value=""><?php _e( 'Choose a service...', 'simple-booking' ); ?></option>
+                        <?php endif; ?>
                         <?php foreach ( $services as $service ) : ?>
                             <?php
                             $duration = get_post_meta( $service->ID, '_service_duration', true );
@@ -156,7 +189,8 @@ class Simple_Booking_Form {
                             ?>
                             <option value="<?php echo esc_attr( $service->ID ); ?>"
                                     data-duration="<?php echo esc_attr( $duration ); ?>"
-                                    data-has-price="<?php echo ! empty( $price_id ) ? '1' : '0'; ?>">
+                                    data-has-price="<?php echo ! empty( $price_id ) ? '1' : '0'; ?>"
+                                    <?php selected( $is_single_service_form, true ); ?>>
                                 <?php echo esc_html( $service->post_title . ' (' . $duration . ' min)' ); ?>
                             </option>
                         <?php endforeach; ?>
@@ -438,6 +472,32 @@ class Simple_Booking_Form {
         }
 
         return add_query_arg( 'booking', 'success', home_url( '/' ) );
+    }
+
+    /**
+     * Find an active service ID by slug or title.
+     *
+     * @param string $service_ref Service slug or title.
+     * @param array  $services Active service post objects.
+     * @return int
+     */
+    private function find_service_id_by_slug_or_title( $service_ref, $services ) {
+        $service_ref = sanitize_text_field( $service_ref );
+        $service_slug = sanitize_title( $service_ref );
+
+        foreach ( $services as $service ) {
+            if ( $service->post_name === $service_slug ) {
+                return absint( $service->ID );
+            }
+        }
+
+        foreach ( $services as $service ) {
+            if ( 0 === strcasecmp( $service->post_title, $service_ref ) ) {
+                return absint( $service->ID );
+            }
+        }
+
+        return 0;
     }
 
     /**

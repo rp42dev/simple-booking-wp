@@ -45,6 +45,9 @@ simple-booking/
 
 1. **Frontend Form** (`class-booking-form.php`)
    - Shortcode: `[simple_booking_form]`
+   - Shortcode supports optional scoping attributes:
+     - `[simple_booking_form service_id="123"]`
+     - `[simple_booking_form service="consultation"]`
    - User selects service, date/time, enters contact info
    - AJAX submission to `wp_ajax_simple_booking_submit`
    - Nonce verification: `check_ajax_referer('simple_booking_form_nonce', 'nonce')`

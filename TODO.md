@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v1.14 (IN PROGRESS) → v1.15 (NEXT)
+v1.15 (IN PROGRESS) → v1.16 (NEXT)
 
 Core booking flow is operational.
 
@@ -211,7 +211,7 @@ Templates should be stored in WordPress options.
 
 Allow services without payment.
 
-Status: ✅ Implementation Complete (testing pending)
+Status: ✅ Implementation Complete and Tested
 
 If service has no Stripe Price ID:
 
@@ -245,6 +245,8 @@ intro sessions
 
 Allow multiple booking forms.
 
+Status: ✅ Implementation Complete (testing pending)
+
 Current shortcode:
 
 [simple_booking_form]
@@ -266,6 +268,13 @@ Consultation Service
 [simple_booking_form service_id="123"]
 
 Admin can copy shortcode and place it on pages.
+
+### Implementation Notes
+
+- Shortcode now supports `service_id` attribute: `[simple_booking_form service_id="123"]`
+- Shortcode now supports `service` attribute by slug/title: `[simple_booking_form service="consultation"]`
+- When scoped to one service, form preloads that service as selected
+- Service editor now displays copy-ready shortcode for the current service
 
 ## v1.16 – Google Calendar Improvements
 

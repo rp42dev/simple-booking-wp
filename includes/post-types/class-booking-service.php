@@ -198,6 +198,13 @@ class Simple_Booking_Service {
                     <label for="service_active"><?php _e( 'Service is available for booking', 'simple-booking' ); ?></label>
                 </td>
             </tr>
+            <tr>
+                <th scope="row"><?php _e( 'Service Shortcode', 'simple-booking' ); ?></th>
+                <td>
+                    <code>[simple_booking_form service_id="<?php echo esc_attr( $post->ID ); ?>"]</code>
+                    <p class="description"><?php _e( 'Use this shortcode to show a booking form for this service only.', 'simple-booking' ); ?></p>
+                </td>
+            </tr>
         </table>
         <?php
     }
