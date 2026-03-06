@@ -177,24 +177,37 @@ class Simple_Booking_Form {
                 <!-- Service Selection -->
                 <div class="booking-field">
                     <label for="service_id"><?php _e( 'Select Service', 'simple-booking' ); ?> *</label>
-                    <select id="service_id" name="service_id" required <?php echo $is_single_service_form ? 'aria-readonly="true"' : ''; ?>>
-                        <?php if ( ! $is_single_service_form ) : ?>
+                    <?php if ( $is_single_service_form ) : ?>
+                        <?php
+                        $single_service = $services[0];
+                        $single_duration = get_post_meta( $single_service->ID, '_service_duration', true );
+                        $single_duration = $single_duration ? $single_duration : 60;
+                        $single_price_id = get_post_meta( $single_service->ID, '_stripe_price_id', true );
+                        ?>
+                        <p class="booking-selected-service"><strong><?php echo esc_html( $single_service->post_title . ' (' . $single_duration . ' min)' ); ?></strong></p>
+                        <input type="hidden"
+                               id="service_id"
+                               name="service_id"
+                               value="<?php echo esc_attr( $single_service->ID ); ?>"
+                               data-duration="<?php echo esc_attr( $single_duration ); ?>"
+                               data-has-price="<?php echo ! empty( $single_price_id ) ? '1' : '0'; ?>" />
+                    <?php else : ?>
+                        <select id="service_id" name="service_id" required>
                             <option value=""><?php _e( 'Choose a service...', 'simple-booking' ); ?></option>
-                        <?php endif; ?>
-                        <?php foreach ( $services as $service ) : ?>
-                            <?php
-                            $duration = get_post_meta( $service->ID, '_service_duration', true );
-                            $duration = $duration ? $duration : 60;
-                            $price_id = get_post_meta( $service->ID, '_stripe_price_id', true );
-                            ?>
-                            <option value="<?php echo esc_attr( $service->ID ); ?>"
-                                    data-duration="<?php echo esc_attr( $duration ); ?>"
-                                    data-has-price="<?php echo ! empty( $price_id ) ? '1' : '0'; ?>"
-                                    <?php selected( $is_single_service_form, true ); ?>>
-                                <?php echo esc_html( $service->post_title . ' (' . $duration . ' min)' ); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                            <?php foreach ( $services as $service ) : ?>
+                                <?php
+                                $duration = get_post_meta( $service->ID, '_service_duration', true );
+                                $duration = $duration ? $duration : 60;
+                                $price_id = get_post_meta( $service->ID, '_stripe_price_id', true );
+                                ?>
+                                <option value="<?php echo esc_attr( $service->ID ); ?>"
+                                        data-duration="<?php echo esc_attr( $duration ); ?>"
+                                        data-has-price="<?php echo ! empty( $price_id ) ? '1' : '0'; ?>">
+                                    <?php echo esc_html( $service->post_title . ' (' . $duration . ' min)' ); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Date Selection -->

@@ -12,9 +12,28 @@
         const messageEl = $('#booking-message');
         const stripeSessionInput = $('#stripe_session_id');
 
+        function getServiceMeta() {
+            const serviceField = $('#service_id');
+            if (!serviceField.length) {
+                return { hasPrice: false, duration: 0 };
+            }
+
+            if (serviceField.is('select')) {
+                const selected = serviceField.find('option:selected');
+                return {
+                    hasPrice: selected.data('has-price') === 1 || selected.data('has-price') === '1',
+                    duration: parseInt(selected.data('duration'), 10) || 0,
+                };
+            }
+
+            return {
+                hasPrice: serviceField.data('has-price') === 1 || serviceField.data('has-price') === '1',
+                duration: parseInt(serviceField.data('duration'), 10) || 0,
+            };
+        }
+
         function getSubmitLabel() {
-            const selected = $('#service_id option:selected');
-            const hasPrice = selected.data('has-price') === 1 || selected.data('has-price') === '1';
+            const hasPrice = getServiceMeta().hasPrice;
             if (hasPrice) {
                 return simpleBooking.i18n.submitText || 'Proceed to Payment';
             }
@@ -193,7 +212,7 @@
             $('#end-estimate, #closing-warning').remove();
             const date = $('#booking_date').val();
             const time = $('#booking_time').val();
-            const dur = parseInt($('#service_id option:selected').data('duration'), 10) || 0;
+            const dur = getServiceMeta().duration;
             if (date && time && dur) {
                 const startDt = new Date(date + 'T' + time);
                 const endDt = new Date(startDt.getTime() + dur * 60000);
