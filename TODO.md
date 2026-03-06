@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v2.0 (COMPLETED) → v2.1 (NEXT)
+v2.2 (COMPLETED) → v2.3 (NEXT)
 
 Core booking flow is operational.
 
@@ -406,15 +406,30 @@ Google event ID
 
 ## v2.2 – Availability Control
 
-Add scheduling logic.
+Add scheduling logic and per-service availability rules.
 
-Service settings should support:
+Status: ✅ Implementation Complete
 
-Available days
-Available hours
-Buffer time between bookings
+Service settings now support:
 
-Booking form should only show available slots.
+**Available Days** – Select which days of week the service is available
+
+**Available Hours** – Set opening/closing time for that service (9 AM - 5 PM)
+
+**Buffer Time** – Enforce minimum gap between bookings (in minutes)
+
+Booking form now shows only available slots respecting all constraints.
+
+### Implementation Notes
+
+- Per-service availability settings in service editor
+- Available days via checkboxes (Monday-Sunday)
+- Time windows with time picker inputs
+- Buffer time in minutes (0, 5, 10, 15, etc.)
+- Slot generation in booking form respects all availability rules
+- Compatibility with global plugin scheduling settings
+- Existing bookings checked against buffer time to prevent overlap
+- Non-blocking implementation - uses service-level settings only if configured
 
 ## v2.3 – Google Meet Auto Generation
 
