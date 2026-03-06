@@ -92,6 +92,18 @@ class Simple_Booking_Service {
                 'default'      => true,
             )
         );
+
+        // Meeting Link
+        register_post_meta(
+            self::POST_TYPE,
+            '_meeting_link',
+            array(
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'esc_url_raw',
+            )
+        );
     }
 
     /**
@@ -118,6 +130,7 @@ class Simple_Booking_Service {
         // Get values
         $duration     = get_post_meta( $post->ID, '_service_duration', true );
         $price_id     = get_post_meta( $post->ID, '_stripe_price_id', true );
+        $meeting_link = get_post_meta( $post->ID, '_meeting_link', true );
         $is_active    = get_post_meta( $post->ID, '_service_active', true );
 
         // Default values
@@ -156,6 +169,20 @@ class Simple_Booking_Service {
                            class="regular-text"
                            placeholder="price_xxxxxxxxxxxxxx" />
                     <p class="description"><?php _e( 'Enter the Stripe Price ID (e.g., price_1234567890)', 'simple-booking' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="meeting_link"><?php _e( 'Meeting Link', 'simple-booking' ); ?></label>
+                </th>
+                <td>
+                    <input type="url"
+                           id="meeting_link"
+                           name="meeting_link"
+                           value="<?php echo esc_attr( $meeting_link ); ?>"
+                           class="regular-text"
+                           placeholder="https://zoom.us/j/xxxxx or https://meet.google.com/xxxxx" />
+                    <p class="description"><?php _e( 'Optional: Zoom, Google Meet, or other meeting URL', 'simple-booking' ); ?></p>
                 </td>
             </tr>
             <tr>
@@ -205,6 +232,11 @@ class Simple_Booking_Service {
             update_post_meta( $post_id, '_stripe_price_id', sanitize_text_field( $_POST['stripe_price_id'] ) );
         }
 
+        // Save meeting link
+        if ( isset( $_POST['meeting_link'] ) ) {
+            update_post_meta( $post_id, '_meeting_link', esc_url_raw( $_POST['meeting_link'] ) );
+        }
+
         // Save active status
         $is_active = isset( $_POST['service_active'] ) ? true : false;
         update_post_meta( $post_id, '_service_active', $is_active );
@@ -245,6 +277,7 @@ class Simple_Booking_Service {
             'name'         => $post->post_title,
             'duration'     => get_post_meta( $post->ID, '_service_duration', true ),
             'stripe_price_id' => get_post_meta( $post->ID, '_stripe_price_id', true ),
+            'meeting_link' => get_post_meta( $post->ID, '_meeting_link', true ),
             'is_active'    => get_post_meta( $post->ID, '_service_active', true ),
         );
     }

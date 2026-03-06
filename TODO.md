@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v1.11 (COMPLETED) → v1.12 (NEXT)
+v1.12 (IN PROGRESS) → v1.13 (NEXT)
 
 Core booking flow is operational.
 
@@ -115,6 +115,8 @@ Success page should later support dynamic booking display.
 
 Allow services to define external meeting links.
 
+Status: ✅ Implementation Complete (testing pending)
+
 Add service field:
 
 **Meeting Link** (optional)
@@ -148,6 +150,14 @@ Email: john@email.com
 
 Meeting Link:
 https://zoom.us/j/xxxxx
+
+### Implementation Notes
+
+- Meeting link field added to service editor
+- URL validation with `esc_url_raw`
+- Meeting link included in confirmation emails
+- Meeting link included in Google Calendar event descriptions
+- Optional field with graceful fallback if empty
 
 ## v1.13 – Email Customization
 

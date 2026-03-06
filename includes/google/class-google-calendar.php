@@ -610,6 +610,11 @@ class Simple_Booking_Google_Calendar {
         $description .= sprintf( "Service: %s\n", $booking_data['service_name'] );
         $description .= sprintf( "Time: %s - %s", $booking_data['start_datetime'], $booking_data['end_datetime'] );
 
+        // Add meeting link if available
+        if ( isset( $booking_data['meeting_link'] ) && ! empty( $booking_data['meeting_link'] ) ) {
+            $description .= sprintf( "\n\nMeeting Link:\n%s", $booking_data['meeting_link'] );
+        }
+
         return $description;
     }
 }

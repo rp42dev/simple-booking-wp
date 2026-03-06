@@ -112,6 +112,7 @@ class Simple_Booking_Stripe_Webhook {
             'start_datetime'  => $start_datetime,
             'end_datetime'    => $end_datetime,
             'stripe_payment_id' => $session->id,
+            'meeting_link'    => isset( $service['meeting_link'] ) ? $service['meeting_link'] : '',
         );
 
         // Create booking

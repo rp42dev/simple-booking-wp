@@ -5,17 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.11] - In Progress
+## [1.12] - In Progress
+
+### Added
+- **Meeting Link Support**: Services can now include external meeting links (Zoom, Google Meet, etc.)
+- **Email Enhancement**: Meeting links automatically included in confirmation emails
+- **Calendar Integration**: Meeting links appear in Google Calendar event descriptions
+
+### Technical
+- **Service Meta Field**: New `_meeting_link` meta field for service post type
+- **URL Validation**: Meeting links sanitized with `esc_url_raw`
+- **Optional Field**: Meeting link is optional and falls back gracefully if not provided
+
+---
+
+## [1.11] - 2026-03-06
 
 ### Added
 - **Redirect & Success Page System**: Automatic creation of success and cancel pages on plugin activation
 - **Improved User Experience**: Custom pages for post-payment redirects instead of generic URLs
 - **Stripe Redirect URLs**: Updated checkout sessions to use dedicated success/cancel pages
 
+### Fixed
+- **Fallback URL Handling**: Fixed double-? query parameter issue when pages are deleted
+- **Page Verification**: Added logic to verify pages exist before using them
+- **Auto-Cleanup**: Automatically clears options when pages are deleted
+
 ### Technical
 - **Page Auto-Creation**: Plugin activation hook creates default pages if they don't exist
-- **Fallback URLs**: Graceful fallback to query parameter URLs if pages are missing
+- **Fallback URLs**: Graceful fallback to homepage with query parameters if pages are missing
 - **Option Storage**: Page IDs stored in WordPress options for persistent configuration
+- **Query Parameter Helper**: New `append_query_param()` method for proper URL construction
 
 ---
 

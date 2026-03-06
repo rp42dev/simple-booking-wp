@@ -142,16 +142,23 @@ class Simple_Booking_Booking_Creator {
 
         $service = get_post( $service_id );
         $service_name = $service ? $service->post_title : '';
+        $meeting_link = get_post_meta( $service_id, '_meeting_link', true );
 
         $timezone = wp_timezone_string();
 
+        $meeting_info = '';
+        if ( ! empty( $meeting_link ) ) {
+            $meeting_info = sprintf( "\n\nMeeting Link:\n%s", $meeting_link );
+        }
+
         $message = sprintf(
-            "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s\n\nThank you for your booking.\n\n%s",
+            "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s%s\n\nThank you for your booking.\n\n%s",
             $customer_name,
             $service_name,
             $start_datetime,
             $end_datetime,
             $timezone,
+            $meeting_info,
             get_bloginfo( 'name' )
         );
 
