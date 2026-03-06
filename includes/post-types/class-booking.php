@@ -405,12 +405,15 @@ class Simple_Booking_Post {
 
         if ( ! empty( $services ) ) {
             $selected_service = isset( $_GET['filter_service'] ) ? absint( $_GET['filter_service'] ) : '';
-            echo '<select name="filter_service">';
+            echo '<select name="filter_service" id="filter-service-dropdown">';
             echo '<option value="">' . __( 'All Services', 'simple-booking' ) . '</option>';
             foreach ( $services as $service ) {
+                $stripe_price_id = get_post_meta( $service->ID, '_stripe_price_id', true );
+                $has_price       = ! empty( $stripe_price_id ) ? '1' : '0';
                 printf(
-                    '<option value="%d" %s>%s</option>',
+                    '<option value="%d" data-has-price="%s" %s>%s</option>',
                     $service->ID,
+                    esc_attr( $has_price ),
                     selected( $selected_service, $service->ID, false ),
                     esc_html( $service->post_title )
                 );
@@ -447,11 +450,40 @@ class Simple_Booking_Post {
 
         // Payment status filter
         $selected_payment = isset( $_GET['filter_payment'] ) ? sanitize_text_field( $_GET['filter_payment'] ) : '';
-        echo '<select name="filter_payment">';
+        echo '<select name="filter_payment" id="filter-payment-dropdown">';
         echo '<option value="">' . __( 'All Payments', 'simple-booking' ) . '</option>';
         echo '<option value="paid" ' . selected( $selected_payment, 'paid', false ) . '>' . __( 'Paid', 'simple-booking' ) . '</option>';
         echo '<option value="free" ' . selected( $selected_payment, 'free', false ) . '>' . __( 'Free', 'simple-booking' ) . '</option>';
         echo '</select>';
+
+        // JavaScript for dynamic filter control
+        echo '<script>
+        (function() {
+            const serviceDropdown = document.getElementById("filter-service-dropdown");
+            const paymentDropdown = document.getElementById("filter-payment-dropdown");
+            
+            if (!serviceDropdown || !paymentDropdown) return;
+            
+            function updatePaymentOptions() {
+                const selected = serviceDropdown.options[serviceDropdown.selectedIndex];
+                const hasPrice = selected ? selected.getAttribute("data-has-price") : "";
+                const paidOption = paymentDropdown.querySelector("option[value=\"paid\"]");
+                
+                if (paidOption) {
+                    if (hasPrice === "0") {
+                        paidOption.disabled = true;
+                        paidOption.textContent = "' . __( 'Paid', 'simple-booking' ) . ' (N/A for free service)";
+                    } else {
+                        paidOption.disabled = false;
+                        paidOption.textContent = "' . __( 'Paid', 'simple-booking' ) . '";
+                    }
+                }
+            }
+            
+            serviceDropdown.addEventListener("change", updatePaymentOptions);
+            updatePaymentOptions();
+        })();
+        </script>';
     }
 
     /**
