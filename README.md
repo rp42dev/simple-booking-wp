@@ -2,7 +2,7 @@
 
 A lightweight, modular WordPress booking engine with Stripe and Google Calendar integration.
 
-Current release: v1.11.1
+Current release: v1.14.0 (in progress)
 
 ## Features
 
@@ -11,6 +11,7 @@ Current release: v1.11.1
 - **Google Calendar**: Automatic event creation for bookings
 - **Frontend Form**: Simple shortcode `[simple_booking_form]`
 - **Webhook Processing**: Real-time booking creation after payment
+- **Free Booking Support**: Services without Stripe Price ID book instantly
 - **Email Notifications**: Confirmation emails sent automatically
 - **Success/Cancel Pages**: Automatic creation of dedicated redirect pages for better UX
 
@@ -131,13 +132,14 @@ Add the booking form to any page using the shortcode:
 
 1. Customer selects a service and date/time
 2. Fills in contact information
-3. Clicks "Proceed to Payment"
-4. Redirected to Stripe Checkout
-5. After payment, Stripe sends webhook
-6. Customer is redirected to:
+3. Clicks submit (`Proceed to Payment` for paid, `Book Now` for free)
+4. Paid services: redirected to Stripe Checkout
+5. Paid services: Stripe sends webhook after payment
+6. Free services: booking is created immediately (no Stripe)
+7. Customer is redirected to:
    - Booking Confirmed page (if configured)
    - Homepage fallback with `session_id` if success page is missing
-7. Plugin creates:
+8. Plugin creates:
    - Booking post in WordPress
    - Google Calendar event (if configured)
    - Confirmation email to customer

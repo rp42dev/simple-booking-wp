@@ -12,6 +12,19 @@
         const messageEl = $('#booking-message');
         const stripeSessionInput = $('#stripe_session_id');
 
+        function getSubmitLabel() {
+            const selected = $('#service_id option:selected');
+            const hasPrice = selected.data('has-price') === 1 || selected.data('has-price') === '1';
+            if (hasPrice) {
+                return simpleBooking.i18n.submitText || 'Proceed to Payment';
+            }
+            return simpleBooking.i18n.submitFreeText || 'Book Now';
+        }
+
+        function updateSubmitLabel() {
+            submitBtn.text(getSubmitLabel());
+        }
+
         // Initialize Stripe
         let stripe = null;
         const publishableKey = simpleBooking && simpleBooking.publishableKey ? simpleBooking.publishableKey : null;
@@ -92,8 +105,9 @@
         })();
 
         // pick up changes
-        $('#service_id').on('change', function(){ loadSlots(); clearEndEstimate(); });
+        $('#service_id').on('change', function(){ loadSlots(); clearEndEstimate(); updateSubmitLabel(); });
         $('#booking_time').on('change', updateEndEstimate);
+        updateSubmitLabel();
         // optionally load slots on page load if date present
         if ($('#booking_date').val() && $('#service_id').val()) {
             loadSlots();
@@ -144,11 +158,18 @@
                         stripeSessionInput.val(response.data.session_id);
                     }
 
+                    // Redirect for free bookings
+                    if (response.data.redirect_url) {
+                        window.location.href = response.data.redirect_url;
+                        return;
+                    }
+
                     // Redirect to Stripe
                     if (response.data.url) {
                         window.location.href = response.data.url;
                     } else {
                         showMessage(simpleBooking.i18n.error, 'error');
+                        setLoading(false);
                     }
                 } else {
                     showMessage(response.data.message || simpleBooking.i18n.error, 'error');
@@ -270,7 +291,7 @@
                 submitBtn
                     .prop('disabled', false)
                     .removeClass('loading')
-                    .text(simpleBooking.i18n.submitText || 'Proceed to Payment');
+                    .text(getSubmitLabel());
             }
         }
     });

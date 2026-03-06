@@ -97,6 +97,7 @@ class Simple_Booking_Form {
                     'enterPhone'    => __( 'Please enter your phone number', 'simple-booking' ),
                     'error'         => __( 'An error occurred. Please try again.', 'simple-booking' ),
                     'submitText'    => __( 'Proceed to Payment', 'simple-booking' ),
+                    'submitFreeText' => __( 'Book Now', 'simple-booking' ),
                 ),
             )
         );
@@ -118,12 +119,6 @@ class Simple_Booking_Form {
 
         if ( empty( $services ) ) {
             return '<p>' . __( 'No services available at the moment.', 'simple-booking' ) . '</p>';
-        }
-
-        // Check for Stripe configuration
-        $publishable_key = simple_booking()->get_setting( 'stripe_publishable_key' );
-        if ( empty( $publishable_key ) ) {
-            return '<p>' . __( 'Booking system is not configured. Please contact the administrator.', 'simple-booking' ) . '</p>';
         }
 
         // Get timezone
@@ -157,9 +152,11 @@ class Simple_Booking_Form {
                             <?php
                             $duration = get_post_meta( $service->ID, '_service_duration', true );
                             $duration = $duration ? $duration : 60;
+                            $price_id = get_post_meta( $service->ID, '_stripe_price_id', true );
                             ?>
                             <option value="<?php echo esc_attr( $service->ID ); ?>"
-                                    data-duration="<?php echo esc_attr( $duration ); ?>">
+                                    data-duration="<?php echo esc_attr( $duration ); ?>"
+                                    data-has-price="<?php echo ! empty( $price_id ) ? '1' : '0'; ?>">
                                 <?php echo esc_html( $service->post_title . ' (' . $duration . ' min)' ); ?>
                             </option>
                         <?php endforeach; ?>
@@ -362,7 +359,51 @@ class Simple_Booking_Form {
             'start_datetime' => $booking_datetime,
         );
 
-        // Create Stripe checkout session
+        // Free booking flow (no Stripe Price ID)
+        if ( empty( $service['stripe_price_id'] ) ) {
+            $duration = isset( $service['duration'] ) ? absint( $service['duration'] ) : 60;
+            if ( $duration <= 0 ) {
+                $duration = 60;
+            }
+
+            try {
+                $tz = new DateTimeZone( wp_timezone_string() );
+                $start = new DateTime( $booking_datetime, $tz );
+                $end = clone $start;
+                $end->modify( "+{$duration} minutes" );
+                $end_datetime = $end->format( 'Y-m-d\TH:i' );
+            } catch ( Exception $e ) {
+                wp_send_json_error( array( 'message' => __( 'Invalid booking time selected', 'simple-booking' ) ) );
+            }
+
+            $booking_payload = array(
+                'service_id'        => $service_id,
+                'service_name'      => $service['name'],
+                'customer_name'     => $customer_name,
+                'customer_email'    => $customer_email,
+                'customer_phone'    => $customer_phone,
+                'start_datetime'    => $booking_datetime,
+                'end_datetime'      => $end_datetime,
+                'meeting_link'      => isset( $service['meeting_link'] ) ? $service['meeting_link'] : '',
+                'stripe_payment_id' => '',
+            );
+
+            $booking_id = Simple_Booking_Booking_Creator::create_booking( $booking_payload );
+
+            if ( is_wp_error( $booking_id ) ) {
+                wp_send_json_error( array( 'message' => $booking_id->get_error_message() ) );
+            }
+
+            Simple_Booking_Booking_Creator::send_confirmation_email( $booking_id );
+
+            wp_send_json_success( array(
+                'booking_id'    => $booking_id,
+                'redirect_url'  => $this->get_success_redirect_url(),
+                'message'       => __( 'Booking confirmed successfully.', 'simple-booking' ),
+            ) );
+        }
+
+        // Paid booking flow (Stripe)
         $stripe = new Simple_Booking_Stripe();
         $session = $stripe->create_checkout_session( $service, $booking_data );
 
@@ -379,6 +420,24 @@ class Simple_Booking_Form {
             'session_id' => $session->id,
             'url'        => $session->url,
         ) );
+    }
+
+    /**
+     * Get success redirect URL for free bookings.
+     *
+     * @return string
+     */
+    private function get_success_redirect_url() {
+        $page_id = get_option( 'simple_booking_success_page' );
+        if ( $page_id ) {
+            $page = get_post( $page_id );
+            if ( $page && 'publish' === $page->post_status ) {
+                return get_permalink( $page_id );
+            }
+            delete_option( 'simple_booking_success_page' );
+        }
+
+        return add_query_arg( 'booking', 'success', home_url( '/' ) );
     }
 
     /**

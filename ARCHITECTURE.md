@@ -50,19 +50,22 @@ simple-booking/
    - Nonce verification: `check_ajax_referer('simple_booking_form_nonce', 'nonce')`
    - Optional Google Calendar availability checking before payment
 
-2. **Stripe Session Creation** (`class-stripe-handler.php:54`)
-   - Creates Stripe Checkout Session with metadata:
-     - `customer_name`, `customer_email`, `customer_phone`
-     - `service_id`, `start_datetime`
-    - Success URL: `booking-confirmed` page URL with `session_id={CHECKOUT_SESSION_ID}` appended
-    - Cancel URL: `booking-cancelled` page URL
-    - Fallback behavior if page options are stale/missing:
-       - Success URL falls back to homepage and appends `session_id`
-       - Cancel URL falls back to homepage
+2. **Paid vs Free Branching** (`class-booking-form.php`)
+    - If service has Stripe Price ID:
+       - Creates Stripe Checkout Session with metadata:
+          - `customer_name`, `customer_email`, `customer_phone`
+          - `service_id`, `start_datetime`
+       - Success URL: `booking-confirmed` page URL with `session_id={CHECKOUT_SESSION_ID}` appended
+       - Cancel URL: `booking-cancelled` page URL
+    - If service has no Stripe Price ID:
+       - Skips Stripe checkout
+       - Creates booking immediately via `Simple_Booking_Booking_Creator::create_booking()`
+       - Sends confirmation email immediately
+       - Redirects to configured success page (with homepage fallback)
 
 3. **Customer Redirect**
-   - Customer redirected to Stripe Checkout
-   - After payment, Stripe sends webhook
+   - Paid: customer redirected to Stripe Checkout, then webhook finalizes booking
+   - Free: customer redirected to success page immediately after direct booking
 
 ### 3.2 Webhook Processing
 

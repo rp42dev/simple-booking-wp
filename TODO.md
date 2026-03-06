@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v1.13 (IN PROGRESS) → v1.14 (NEXT)
+v1.14 (IN PROGRESS) → v1.15 (NEXT)
 
 Core booking flow is operational.
 
@@ -164,7 +164,7 @@ https://zoom.us/j/xxxxx
 
 Allow administrators to edit booking emails.
 
-Status: ✅ Implementation Complete (testing pending)
+Status: ✅ Implementation Complete and Tested
 
 Add settings fields:
 
@@ -211,6 +211,8 @@ Templates should be stored in WordPress options.
 
 Allow services without payment.
 
+Status: ✅ Implementation Complete (testing pending)
+
 If service has no Stripe Price ID:
 
 skip Stripe checkout
@@ -230,6 +232,14 @@ free consultations
 discovery calls
 
 intro sessions
+
+### Implementation Notes
+
+- If service has no Stripe Price ID, booking is created immediately
+- Direct flow creates booking post, Google event (if connected), and confirmation email
+- Redirects to configured success page after direct booking
+- Booking form now supports mixed paid/free services in one dropdown
+- Button label updates dynamically (`Proceed to Payment` vs `Book Now`)
 
 ## v1.15 – Service Specific Forms
 

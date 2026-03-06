@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.13] - In Progress
+## [1.14] - In Progress
+
+### Added
+- **Free Booking Support**: Services without Stripe Price ID now skip checkout and book immediately
+- **Direct Booking Flow**: Creates booking, sends confirmation email, and attempts Google event without Stripe
+- **Mixed Service Support**: Booking form supports both paid and free services simultaneously
+- **Dynamic Submit Label**: Button text changes based on selected service (`Proceed to Payment` / `Book Now`)
+
+### Technical
+- **Frontend Flow Branching**: `handle_submission()` now branches into free or paid booking flow
+- **Success Redirect for Free Bookings**: Uses configured success page option with homepage fallback
+- **Service Metadata in UI**: Service dropdown includes `data-has-price` for UX behavior
+
+---
+
+## [1.13] - 2026-03-06
 
 ### Added
 - **Email Customization**: Administrators can customize email subject and body templates
@@ -18,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Variable Replacement**: Template engine replaces variables at email send time
 - **Graceful Fallback**: Empty meeting links handled cleanly in templates
 - **Date Formatting**: `{booking_date}` formatted as "March 6, 2026", `{booking_time}` as "2:30 PM"
+
+### Fixed
+- **Template Email Reliability**: Added fail-safe datetime parsing and fallback subject/body to prevent send failures with custom templates
 
 ---
 
