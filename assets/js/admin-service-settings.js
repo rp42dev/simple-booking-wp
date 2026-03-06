@@ -102,6 +102,7 @@
 	 */
 	function initAutoMeetToggle() {
 		const autoMeetInput = document.getElementById( 'auto_google_meet' );
+		const createGoogleEventInput = document.getElementById( 'create_google_event' );
 		const meetingLinkInput = document.getElementById( 'meeting_link' );
 
 		if ( ! autoMeetInput || ! meetingLinkInput ) {
@@ -109,10 +110,25 @@
 		}
 
 		const meetingLinkRow = meetingLinkInput.closest( 'tr' );
+		const autoMeetRow = autoMeetInput.closest( 'tr' );
 
-		function updateMeetingLinkState() {
+		function updateToggleState() {
+			const eventCreationEnabled = createGoogleEventInput ? createGoogleEventInput.checked : true;
 			const autoMeetEnabled = autoMeetInput.checked;
 
+			// Update Auto-Meet checkbox state (disable if Event creation is OFF)
+			autoMeetInput.disabled = ! eventCreationEnabled;
+			autoMeetInput.setAttribute( 'aria-disabled', ! eventCreationEnabled ? 'true' : 'false' );
+
+			if ( autoMeetRow ) {
+				autoMeetRow.style.opacity = ! eventCreationEnabled ? '0.65' : '1';
+			}
+
+			autoMeetInput.title = ! eventCreationEnabled
+				? 'Enable "Create Google Calendar Event" first to use auto-generated Google Meet links.'
+				: '';
+
+			// Update Meeting Link field state (disable if Auto-Meet is ON)
 			meetingLinkInput.disabled = autoMeetEnabled;
 			meetingLinkInput.setAttribute( 'aria-disabled', autoMeetEnabled ? 'true' : 'false' );
 
@@ -125,8 +141,11 @@
 				: '';
 		}
 
-		updateMeetingLinkState();
-		autoMeetInput.addEventListener( 'change', updateMeetingLinkState );
+		updateToggleState();
+		autoMeetInput.addEventListener( 'change', updateToggleState );
+		if ( createGoogleEventInput ) {
+			createGoogleEventInput.addEventListener( 'change', updateToggleState );
+		}
 	}
 
 	/**

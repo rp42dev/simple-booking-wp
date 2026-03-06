@@ -543,6 +543,14 @@ Allow automatic meeting link creation with a per-service toggle.
     - `static` when service static meeting link is used
     - `none` when no meeting link exists
 
+### v2.3.6 Patch Notes
+
+- **Dependency validation:** Auto-Meet checkbox now disabled when Google Calendar Event creation is OFF
+- Prevents admins from enabling a feature that won't function without the prerequisite
+- Auto-Meet toggled ON automatically re-enables when Event creation is turned ON
+- Tooltip: "Enable 'Create Google Calendar Event' first to use auto-generated Google Meet links."
+- Improved admin UX by enforcing business dependency at the UI level
+
 ### v2.3.5 Patch Notes
 
 - **Corrected** auto-meet behavior: Meeting Link field disabled based **only** on Auto-Meet state
