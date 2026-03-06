@@ -523,6 +523,7 @@ class Simple_Booking_Service {
                            class="regular-text"
                            placeholder="https://zoom.us/j/xxxxx or https://meet.google.com/xxxxx" />
                     <p class="description"><?php _e( 'Optional: Zoom, Google Meet, or other meeting URL', 'simple-booking' ); ?></p>
+                    <p class="description"><?php _e( 'If "Auto-Create Google Meet Link" is enabled, the generated per-booking Meet link will override this static link in confirmations.', 'simple-booking' ); ?></p>
                 </td>
             </tr>
             <tr>

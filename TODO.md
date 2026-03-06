@@ -522,6 +522,11 @@ Allow automatic meeting link creation with a per-service toggle.
 - Google Meet links are now booking-specific when auto-generated
 - Event creation still works without Meet when toggle is disabled
 
+### v2.3.1 Patch Notes
+
+- Added service editor hint under Meeting Link clarifying Auto-Meet precedence
+- Clarifies that generated per-booking Google Meet link overrides static Meeting Link in confirmations when enabled
+
 ## v3.0 – Advanced Booking Platform
 
 Major expansion of system.
