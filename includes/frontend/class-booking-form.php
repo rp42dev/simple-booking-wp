@@ -185,12 +185,14 @@ class Simple_Booking_Form {
                         $single_price_id = get_post_meta( $single_service->ID, '_stripe_price_id', true );
                         ?>
                         <p class="booking-selected-service"><strong><?php echo esc_html( $single_service->post_title . ' (' . $single_duration . ' min)' ); ?></strong></p>
-                        <input type="hidden"
-                               id="service_id"
-                               name="service_id"
-                               value="<?php echo esc_attr( $single_service->ID ); ?>"
-                               data-duration="<?php echo esc_attr( $single_duration ); ?>"
-                               data-has-price="<?php echo ! empty( $single_price_id ) ? '1' : '0'; ?>" />
+                        <select id="service_id" name="service_id" required style="display:none;">
+                            <option value="<?php echo esc_attr( $single_service->ID ); ?>"
+                                    data-duration="<?php echo esc_attr( $single_duration ); ?>"
+                                    data-has-price="<?php echo ! empty( $single_price_id ) ? '1' : '0'; ?>"
+                                    selected>
+                                <?php echo esc_html( $single_service->post_title . ' (' . $single_duration . ' min)' ); ?>
+                            </option>
+                        </select>
                     <?php else : ?>
                         <select id="service_id" name="service_id" required>
                             <option value=""><?php _e( 'Choose a service...', 'simple-booking' ); ?></option>
