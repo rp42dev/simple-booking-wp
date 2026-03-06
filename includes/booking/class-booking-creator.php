@@ -81,6 +81,13 @@ class Simple_Booking_Booking_Creator {
 
         if ( ! is_wp_error( $google_event_id ) && ! empty( $google_event_id ) ) {
             update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_id ) );
+
+                // Send webhook notification
+                if ( class_exists( 'Simple_Booking_Booking_Webhook' ) ) {
+                    $webhook_data = $data;
+                    $webhook_data['booking_id'] = $booking_id;
+                    Simple_Booking_Booking_Webhook::send_booking_created( $webhook_data );
+                }
         }
 
         return $booking_id;

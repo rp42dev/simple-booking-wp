@@ -7,7 +7,7 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v1.16 (IN PROGRESS) → v2.0 (NEXT)
+v2.0 (IN PROGRESS) → v2.1 (NEXT)
 
 Core booking flow is operational.
 
@@ -325,6 +325,8 @@ https://zoom.us/j/xxxxx
 
 Introduce automation compatibility.
 
+Status: ✅ Implementation Complete
+
 ### Webhook System
 
 Trigger event when booking is created.
@@ -336,12 +338,19 @@ booking.created
 Payload example:
 
 {
- service_name
- customer_name
- email
- date
- time
- meeting_link
+    "event": "booking.created",
+    "timestamp": 1234567890,
+    "data": {
+        "service_name": "Consultation",
+        "customer_name": "John Smith",
+        "customer_email": "john@email.com",
+        "customer_phone": "+1234567890",
+        "date": "March 6, 2026",
+        "time": "2:30 PM",
+        "datetime": "2026-03-06T14:30:00+00:00",
+        "meeting_link": "https://zoom.us/j/xxxxx",
+        "booking_id": 123
+    }
 }
 
 Admin setting:
@@ -359,6 +368,18 @@ Make
 CRM systems
 
 marketing automation
+
+### Implementation Notes
+
+- New "Webhook Settings" section in admin settings
+- Webhook URL field with validation (optional)
+- Sends POST request with JSON payload on booking creation
+- Non-blocking HTTP request to avoid slowing down booking process
+- Debug logging available when debug mode is enabled
+- Webhook includes full booking details: service, customer, date/time, meeting link
+- Standard event format with event name, timestamp, and data payload
+- Automatic datetime formatting in multiple formats (readable + ISO 8601)
+- Compatible with Zapier webhooks, Make (Integromat), and custom integrations
 
 ## v2.1 – Booking Management Improvements
 

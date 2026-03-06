@@ -219,6 +219,27 @@ class Simple_Booking_Admin_Settings {
                 'name'        => 'email_body',
                 'placeholder' => "Dear {customer_name},\n\nYour booking has been confirmed!\n\nService: {service_name}\nDate: {booking_date}\nTime: {booking_time}\n\nMeeting Link: {meeting_link}\n\nThank you!",
                 'rows'        => 10,
+
+                    // Webhook Settings
+                    add_settings_section(
+                        'simple_booking_webhook',
+                        __( 'Webhook Settings', 'simple-booking' ),
+                        array( $this, 'render_webhook_section' ),
+                        self::PAGE_SLUG
+                    );
+
+                    add_settings_field(
+                        'webhook_url',
+                        __( 'Webhook URL', 'simple-booking' ),
+                        array( $this, 'render_text_field' ),
+                        self::PAGE_SLUG,
+                        'simple_booking_webhook',
+                        array(
+                            'name'        => 'webhook_url',
+                            'placeholder' => 'https://example.com/webhook',
+                            'description' => __( 'Optional: URL to receive booking.created events', 'simple-booking' ),
+                        )
+                    );
             )
         );
     }
@@ -253,6 +274,10 @@ class Simple_Booking_Admin_Settings {
             sanitize_text_field( $input['email_subject'] ) : '';
         $sanitized['email_body'] = isset( $input['email_body'] ) ?
             sanitize_textarea_field( $input['email_body'] ) : '';
+
+        // Webhook
+        $sanitized['webhook_url'] = isset( $input['webhook_url'] ) ?
+            esc_url_raw( $input['webhook_url'] ) : '';
 
         // Working schedule: per-day enabled and start/end times
         $sanitized['schedule'] = array();
@@ -410,6 +435,14 @@ class Simple_Booking_Admin_Settings {
     public function render_email_section() {
         echo '<p>' . __( 'Customize the confirmation email sent to customers after booking.', 'simple-booking' ) . '</p>';
         echo '<p>' . __( 'Available template variables:', 'simple-booking' ) . ' <code>{customer_name}</code>, <code>{service_name}</code>, <code>{booking_date}</code>, <code>{booking_time}</code>, <code>{meeting_link}</code>, <code>{timezone}</code></p>';
+
+        /**
+         * Render webhook section
+         */
+        public function render_webhook_section() {
+            echo '<p>' . __( 'Configure webhooks to integrate with external automation platforms (Zapier, Make, etc.).', 'simple-booking' ) . '</p>';
+            echo '<p>' . __( 'When a booking is created, a POST request will be sent with booking details.', 'simple-booking' ) . '</p>';
+        }
     }
 
     /**
@@ -506,6 +539,10 @@ class Simple_Booking_Admin_Settings {
                value="<?php echo esc_attr( $value ); ?>"
                placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
                class="regular-text" />
+                <?php
+                if ( isset( $args['description'] ) && ! empty( $args['description'] ) ) {
+                    echo '<p class="description">' . esc_html( $args['description'] ) . '</p>';
+                }
         <?php
     }
 
