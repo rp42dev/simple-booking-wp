@@ -505,7 +505,8 @@ class Simple_Booking_Post {
             } elseif ( 'free' === $payment_status ) {
                 $meta_query[] = array(
                     'key'     => '_stripe_payment_id',
-                    'compare' => 'NOT EXISTS',
+                    'value'   => '',
+                    'compare' => '=',
                 );
             }
         }
