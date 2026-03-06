@@ -85,11 +85,11 @@ class Simple_Booking_Service {
             self::POST_TYPE,
             '_service_active',
             array(
-                'type'         => 'boolean',
+                'type'         => 'string',
                 'single'       => true,
                 'show_in_rest' => true,
-                'sanitize_callback' => 'rest_sanitize_boolean',
-                'default'      => true,
+                'sanitize_callback' => array( __CLASS__, 'sanitize_checkbox_value' ),
+                'default'      => '1',
             )
         );
 
@@ -110,13 +110,25 @@ class Simple_Booking_Service {
             self::POST_TYPE,
             '_create_google_event',
             array(
-                'type'         => 'boolean',
+                'type'         => 'string',
                 'single'       => true,
                 'show_in_rest' => true,
-                'sanitize_callback' => 'rest_sanitize_boolean',
-                'default'      => true,
+                'sanitize_callback' => array( __CLASS__, 'sanitize_checkbox_value' ),
+                'default'      => '1',
             )
         );
+    }
+
+    /**
+     * Sanitize checkbox value to ensure it's always '1' or '0'
+     */
+    public static function sanitize_checkbox_value( $value ) {
+        // Convert boolean true/false to '1'/'0'
+        if ( is_bool( $value ) ) {
+            return $value ? '1' : '0';
+        }
+        // Convert truthy values to '1', everything else to '0'
+        return ( '1' === $value || 1 === $value || true === $value ) ? '1' : '0';
     }
 
     /**
