@@ -7,19 +7,27 @@
     console.log('simple-booking-form.js loaded');
 
     $(document).ready(function() {
-        const form = $('#simple-booking-form');
-        const submitBtn = $('#booking-submit');
-        const messageEl = $('#booking-message');
-        const stripeSessionInput = $('#stripe_session_id');
+        $('.simple-booking-form').each(function() {
+        const form = $(this);
+        const submitBtn = form.find('#booking-submit');
+        const messageEl = form.find('#booking-message');
+        const stripeSessionInput = form.find('#stripe_session_id');
+        const serviceField = form.find('[name="service_id"]');
+        const dateField = form.find('[name="booking_date"]');
+        const timeField = form.find('[name="booking_time"]');
+        const nameField = form.find('[name="customer_name"]');
+        const emailField = form.find('[name="customer_email"]');
+        const phoneField = form.find('[name="customer_phone"]');
+        const timeContainer = form.find('#time-container');
 
         function getServiceMeta() {
-            const serviceField = $('#service_id');
-            if (!serviceField.length) {
+            const serviceFieldRef = serviceField;
+            if (!serviceFieldRef.length) {
                 return { hasPrice: false, duration: 0 };
             }
 
-            if (serviceField.is('select')) {
-                const selected = serviceField.find('option:selected');
+            if (serviceFieldRef.is('select')) {
+                const selected = serviceFieldRef.find('option:selected');
                 return {
                     hasPrice: selected.data('has-price') === 1 || selected.data('has-price') === '1',
                     duration: parseInt(selected.data('duration'), 10) || 0,
@@ -27,8 +35,8 @@
             }
 
             return {
-                hasPrice: serviceField.data('has-price') === 1 || serviceField.data('has-price') === '1',
-                duration: parseInt(serviceField.data('duration'), 10) || 0,
+                hasPrice: serviceFieldRef.data('has-price') === 1 || serviceFieldRef.data('has-price') === '1',
+                duration: parseInt(serviceFieldRef.data('duration'), 10) || 0,
             };
         }
 
@@ -54,8 +62,8 @@
 
         // hook up slot loader
         function loadSlots() {
-            const date = $('#booking_date').val();
-            const serviceId = $('#service_id').val();
+            const date = dateField.val();
+            const serviceId = serviceField.val();
             console.log('loadSlots triggered', date, serviceId);
             if (!date || !serviceId) {
                 return;
@@ -76,26 +84,26 @@
                     console.log('slot AJAX debug:', response.data.debug.join('\n'));
                 }
                 if (response.success && response.data && response.data.options) {
-                    $('#booking_time').html(response.data.options);
-                    $('#booking_time').prop('disabled', false);
+                    timeField.html(response.data.options);
+                    timeField.prop('disabled', false);
                 } else {
-                    $('#booking_time').html('<option value="">' + (response.data && response.data.message ? response.data.message : 'No slots') + '</option>');
-                    $('#booking_time').prop('disabled', true);
+                    timeField.html('<option value="">' + (response.data && response.data.message ? response.data.message : 'No slots') + '</option>');
+                    timeField.prop('disabled', true);
                     alert('No slots available or error: ' + (response.data && response.data.message ? response.data.message : 'unknown'));
                 }
                 // re-evaluate end estimate/warning in case selected value remains
                 updateEndEstimate();
             }).fail(function(xhr, status, err) {
                 console.log('Failed to load slots', status, err);
-                $('#booking_time').html('<option value="">Failed to load</option>');
-                $('#booking_time').prop('disabled', true);
+                timeField.html('<option value="">Failed to load</option>');
+                timeField.prop('disabled', true);
                 alert('Slot request failed: ' + status);
             });
         }
 
         // initialize date input (jQuery UI datepicker with native fallback)
         (function() {
-            var dateInput = $('#booking_date');
+            var dateInput = dateField;
             if (!dateInput.length) {
                 return;
             }
@@ -154,11 +162,11 @@
         })();
 
         // pick up changes
-        $('#service_id').on('change', function(){ loadSlots(); clearEndEstimate(); updateSubmitLabel(); });
-        $('#booking_time').on('change', updateEndEstimate);
+        serviceField.on('change', function(){ loadSlots(); clearEndEstimate(); updateSubmitLabel(); });
+        timeField.on('change', updateEndEstimate);
         updateSubmitLabel();
         // optionally load slots on page load if date present
-        if ($('#booking_date').val() && $('#service_id').val()) {
+        if (dateField.val() && serviceField.val()) {
             loadSlots();
         }
 
@@ -181,16 +189,16 @@
             const formData = {
                 action: 'simple_booking_submit',
                 nonce: simpleBooking.nonce,
-                service_id: $('#service_id').val(),
+                service_id: serviceField.val(),
                 // booking date/time fields replaced by separate inputs
             booking_datetime: (function(){
-                const d = $('#booking_date').val();
-                const t = $('#booking_time').val();
+                const d = dateField.val();
+                const t = timeField.val();
                 return d && t ? d + 'T' + t : '';
             })(),
-                customer_name: $('#customer_name').val(),
-                customer_email: $('#customer_email').val(),
-                customer_phone: $('#customer_phone').val()
+                customer_name: nameField.val(),
+                customer_email: emailField.val(),
+                customer_phone: phoneField.val()
             };
 
             // Submit via AJAX
@@ -233,22 +241,22 @@
 
         // clear estimate
         function clearEndEstimate() {
-            $('#end-estimate, #closing-warning').remove();
+            form.find('#end-estimate, #closing-warning').remove();
         }
 
         // update estimated end time + warning
         function updateEndEstimate() {
             // remove previous notes
             $('#end-estimate, #closing-warning').remove();
-            const date = $('#booking_date').val();
-            const time = $('#booking_time').val();
+            const date = dateField.val();
+            const time = timeField.val();
             const dur = getServiceMeta().duration;
             if (date && time && dur) {
                 const startDt = new Date(date + 'T' + time);
                 const endDt = new Date(startDt.getTime() + dur * 60000);
                 const opts = {hour:'2-digit', minute:'2-digit'};
                 const text = 'Ends at ' + endDt.toLocaleTimeString([], opts);
-                $('#time-container').append('<p id="end-estimate">'+text+'</p>');
+                timeContainer.append('<p id="end-estimate">'+text+'</p>');
                 // determine closing time for that weekday from schedule if available
                 if (simpleBooking.schedule) {
                     const dt = new Date(date);
@@ -257,7 +265,7 @@
                     if (dayCfg && dayCfg.enabled && dayCfg.end) {
                         const workEndDt = new Date(date + 'T' + dayCfg.end);
                         if (endDt.getTime() > workEndDt.getTime() - 60*60000) {
-                            $('#time-container').append('<p id="closing-warning" class="error">Service ends less than 1 hour before closing!</p>');
+                            timeContainer.append('<p id="closing-warning" class="error">Service ends less than 1 hour before closing!</p>');
                         }
                     }
                 }
@@ -269,13 +277,13 @@
             let isValid = true;
             const errors = [];
 
-            const serviceId = $('#service_id').val();
-            const date = $('#booking_date').val();
-            const time = $('#booking_time').val();
+            const serviceId = serviceField.val();
+            const date = dateField.val();
+            const time = timeField.val();
             const datetime = date && time ? date + 'T' + time : '';
-            const name = $('#customer_name').val();
-            const email = $('#customer_email').val();
-            const phone = $('#customer_phone').val();
+            const name = nameField.val();
+            const email = emailField.val();
+            const phone = phoneField.val();
 
             if (!serviceId) {
                 errors.push(simpleBooking.i18n.selectService);
@@ -343,6 +351,7 @@
                     .text(getSubmitLabel());
             }
         }
+        });
     });
 
 })(jQuery);

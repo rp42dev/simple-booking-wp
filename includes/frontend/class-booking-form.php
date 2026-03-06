@@ -171,7 +171,7 @@ class Simple_Booking_Form {
                 </div>
             <?php endif; ?>
 
-            <form id="simple-booking-form" method="post">
+            <form id="simple-booking-form" class="simple-booking-form" method="post">
                 <?php wp_nonce_field( 'simple_booking_submit', 'simple_booking_nonce' ); ?>
 
                 <!-- Service Selection -->
