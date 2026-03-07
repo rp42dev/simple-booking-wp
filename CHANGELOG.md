@@ -8,10 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- v3.0.2: Staff-aware availability checking
 - v3.0.3: Staff selection UI in service editor
 - v3.0.4: Timezone detection and customer-local rendering
 - v3.0.5: Reschedule/cancel tokenized links
+
+## [3.0.2] - 2026-03-07
+
+### Added
+- Staff-aware availability checking: bookings now route to available staff members
+- `find_available_staff()` method: queries each assigned staff's calendar to find availability
+- `_assigned_staff_id` booking meta: records which staff member was assigned to each booking
+- Calendar ID parameter support in `fetch_events_on_date()`, `is_slot_available()`, and `create_event()`
+
+### Changed
+- Availability logic now checks staff-specific calendars (via `_staff_calendar_id` override or global fallback)
+- Booking creation flow now stores assigned staff ID with each booking
+- Google Calendar events now created on assigned staff member's calendar
+- Services without assigned staff continue using global calendar (backward compatible)
+
+### Technical
+- Extended Google Calendar API methods to accept optional `$calendar_id` parameter
+- Booking creator now calls `find_available_staff()` instead of simple `is_slot_available()`
+- Staff calendar ID override falls back to global calendar ID from plugin settings
+- Active staff filter ensures only available staff are checked for availability
+
+### Notes
+- Backward compatible: services without staff assignments continue working with global calendar
+- Staff assignment UI coming in v3.0.3
 
 ## [3.0.1] - 2026-03-07
 

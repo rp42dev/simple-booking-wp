@@ -342,7 +342,7 @@ class Simple_Booking_Google_Calendar {
     /**
      * Create calendar event
      */
-    public function create_event( $booking_data ) {
+    public function create_event( $booking_data, $calendar_id = null ) {
         // validate required fields
         if ( ! isset( $booking_data['start_datetime'] ) || ! isset( $booking_data['end_datetime'] ) ) {
             return new WP_Error( 'missing_data', 'Booking data incomplete' );
@@ -360,7 +360,9 @@ class Simple_Booking_Google_Calendar {
             return new WP_Error( 'not_connected', __( 'Google Calendar not connected', 'simple-booking' ) );
         }
 
-        $calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+        if ( empty( $calendar_id ) ) {
+            $calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+        }
         $this->debug_log( 'Calendar ID: ' . $calendar_id, 'EVENT' );
 
         if ( empty( $calendar_id ) ) {
@@ -474,15 +476,18 @@ class Simple_Booking_Google_Calendar {
      * or WP_Error on failure.
      *
      * @param string $date YYYY-MM-DD
+     * @param string $calendar_id Optional. Specific calendar ID. Falls back to global setting.
      * @return array|WP_Error
      */
-    public function fetch_events_on_date( $date ) {
+    public function fetch_events_on_date( $date, $calendar_id = null ) {
         $access_token = $this->get_access_token();
         if ( empty( $access_token ) ) {
             return new WP_Error( 'not_connected', __( 'Google Calendar not connected', 'simple-booking' ) );
         }
 
-        $calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+        if ( empty( $calendar_id ) ) {
+            $calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+        }
         if ( empty( $calendar_id ) ) {
             return new WP_Error( 'no_calendar_id', __( 'No Calendar ID configured', 'simple-booking' ) );
         }
@@ -602,16 +607,17 @@ class Simple_Booking_Google_Calendar {
      *
      * @param string $start_datetime ISO string or datetime parsable by DateTime
      * @param int    $service_duration Minutes
+     * @param string $calendar_id Optional. Specific calendar ID. Falls back to global setting.
      * @return bool|WP_Error True if slot free, false if overlapping, WP_Error on failure
      */
-    public function is_slot_available( $start_datetime, $service_duration ) {
+    public function is_slot_available( $start_datetime, $service_duration, $calendar_id = null ) {
         $tz = new DateTimeZone( wp_timezone_string() );
         $start = new DateTime( $start_datetime, $tz );
         $end   = clone $start;
         $end->modify( "+{$service_duration} minutes" );
 
         $date = $start->format( 'Y-m-d' );
-        $events = $this->fetch_events_on_date( $date );
+        $events = $this->fetch_events_on_date( $date, $calendar_id );
         if ( is_wp_error( $events ) ) {
             return $events;
         }
@@ -632,6 +638,71 @@ class Simple_Booking_Google_Calendar {
 
         $this->debug_log( 'Slot is available', 'SLOTS' );
         return true;
+    }
+
+    /**
+     * Find an available staff member for a given service and time slot.
+     *
+     * @param int    $service_id Service post ID
+     * @param string $start_datetime ISO string or datetime parsable by DateTime
+     * @param int    $service_duration Minutes
+     * @return array|false Array with 'staff_id' and 'calendar_id' if available, false if none available
+     */
+    public function find_available_staff( $service_id, $start_datetime, $service_duration ) {
+        // Get assigned staff for this service
+        $assigned_staff = get_post_meta( $service_id, '_assigned_staff', true );
+        $assigned_staff = ! empty( $assigned_staff ) ? json_decode( $assigned_staff, true ) : array();
+
+        // If no staff assigned, use global calendar
+        if ( empty( $assigned_staff ) || ! is_array( $assigned_staff ) ) {
+            $global_calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+            $available = $this->is_slot_available( $start_datetime, $service_duration, $global_calendar_id );
+            
+            if ( true === $available ) {
+                return array(
+                    'staff_id'    => null,
+                    'calendar_id' => $global_calendar_id,
+                );
+            }
+            
+            return false;
+        }
+
+        // Check each assigned staff member's calendar
+        foreach ( $assigned_staff as $staff_id ) {
+            $staff_id = absint( $staff_id );
+            if ( ! $staff_id ) {
+                continue;
+            }
+
+            // Check if staff is active
+            $is_active = get_post_meta( $staff_id, '_staff_active', true );
+            if ( '1' !== $is_active ) {
+                continue;
+            }
+
+            // Get staff's calendar ID (may be custom or fallback to global)
+            $staff_calendar_id = get_post_meta( $staff_id, '_staff_calendar_id', true );
+            if ( empty( $staff_calendar_id ) ) {
+                $staff_calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+            }
+
+            // Check if this staff member has the slot available
+            $available = $this->is_slot_available( $start_datetime, $service_duration, $staff_calendar_id );
+            
+            if ( true === $available ) {
+                $this->debug_log( 'Staff member ' . $staff_id . ' available for slot ' . $start_datetime, 'SLOTS' );
+                return array(
+                    'staff_id'    => $staff_id,
+                    'calendar_id' => $staff_calendar_id,
+                );
+            }
+
+            $this->debug_log( 'Staff member ' . $staff_id . ' not available for slot ' . $start_datetime, 'SLOTS' );
+        }
+
+        // No staff available
+        return false;
     }
 
     /**

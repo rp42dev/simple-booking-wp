@@ -286,6 +286,18 @@ class Simple_Booking_Post {
                 'sanitize_callback' => 'sanitize_text_field',
             )
         );
+
+        // Assigned Staff ID
+        register_post_meta(
+            self::POST_TYPE,
+            '_assigned_staff_id',
+            array(
+                'type'         => 'integer',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'absint',
+            )
+        );
     }
 
     /**

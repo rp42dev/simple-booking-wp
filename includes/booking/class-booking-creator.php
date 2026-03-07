@@ -53,17 +53,18 @@ class Simple_Booking_Booking_Creator {
             // Check slot availability if Google Calendar is available
             if ( class_exists( 'Simple_Booking_Google_Calendar' ) ) {
                 $google = new Simple_Booking_Google_Calendar();
-                $available = $google->is_slot_available( $data['start_datetime'], $service_duration );
-                if ( is_wp_error( $available ) ) {
-                    self::debug_log( 'Slot availability check error: ' . $available->get_error_message(), 'BOOKING' );
-                    // allow booking when we can't verify
-                } elseif ( ! $available ) {
+                $staff_availability = $google->find_available_staff( $service_id, $data['start_datetime'], $service_duration );
+                
+                if ( false === $staff_availability ) {
                     $requested = ( new DateTime( $data['start_datetime'], wp_timezone() ) )->format( DateTime::ATOM );
-                    self::debug_log( 'Requested slot ' . $requested . ' is already occupied', 'BOOKING' );
+                    self::debug_log( 'Requested slot ' . $requested . ' has no available staff', 'BOOKING' );
                     return new WP_Error( 'slot_taken', __( 'Requested time slot is no longer available', 'simple-booking' ) );
-                } else {
-                    self::debug_log( 'Requested slot is free', 'BOOKING' );
                 }
+                
+                // Store staff and calendar info for later use
+                self::debug_log( 'Slot available with staff_id: ' . ( $staff_availability['staff_id'] ?? 'null' ), 'BOOKING' );
+                $data['assigned_staff_id'] = $staff_availability['staff_id'] ?? null;
+                $data['calendar_id'] = $staff_availability['calendar_id'] ?? null;
             } else {
                 self::debug_log( 'Google Calendar not available - skipping slot availability check', 'BOOKING' );
             }
@@ -74,6 +75,11 @@ class Simple_Booking_Booking_Creator {
 
         if ( is_wp_error( $booking_id ) ) {
             return $booking_id;
+        }
+
+        // Store assigned staff ID if available
+        if ( isset( $data['assigned_staff_id'] ) && ! empty( $data['assigned_staff_id'] ) ) {
+            update_post_meta( $booking_id, '_assigned_staff_id', absint( $data['assigned_staff_id'] ) );
         }
 
         // Record initial meeting link source from payload
@@ -149,7 +155,9 @@ class Simple_Booking_Booking_Creator {
             return new WP_Error( 'not_connected', __( 'Google Calendar not connected', 'simple-booking' ) );
         }
 
-        $result = $google->create_event( $booking_data );
+        // Use staff's calendar ID if available
+        $calendar_id = isset( $booking_data['calendar_id'] ) ? $booking_data['calendar_id'] : null;
+        $result = $google->create_event( $booking_data, $calendar_id );
 
         if ( is_wp_error( $result ) ) {
             self::debug_log( 'ERROR: create_event returned WP_Error: ' . $result->get_error_code() . ' - ' . $result->get_error_message(), 'BOOKING' );

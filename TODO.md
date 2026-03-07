@@ -7,11 +7,11 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.1 (RELEASED) → v3.0 (IN PROGRESS)
+v3.0.2 (RELEASED) → v3.0 (IN PROGRESS)
 
 Core booking flow is operational.
 
-**v3.0 Progress:** Data model foundation complete (staff post type + service assignment)
+**v3.0 Progress:** Staff-aware availability checking complete. Bookings now route to available staff members and store assignment.
 
 ## Release Control (Mandatory Before New Feature Work)
 
