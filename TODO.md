@@ -7,11 +7,11 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.12 (RELEASED) → v3.0 (STABILIZING)
+v3.0.13 (RELEASED) → v3.0 (STABILIZING)
 
-Core booking flow is operational. Improved cascading failure handling for Google Calendar integration.
+Core booking flow is operational. Automatic OAuth token refresh implemented.
 
-**v3.0 Progress:** Enhanced error handling deployed; all-staff-API-error scenario now uses graceful fallback.
+**v3.0 Progress:** OAuth token refresh deployed; expired Google tokens now refresh automatically on API failures.
 
 ## Release Control (Mandatory Before New Feature Work)
 

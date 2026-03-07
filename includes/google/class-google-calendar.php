@@ -440,7 +440,54 @@ class Simple_Booking_Google_Calendar {
 
         if ( isset( $body['error'] ) ) {
             $this->debug_log( 'Google API error: ' . json_encode( $body['error'] ), 'EVENT' );
-            return new WP_Error( 'google_api_error', $body['error']['message'] );
+            
+            // If authentication error, try refreshing token and retry once
+            if ( 401 === $http_code || ( isset( $body['error']['code'] ) && 401 === $body['error']['code'] ) ) {
+                $this->debug_log( 'Authentication error detected (401), attempting token refresh', 'EVENT' );
+                $refreshed = $this->refresh_token();
+                
+                if ( ! is_wp_error( $refreshed ) ) {
+                    $this->debug_log( 'Token refreshed successfully, retrying API call', 'EVENT' );
+                    $access_token = $this->get_access_token();
+                    
+                    // Retry the API call with fresh token
+                    $response = wp_remote_post(
+                        $url,
+                        array(
+                            'headers' => array(
+                                'Authorization' => 'Bearer ' . $access_token,
+                                'Content-Type'  => 'application/json',
+                            ),
+                            'body'    => json_encode( $event ),
+                        )
+                    );
+                    
+                    if ( is_wp_error( $response ) ) {
+                        $this->debug_log( 'Retry WP_Error: ' . $response->get_error_message(), 'EVENT' );
+                        return $response;
+                    }
+                    
+                    $http_code = wp_remote_retrieve_response_code( $response );
+                    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+                    
+                    $this->debug_log( 'Retry HTTP Status: ' . $http_code, 'EVENT' );
+                    $this->debug_log( 'Retry Response body: ' . json_encode( $body ), 'EVENT' );
+                    
+                    // If still error after refresh, return error
+                    if ( isset( $body['error'] ) ) {
+                        $this->debug_log( 'Retry failed with error: ' . json_encode( $body['error'] ), 'EVENT' );
+                        return new WP_Error( 'google_api_error', $body['error']['message'] );
+                    }
+                    
+                    // Success after retry - continue to process event_id below
+                } else {
+                    $this->debug_log( 'Token refresh failed: ' . $refreshed->get_error_message(), 'EVENT' );
+                    return new WP_Error( 'google_api_error', $body['error']['message'] );
+                }
+            } else {
+                // Non-auth error, return immediately
+                return new WP_Error( 'google_api_error', $body['error']['message'] );
+            }
         }
 
         $event_id = isset( $body['id'] ) ? $body['id'] : null;
@@ -520,6 +567,38 @@ class Simple_Booking_Google_Calendar {
             return true;
         }
 
+        // Check for auth error and retry with token refresh
+        if ( 401 === $code ) {
+            $this->debug_log( 'Delete event: Authentication error (401), attempting token refresh', 'EVENT' );
+            $refreshed = $this->refresh_token();
+            
+            if ( ! is_wp_error( $refreshed ) ) {
+                $this->debug_log( 'Delete event: Token refreshed, retrying delete', 'EVENT' );
+                $access_token = $this->get_access_token();
+                
+                // Retry the delete
+                $response = wp_remote_request(
+                    $url,
+                    array(
+                        'method'  => 'DELETE',
+                        'headers' => array(
+                            'Authorization' => 'Bearer ' . $access_token,
+                        ),
+                    )
+                );
+                
+                if ( is_wp_error( $response ) ) {
+                    return $response;
+                }
+                
+                $code = wp_remote_retrieve_response_code( $response );
+                if ( in_array( $code, array( 200, 204, 404 ), true ) ) {
+                    return true;
+                }
+                // Fall through to error handling below
+            }
+        }
+
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
         $message = isset( $body['error']['message'] ) ? $body['error']['message'] : ( 'HTTP ' . $code );
 
@@ -576,8 +655,46 @@ class Simple_Booking_Google_Calendar {
 
         $code = wp_remote_retrieve_response_code( $response );
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        
         if ( $code !== 200 ) {
-            return new WP_Error( 'google_api_error', isset( $body['error']['message'] ) ? $body['error']['message'] : 'HTTP ' . $code );
+            // Check for auth error and retry with token refresh
+            if ( 401 === $code ) {
+                $this->debug_log( 'Fetch events: Authentication error (401), attempting token refresh', 'SLOTS' );
+                $refreshed = $this->refresh_token();
+                
+                if ( ! is_wp_error( $refreshed ) ) {
+                    $this->debug_log( 'Fetch events: Token refreshed, retrying fetch', 'SLOTS' );
+                    $access_token = $this->get_access_token();
+                    
+                    // Retry the fetch
+                    $response = wp_remote_get(
+                        $url,
+                        array(
+                            'headers' => array(
+                                'Authorization' => 'Bearer ' . $access_token,
+                            ),
+                        )
+                    );
+                    
+                    if ( is_wp_error( $response ) ) {
+                        return $response;
+                    }
+                    
+                    $code = wp_remote_retrieve_response_code( $response );
+                    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+                    
+                    if ( $code !== 200 ) {
+                        return new WP_Error( 'google_api_error', isset( $body['error']['message'] ) ? $body['error']['message'] : 'HTTP ' . $code );
+                    }
+                    // Success after retry - continue to process events below
+                } else {
+                    $this->debug_log( 'Fetch events: Token refresh failed', 'SLOTS' );
+                    return new WP_Error( 'google_api_error', isset( $body['error']['message'] ) ? $body['error']['message'] : 'HTTP ' . $code );
+                }
+            } else {
+                // Non-auth error, return immediately
+                return new WP_Error( 'google_api_error', isset( $body['error']['message'] ) ? $body['error']['message'] : 'HTTP ' . $code );
+            }
         }
 
         $events = array();

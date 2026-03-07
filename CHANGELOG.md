@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.13] - 2026-03-10
+
+### Fixed
+- Automatic OAuth token refresh on authentication failures: when Google API returns 401 errors, system now automatically refreshes the access token and retries the request
+- Google Calendar events now create successfully even when access tokens have expired
+- Slot availability checks recover gracefully from expired tokens
+- Event deletion works reliably with automatic token refresh
+
+### Changed
+- Enhanced all Google Calendar API methods (`create_event`, `delete_event`, `fetch_events_on_date`) with automatic token refresh retry logic
+- When 401 authentication error detected, system calls `refresh_token()` and retries the API call once before failing
+- Detailed debug logging for token refresh attempts and results
+
+### Technical
+- Modified `create_event()` to detect 401 errors, refresh token, and retry event creation
+- Modified `delete_event()` to detect 401 errors, refresh token, and retry event deletion
+- Modified `fetch_events_on_date()` to detect 401 errors, refresh token, and retry event fetch
+- Prevents "invalid authentication credentials" errors from blocking calendar operations when tokens expire
+
 ## [3.0.12] - 2026-03-10
 
 ### Fixed
