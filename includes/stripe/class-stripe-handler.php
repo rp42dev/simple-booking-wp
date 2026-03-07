@@ -211,18 +211,28 @@ class Simple_Booking_Stripe {
                 return new WP_Error( 'no_payment_intent', __( 'No payment intent found for session', 'simple-booking' ) );
             }
 
-            // Get the payment intent to find associated charges
+            // Get the payment intent to find the charge
             $payment_intent = $this->stripe->paymentIntents->retrieve( $session->payment_intent );
-            if ( ! isset( $payment_intent->charges->data[0] ) ) {
-                return new WP_Error( 'no_charges', __( 'No charges found for payment', 'simple-booking' ) );
+            
+            // Use latest_charge property (more reliable than charges->data array)
+            $charge_id = null;
+            if ( ! empty( $payment_intent->latest_charge ) ) {
+                $charge_id = $payment_intent->latest_charge;
+            } elseif ( ! empty( $payment_intent->charges->data[0]->id ) ) {
+                $charge_id = $payment_intent->charges->data[0]->id;
             }
 
-            $charge = $payment_intent->charges->data[0];
+            if ( ! $charge_id ) {
+                return new WP_Error( 'no_charges', __( 'No charges found for payment intent', 'simple-booking' ) );
+            }
+
+            // Get the charge to determine refund amount
+            $charge = $this->stripe->charges->retrieve( $charge_id );
             $amount_to_refund = intval( $charge->amount * $refund_percentage / 100 );
 
             // Create refund
             $refund = $this->stripe->refunds->create( array(
-                'charge' => $charge->id,
+                'charge' => $charge_id,
                 'amount' => $amount_to_refund,
             ) );
 
