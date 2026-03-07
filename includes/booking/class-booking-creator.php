@@ -334,8 +334,15 @@ class Simple_Booking_Booking_Creator {
             return new WP_Error( 'invalid_token', __( 'Invalid booking management token', 'simple-booking' ) );
         }
 
+        // Log cancellation start
+        $stripe_payment_id = self::get_stripe_payment_id( $booking_id );
+        self::debug_log( 'Cancellation initiated for booking ' . $booking_id . '; stripe_payment_id=' . ( $stripe_payment_id ?: 'EMPTY' ), 'BOOKING' );
+
         // Process refund if booking was paid
-        if ( self::is_paid_booking( $booking_id ) ) {
+        $is_paid = self::is_paid_booking( $booking_id );
+        self::debug_log( 'is_paid_booking(' . $booking_id . ') returned: ' . ( $is_paid ? 'TRUE' : 'FALSE' ), 'BOOKING' );
+
+        if ( $is_paid ) {
             $refund_result = self::refund_booking( $booking_id );
             if ( is_wp_error( $refund_result ) ) {
                 self::debug_log( 'Refund failed during cancel: ' . $refund_result->get_error_message(), 'BOOKING' );
