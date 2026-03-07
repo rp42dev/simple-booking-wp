@@ -208,6 +208,19 @@ class Simple_Booking_Service {
                 'default'      => '',
             )
         );
+
+        // Assigned Staff Members (array of staff post IDs)
+        register_post_meta(
+            self::POST_TYPE,
+            '_assigned_staff',
+            array(
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => array( __CLASS__, 'sanitize_staff_assignment' ),
+                'default'      => '',
+            )
+        );
     }
 
     /**
@@ -375,6 +388,37 @@ class Simple_Booking_Service {
                 'buffer'  => isset( $day_data['buffer'] ) ? absint( $day_data['buffer'] ) : $defaults['buffer'],
             );
         }
+
+        return wp_json_encode( $sanitized );
+    }
+
+    /**
+     * Sanitize assigned staff array
+     *
+     * @param mixed $value
+     * @return string JSON array of staff IDs
+     */
+    public static function sanitize_staff_assignment( $value ) {
+        if ( empty( $value ) ) {
+            return wp_json_encode( array() );
+        }
+
+        if ( is_string( $value ) ) {
+            $staff_ids = json_decode( $value, true );
+        } else {
+            $staff_ids = $value;
+        }
+
+        if ( ! is_array( $staff_ids ) ) {
+            return wp_json_encode( array() );
+        }
+
+        // Sanitize each ID as integer
+        $sanitized = array_map( 'absint', $staff_ids );
+        // Remove zero values
+        $sanitized = array_filter( $sanitized );
+        // Re-index array
+        $sanitized = array_values( $sanitized );
 
         return wp_json_encode( $sanitized );
     }

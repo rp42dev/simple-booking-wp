@@ -8,7 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- v3.0 kickoff in micro-stages: staff data model, staff-aware availability, timezone rendering, reschedule/cancel workflow
+- v3.0.2: Staff-aware availability checking
+- v3.0.3: Staff selection UI in service editor
+- v3.0.4: Timezone detection and customer-local rendering
+- v3.0.5: Reschedule/cancel tokenized links
+
+## [3.0.1] - 2026-03-07
+
+### Added
+- Staff custom post type (`booking_staff`) with email, calendar ID, and active status fields
+- Staff assignment capability on services (stored as JSON array in `_assigned_staff` meta)
+- Staff meta box with email, Google Calendar ID override, and active toggle
+- `get_active_staff()` helper for retrieving all active staff members
+
+### Technical
+- New file: `includes/post-types/class-staff.php`
+- Staff post type registered in plugin init
+- Staff save hook registered for meta persistence
+- Service meta sanitization for staff ID array
+
+### Notes
+- No UI changes yet—pure data model foundation
+- Existing booking flow unchanged (staff not yet used in availability logic)
 
 ## [2.4.0] - 2026-03-06
 
