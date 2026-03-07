@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.14.2] - 2026-03-10
+
+### Fixed
+- Critical: Fixed missing closing brace in Booking Creator class (parse error)
+- Site now loads correctly
+
 ## [3.0.14.1] - 2026-03-10
 
 ### Fixed

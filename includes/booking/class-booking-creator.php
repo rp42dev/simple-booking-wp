@@ -545,4 +545,4 @@ class Simple_Booking_Booking_Creator {
             self::debug_log( 'Exception during refund for booking ' . $booking_id . ': ' . $e->getMessage(), 'BOOKING' );
             return new WP_Error( 'refund_exception', $e->getMessage() );
         }
-    }
+    }}
