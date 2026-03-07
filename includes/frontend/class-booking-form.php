@@ -854,10 +854,6 @@ class Simple_Booking_Form {
             } else {
                 if ( $google ) {
                     $staff_availability = $google->find_available_staff( $service_id, $slotStart->format( DateTime::ATOM ), $duration );
-                    if ( is_wp_error( $staff_availability ) ) {
-                        wp_send_json_error( array( 'message' => $staff_availability->get_error_message(), 'debug' => $debug ) );
-                    }
-
                     $available_flag = is_array( $staff_availability );
                     if ( $available_flag ) {
                         $assigned_staff_id = isset( $staff_availability['staff_id'] ) ? $staff_availability['staff_id'] : 'none';
@@ -942,12 +938,7 @@ class Simple_Booking_Form {
         if ( ! class_exists( 'Simple_Booking_Google_Calendar' ) ) {
             if ( simple_booking()->get_setting( 'debug_mode' ) ) {
                 error_log( '[DEBUG]: Google Calendar not available - returning empty events for ' . $date );
-
-                    if ( is_wp_error( $staff_availability ) ) {
-                        wp_send_json_error( array( 'message' => $staff_availability->get_error_message() ) );
-                    }
-
-                    if ( ! is_array( $staff_availability ) ) {
+            }
             return array(); // Return empty array when Google Calendar is not available
         }
 
