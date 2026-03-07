@@ -652,10 +652,10 @@ class Simple_Booking_Google_Calendar {
         // Get assigned staff for this service
         $assigned_staff = get_post_meta( $service_id, '_assigned_staff', true );
         $assigned_staff = ! empty( $assigned_staff ) ? json_decode( $assigned_staff, true ) : array();
+        $global_calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
 
         // If no staff assigned, use global calendar
         if ( empty( $assigned_staff ) || ! is_array( $assigned_staff ) ) {
-            $global_calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
             $available = $this->is_slot_available( $start_datetime, $service_duration, $global_calendar_id );
             
             if ( true === $available ) {
@@ -669,6 +669,7 @@ class Simple_Booking_Google_Calendar {
         }
 
         // Check each assigned staff member's calendar
+        $active_staff_count = 0;
         foreach ( $assigned_staff as $staff_id ) {
             $staff_id = absint( $staff_id );
             if ( ! $staff_id ) {
@@ -680,6 +681,7 @@ class Simple_Booking_Google_Calendar {
             if ( '1' !== $is_active ) {
                 continue;
             }
+            $active_staff_count++;
 
             // Get staff's calendar ID (may be custom or fallback to global)
             $staff_calendar_id = get_post_meta( $staff_id, '_staff_calendar_id', true );
@@ -699,6 +701,19 @@ class Simple_Booking_Google_Calendar {
             }
 
             $this->debug_log( 'Staff member ' . $staff_id . ' not available for slot ' . $start_datetime, 'SLOTS' );
+        }
+
+        // If all assigned staff are inactive, fallback to global calendar availability.
+        if ( 0 === $active_staff_count ) {
+            $this->debug_log( 'No active assigned staff found; falling back to global calendar', 'SLOTS' );
+            $available = $this->is_slot_available( $start_datetime, $service_duration, $global_calendar_id );
+
+            if ( true === $available ) {
+                return array(
+                    'staff_id'    => null,
+                    'calendar_id' => $global_calendar_id,
+                );
+            }
         }
 
         // No staff available

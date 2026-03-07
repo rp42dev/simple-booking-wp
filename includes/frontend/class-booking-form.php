@@ -395,13 +395,21 @@ class Simple_Booking_Form {
                 $end = clone $start;
                 $end->modify( "+{$duration} minutes" );
 
-                $events = $this->get_existing_events( $start->format( 'Y-m-d' ) );
-                if ( is_wp_error( $events ) ) {
-                    wp_send_json_error( array( 'message' => $events->get_error_message() ) );
-                }
+                if ( class_exists( 'Simple_Booking_Google_Calendar' ) ) {
+                    $google = new Simple_Booking_Google_Calendar();
+                    $staff_availability = $google->find_available_staff( $service_id, $start->format( DateTime::ATOM ), $duration );
+                    if ( ! is_array( $staff_availability ) ) {
+                        wp_send_json_error( array( 'message' => __( 'Selected time slot is no longer available', 'simple-booking' ) ) );
+                    }
+                } else {
+                    $events = $this->get_existing_events( $start->format( 'Y-m-d' ) );
+                    if ( is_wp_error( $events ) ) {
+                        wp_send_json_error( array( 'message' => $events->get_error_message() ) );
+                    }
 
-                if ( ! $this->check_slot_availability( $start->format( DateTime::ATOM ), $end->format( DateTime::ATOM ), $events ) ) {
-                    wp_send_json_error( array( 'message' => __( 'Selected time slot is no longer available', 'simple-booking' ) ) );
+                    if ( ! $this->check_slot_availability( $start->format( DateTime::ATOM ), $end->format( DateTime::ATOM ), $events ) ) {
+                        wp_send_json_error( array( 'message' => __( 'Selected time slot is no longer available', 'simple-booking' ) ) );
+                    }
                 }
             } catch ( Exception $e ) {
                 // ignore parse problem, will be caught earlier
@@ -604,16 +612,21 @@ class Simple_Booking_Form {
             $duration = 60;
         }
 
-        $events = $this->get_existing_events( $date );
-        if ( is_wp_error( $events ) ) {
-            $debug[] = '[DEBUG]: get_existing_events error: ' . $events->get_error_message();
-            wp_send_json_error( array( 'message' => $events->get_error_message(), 'debug' => $debug ) );
+        // Get service with availability settings
+        $service = Simple_Booking_Service::get_service( $service_id );
+        if ( ! $service ) {
+            wp_send_json_error( array( 'message' => 'Service not found', 'debug' => $debug ) );
+        }
 
-                // Get service with availability settings
-                $service = Simple_Booking_Service::get_service( $service_id );
-                if ( ! $service ) {
-                    wp_send_json_error( array( 'message' => 'Service not found', 'debug' => $debug ) );
-                }
+        $google = class_exists( 'Simple_Booking_Google_Calendar' ) ? new Simple_Booking_Google_Calendar() : null;
+
+        $events = array();
+        if ( ! $google ) {
+            $events = $this->get_existing_events( $date );
+            if ( is_wp_error( $events ) ) {
+                $debug[] = '[DEBUG]: get_existing_events error: ' . $events->get_error_message();
+                wp_send_json_error( array( 'message' => $events->get_error_message(), 'debug' => $debug ) );
+            }
         }
 
         // build slots starting on each hour, respecting work hours if configured
@@ -664,37 +677,29 @@ class Simple_Booking_Form {
                 $reason = 'past';
                 $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' is in the past';
             } else {
-                // check for overlaps with existing events for the full interval
-                $available_flag = $this->check_slot_availability(
-                    $slotStart->format( DateTime::ATOM ),
-                    $slotEnd->format( DateTime::ATOM ),
-                    $events
-                );
-                if ( $available_flag ) {
-                    $debug[] = '[DEBUG]: slot from ' . $slotStart->format( DateTime::ATOM ) . ' to ' . $slotEnd->format( DateTime::ATOM ) . ' fits';
+                if ( $google ) {
+                    $staff_availability = $google->find_available_staff( $service_id, $slotStart->format( DateTime::ATOM ), $duration );
+                    $available_flag = is_array( $staff_availability );
+                    if ( $available_flag ) {
+                        $assigned_staff_id = isset( $staff_availability['staff_id'] ) ? $staff_availability['staff_id'] : 'none';
+                        $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' is available (staff_id=' . $assigned_staff_id . ')';
+                    } else {
+                        $reason = 'booked';
+                        $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' unavailable (no staff available)';
+                    }
                 } else {
-                    $reason = 'booked';
-                    $debug[] = '[DEBUG]: slot from ' . $slotStart->format( DateTime::ATOM ) . ' to ' . $slotEnd->format( DateTime::ATOM ) . ' unavailable due to overlap';
-
-                            // Also check service availability settings (days, hours, buffer)
-                            if ( $available_flag ) {
-                                // Convert events to booking format for availability checker
-                                $existing_bookings = array_map( function( $event ) {
-                                    return array(
-                                        'start_datetime' => $event->start->dateTime ?: $event->start->date,
-                                        'end_datetime'   => $event->end->dateTime ?: $event->end->date,
-                                    );
-                                }, $events );
-
-                                // Get global schedule for inherit mode buffer checking
-                                $global_schedule = simple_booking()->get_setting( 'schedule', array() );
-
-                                $available_flag = Simple_Booking_Service::is_slot_available( $slotStart, $slotEnd, $service, $existing_bookings, $global_schedule );
-                                if ( ! $available_flag ) {
-                                    $reason = 'unavailable';
-                                    $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' failed service availability check';
-                                }
-                            }
+                    // fallback behavior when Google class is unavailable
+                    $available_flag = $this->check_slot_availability(
+                        $slotStart->format( DateTime::ATOM ),
+                        $slotEnd->format( DateTime::ATOM ),
+                        $events
+                    );
+                    if ( $available_flag ) {
+                        $debug[] = '[DEBUG]: slot from ' . $slotStart->format( DateTime::ATOM ) . ' to ' . $slotEnd->format( DateTime::ATOM ) . ' fits';
+                    } else {
+                        $reason = 'booked';
+                        $debug[] = '[DEBUG]: slot from ' . $slotStart->format( DateTime::ATOM ) . ' to ' . $slotEnd->format( DateTime::ATOM ) . ' unavailable due to overlap';
+                    }
                 }
             }
 

@@ -8,8 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- v3.0.4: Timezone detection and customer-local rendering
-- v3.0.5: Reschedule/cancel tokenized links
+- v3.0.5: Timezone detection and customer-local rendering
+- v3.0.6: Reschedule/cancel tokenized links
+
+## [3.0.4] - 2026-03-07
+
+### Fixed
+- Frontend slot list now uses staff-aware availability instead of global-calendar-only availability
+- Submission-time revalidation now checks `find_available_staff()` to match slot rendering behavior
+- Services with assigned staff where all assigned staff are inactive now fall back to global calendar availability
+
+### Technical
+- Updated `ajax_get_slots()` in `includes/frontend/class-booking-form.php` to evaluate per-slot staff availability
+- Updated submission path in `includes/frontend/class-booking-form.php` to align server-side slot checks with staff routing logic
+- Updated `find_available_staff()` in `includes/google/class-google-calendar.php` with inactive-staff fallback logic
 
 ## [3.0.3] - 2026-03-07
 
