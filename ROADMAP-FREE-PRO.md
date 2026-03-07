@@ -2,8 +2,8 @@
 
 **Strategy:** Soft Launch (Option B)  
 **Start Date:** March 7, 2026  
-**Target Completion:** End of March 2026  
-**Total Duration:** 13-19 days
+**Target Completion:** Early April 2026  
+**Total Duration:** 17-24 days
 
 ---
 
@@ -639,6 +639,77 @@ Metadata: plan=pro_agency, sites=unlimited
 
 ---
 
+## 4️⃣ Improve UX (Wizard, Onboarding, Setup Guides) - Phase 5 (v3.5.0)
+
+**Duration:** 3-5 days  
+**Focus:** Remove setup friction and improve first-time activation success
+
+### Deliverables
+
+#### 5.1 Setup Wizard ✏️
+**Files:**
+- `includes/admin/class-onboarding-wizard.php` (NEW)
+- `assets/js/admin-onboarding.js` (NEW)
+- `assets/css/admin-onboarding.css` (NEW)
+
+**Wizard Steps:**
+1. Welcome + plan selection
+2. Business setup (timezone, work hours)
+3. Services setup (create first service)
+4. Payments setup (Pro: Stripe keys + test)
+5. Calendar setup (Pro: Google connect + test)
+6. Go-live check (preview + test booking)
+
+---
+
+#### 5.2 Onboarding Checklist in Admin ✏️
+**File:** `includes/admin/class-onboarding-checklist.php` (NEW)
+
+**Checklist Tasks:**
+- Create first service
+- Add booking form shortcode to a page
+- Configure email template
+- (Pro) Connect Stripe
+- (Pro) Connect Google Calendar
+- Run test booking
+
+---
+
+#### 5.3 Setup Guides & Contextual Help ✏️
+**Files:**
+- `includes/admin/class-admin-settings.php` (help blocks)
+- `docs/setup/` (guide sources)
+
+**Guide Topics:**
+- 5-minute Free setup
+- 15-minute Pro setup
+- Stripe troubleshooting quick fixes
+- Google Calendar troubleshooting quick fixes
+
+---
+
+#### 5.4 UX Copy & Empty-State Improvements ✏️
+**Files:**
+- `includes/admin/class-admin-settings.php`
+- `includes/post-types/class-booking-service.php`
+- `includes/frontend/class-booking-form.php`
+
+**Improvements:**
+- Clear empty states with next-step actions
+- Inline validation in plain language
+- Better CTA labels: "Create your first service", "Connect Stripe", "Run test booking"
+
+---
+
+#### 5.5 Testing Checklist ✅
+- [ ] New free user can publish booking form in one session
+- [ ] New pro user can complete Stripe + Google setup in one session
+- [ ] Wizard state resumes after refresh/logout
+- [ ] Checklist progress updates automatically from saved config
+- [ ] No regressions in booking, Stripe, or Google flows
+
+---
+
 ## Success Metrics
 
 ### Week 1-4 (Launch)
@@ -758,4 +829,4 @@ git push origin feature/free-pro-split
 
 **Status:** 📋 Planning Complete - Ready to Begin  
 **Next Action:** Create `includes/license/class-license-manager.php`  
-**Estimated Completion:** March 31, 2026
+**Estimated Completion:** April 7, 2026

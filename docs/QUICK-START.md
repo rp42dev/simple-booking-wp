@@ -103,7 +103,8 @@ git checkout -b feature/free-pro-split
 | **v3.2.0** | 4-6 days | Admin UI | Pro badges & gates |
 | **v3.3.0** | 2-3 days | Distribution | WordPress.org submission |
 | **v3.4.0** | 4-5 days | Launch | Payment processing |
-| **Total** | **13-19 days** | **Full launch** | **Free & Pro live** |
+| **v3.5.0** | 3-5 days | UX Improvements | Wizard + onboarding + setup guides |
+| **Total** | **17-24 days** | **Full launch + UX** | **Free & Pro live with guided onboarding** |
 
 ---
 
@@ -157,6 +158,14 @@ git checkout -b feature/free-pro-split
 - [ ] Create customer portal
 - [ ] Launch! 🚀
 
+### Week 5 (Days 20-24)
+
+- [ ] Complete 4️⃣ Improve UX phase (v3.5.0)
+- [ ] Ship setup wizard for first-time configuration
+- [ ] Ship onboarding checklist in admin
+- [ ] Add setup guides + contextual help
+- [ ] Validate end-to-end onboarding for Free and Pro
+
 ---
 
 ## 🔧 Development Environment Setup
@@ -184,7 +193,8 @@ main - Production releases (tagged)
     ├── feat/license-manager - Phase 1
     ├── feat/admin-ui-gates - Phase 2
     ├── feat/free-build - Phase 3
-    └── feat/pro-launch - Phase 4
+   ├── feat/pro-launch - Phase 4
+   └── feat/ux-onboarding - Phase 5
 ```
 
 ---
@@ -258,14 +268,14 @@ includes/
     └── class-license-manager.php            (Starter template)
 ```
 
-**Total:** 2,374+ lines of planning documentation ready!
+**Total:** 2,500+ lines of planning documentation ready!
 
 ---
 
 ## 💡 Key Decisions Made
 
 1. **Strategy:** Soft launch (licensing in existing codebase)
-2. **Timeline:** 13-19 days to full launch
+2. **Timeline:** 17-24 days including UX onboarding phase
 3. **Tech Stack:** PHP + WordPress Plugin API
 4. **License Server:** Start with Lemon Squeezy (or custom)
 5. **Pricing:** $79/$149/$299 per year (Personal/Business/Agency)

@@ -279,6 +279,56 @@ Quick reference for tracking implementation progress.
 
 ---
 
+## 4️⃣ Improve UX (Wizard, Onboarding, Setup Guides) - Phase 5 (v3.5.0) - Days 20-24
+
+### Day 20: Setup Wizard Foundation
+- [ ] Create `includes/admin/class-onboarding-wizard.php`
+- [ ] Create `assets/js/admin-onboarding.js`
+- [ ] Create `assets/css/admin-onboarding.css`
+- [ ] Add wizard route/menu entry under plugin admin
+- [ ] Add wizard state storage (option or user meta)
+- [ ] Add step progress UI with resume support
+
+### Day 21: Wizard Steps & Validation
+- [ ] Build Welcome + plan selection step
+- [ ] Build business setup step (timezone, schedule defaults)
+- [ ] Build service setup step (create first service)
+- [ ] Build Pro payment step (Stripe key validation)
+- [ ] Build Pro calendar step (Google connect + test)
+- [ ] Build go-live step (test booking + preview)
+- [ ] Add per-step validation and clear error messages
+
+### Day 22: Onboarding Checklist Panel
+- [ ] Create `includes/admin/class-onboarding-checklist.php`
+- [ ] Add checklist panel to settings/dashboard
+- [ ] Auto-detect completion from real config data
+- [ ] Add manual refresh/resync action
+- [ ] Add dismiss/complete UX for checklist
+
+### Day 23: Setup Guides & Contextual Help
+- [ ] Add setup help blocks in settings sections
+- [ ] Add quick links to Stripe and Google troubleshooting
+- [ ] Add short guide for Free users (first booking in 5 minutes)
+- [ ] Add short guide for Pro users (Stripe + Google in 15 minutes)
+- [ ] Ensure gated sections explain unlock + next steps clearly
+
+### Day 24: UX Polish & Validation
+- [ ] Improve empty-state copy in admin and service editor
+- [ ] Improve CTA labels for action clarity
+- [ ] Test free onboarding end-to-end
+- [ ] Test pro onboarding end-to-end
+- [ ] Verify wizard resume after refresh/logout
+- [ ] Verify no regressions in booking/payment/calendar flows
+
+### Testing Phase 5
+- [ ] New free user publishes first booking flow in one session
+- [ ] New pro user completes setup in one session
+- [ ] Setup checklist reflects real completion state
+- [ ] Contextual guides reduce setup confusion
+- [ ] UX flow works on desktop and mobile admin
+
+---
+
 ## Post-Launch Monitoring (First Week)
 
 ### Daily Checks
