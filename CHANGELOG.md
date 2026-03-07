@@ -8,9 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- v3.0.3: Staff selection UI in service editor
 - v3.0.4: Timezone detection and customer-local rendering
 - v3.0.5: Reschedule/cancel tokenized links
+
+## [3.0.3] - 2026-03-07
+
+### Added
+- Staff selection UI in Service editor with active staff checkboxes
+- Service-level persistence for assigned staff using `_assigned_staff` meta during post save
+- Service payload now includes assigned staff IDs for downstream booking logic
+
+### Changed
+- Service editor now loads and displays previously assigned staff selections
+- Booking staff assignment workflow is now fully operable end-to-end (data model + availability routing + admin assignment UI)
+
+### Technical
+- `includes/post-types/class-booking-service.php` now reads active staff from `Simple_Booking_Staff::get_active_staff()`
+- `_assigned_staff` values are saved using `sanitize_staff_assignment()` in the service save handler
+
+### Notes
+- Backward compatible: services can leave staff unassigned and continue using global calendar behavior
 
 ## [3.0.2] - 2026-03-07
 

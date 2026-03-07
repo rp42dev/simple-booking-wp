@@ -494,6 +494,12 @@ class Simple_Booking_Service {
         $schedule_mode = get_post_meta( $post->ID, '_schedule_mode', true );
         $service_schedule_json = get_post_meta( $post->ID, '_service_schedule', true );
         $service_schedule = $service_schedule_json ? json_decode( $service_schedule_json, true ) : null;
+        $assigned_staff_json = get_post_meta( $post->ID, '_assigned_staff', true );
+        $assigned_staff = $assigned_staff_json ? json_decode( $assigned_staff_json, true ) : array();
+        if ( ! is_array( $assigned_staff ) ) {
+            $assigned_staff = array();
+        }
+        $active_staff = class_exists( 'Simple_Booking_Staff' ) ? Simple_Booking_Staff::get_active_staff() : array();
         $global_schedule_for_preview = self::get_global_schedule_for_preview();
 
         // Default values
@@ -608,6 +614,29 @@ class Simple_Booking_Service {
                            <?php checked( $auto_google_meet, '1' ); ?> />
                     <label for="auto_google_meet"><?php _e( 'Generate Google Meet link when creating Google Calendar events', 'simple-booking' ); ?></label>
                     <p class="description"><?php _e( 'Requires "Create Google Calendar Event" enabled and connected Google Calendar account.', 'simple-booking' ); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label><?php _e( 'Assigned Staff', 'simple-booking' ); ?></label>
+                </th>
+                <td>
+                    <?php if ( ! empty( $active_staff ) ) : ?>
+                        <fieldset>
+                            <?php foreach ( $active_staff as $staff ) : ?>
+                                <label style="display: block; margin-bottom: 6px;">
+                                    <input type="checkbox"
+                                           name="assigned_staff[]"
+                                           value="<?php echo esc_attr( $staff->ID ); ?>"
+                                           <?php checked( in_array( $staff->ID, $assigned_staff, true ) ); ?> />
+                                    <?php echo esc_html( $staff->post_title ); ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </fieldset>
+                        <p class="description"><?php _e( 'Bookings for this service will be routed to the first available assigned staff member.', 'simple-booking' ); ?></p>
+                    <?php else : ?>
+                        <p class="description"><?php _e( 'No active staff found. Add staff under Booking Staff to enable staff assignment.', 'simple-booking' ); ?></p>
+                    <?php endif; ?>
                 </td>
             </tr>
 
@@ -800,6 +829,12 @@ class Simple_Booking_Service {
         $auto_google_meet = isset( $_POST['auto_google_meet'] ) ? '1' : '0';
         update_post_meta( $post_id, '_auto_google_meet', $auto_google_meet );
 
+        // Save assigned staff
+        $assigned_staff = isset( $_POST['assigned_staff'] ) && is_array( $_POST['assigned_staff'] )
+            ? $_POST['assigned_staff']
+            : array();
+        update_post_meta( $post_id, '_assigned_staff', self::sanitize_staff_assignment( $assigned_staff ) );
+
         // Save available days
         if ( isset( $_POST['available_days_check'] ) && is_array( $_POST['available_days_check'] ) ) {
             $days = array_map( 'absint', $_POST['available_days_check'] );
@@ -887,6 +922,7 @@ class Simple_Booking_Service {
             'is_active'            => get_post_meta( $post->ID, '_service_active', true ),
             'create_google_event'  => get_post_meta( $post->ID, '_create_google_event', true ),
             'auto_google_meet'     => get_post_meta( $post->ID, '_auto_google_meet', true ) ?: '0',
+            'assigned_staff'       => json_decode( get_post_meta( $post->ID, '_assigned_staff', true ), true ) ?: array(),
             'available_days'       => get_post_meta( $post->ID, '_available_days', true ),
             'available_hours_start' => get_post_meta( $post->ID, '_available_hours_start', true ),
             'available_hours_end'  => get_post_meta( $post->ID, '_available_hours_end', true ),
