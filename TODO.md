@@ -7,11 +7,11 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.10 (RELEASED) → v3.0 (IN PROGRESS)
+v3.0.11 (RELEASED) → v3.0 (STABILIZING)
 
-Core booking flow is operational.
+Core booking flow is operational. Slot availability and error handling improved.
 
-**v3.0 Progress:** Emergency recovery release applied after reverting v3.0.9; platform restored to stable v3.0.8 behavior baseline.
+**v3.0 Progress:** Safe slot availability fix deployed; Google API error handling now graceful (skip staff with errors instead of blocking all slots).
 
 ## Release Control (Mandatory Before New Feature Work)
 

@@ -2,7 +2,7 @@
 
 A lightweight, modular WordPress booking engine with Stripe and Google Calendar integration.
 
-Current release: v3.0.10 (stable)
+Current release: v3.0.11 (stable)
 
 ## Features
 

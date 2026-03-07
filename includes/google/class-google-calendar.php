@@ -715,6 +715,16 @@ class Simple_Booking_Google_Calendar {
         if ( empty( $assigned_staff ) || ! is_array( $assigned_staff ) ) {
             $available = $this->is_slot_available( $start_datetime, $service_duration, $global_calendar_id );
             
+            // If we get an error from Google API, log it but don't fail - allow booking
+            if ( is_wp_error( $available ) ) {
+                $this->debug_log( 'Global calendar availability check error: ' . $available->get_error_message(), 'SLOTS' );
+                // Graceful fallback: assume available when we can't verify
+                return array(
+                    'staff_id'    => null,
+                    'calendar_id' => $global_calendar_id,
+                );
+            }
+            
             if ( true === $available ) {
                 return array(
                     'staff_id'    => null,
@@ -749,6 +759,12 @@ class Simple_Booking_Google_Calendar {
             // Check if this staff member has the slot available
             $available = $this->is_slot_available( $start_datetime, $service_duration, $staff_calendar_id );
             
+            // If we get an error from Google API for this staff, skip them and try next
+            if ( is_wp_error( $available ) ) {
+                $this->debug_log( 'Staff member ' . $staff_id . ' availability check error: ' . $available->get_error_message() . ', skipping', 'SLOTS' );
+                continue;
+            }
+            
             if ( true === $available ) {
                 $this->debug_log( 'Staff member ' . $staff_id . ' available for slot ' . $start_datetime, 'SLOTS' );
                 return array(
@@ -764,6 +780,16 @@ class Simple_Booking_Google_Calendar {
         if ( 0 === $active_staff_count ) {
             $this->debug_log( 'No active assigned staff found; falling back to global calendar', 'SLOTS' );
             $available = $this->is_slot_available( $start_datetime, $service_duration, $global_calendar_id );
+
+            // If we get an error on fallback, log it but allow booking
+            if ( is_wp_error( $available ) ) {
+                $this->debug_log( 'Global calendar fallback availability check error: ' . $available->get_error_message(), 'SLOTS' );
+                // Graceful fallback: assume available when we can't verify
+                return array(
+                    'staff_id'    => null,
+                    'calendar_id' => $global_calendar_id,
+                );
+            }
 
             if ( true === $available ) {
                 return array(

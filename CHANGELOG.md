@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.11] - 2026-03-07
+
+### Fixed
+- Fixed slot availability checking to gracefully handle Google Calendar API errors
+- Slots no longer gray out when Google API is temporarily unavailable
+- Staff members with API errors are skipped instead of blocking all availability checks
+- Bookings proceed with graceful fallback when verification fails instead of hard failure
+
+### Changed
+- Enhanced `find_available_staff()` error handling to catch and skip WP_Error responses from `is_slot_available()`
+- Debug logging now tracks Google API failures at the staff level for troubleshooting
+
+### Technical
+- Modified `includes/google/class-google-calendar.php::find_available_staff()` to handle WP_Error responses from Google API calls
+- When Google API fails for a specific staff member, that staff is skipped and next available staff is checked
+- Fallback behavior allows booking creation when verification cannot be completed
+
 ## [3.0.10] - 2026-03-07
 
 ### Fixed
