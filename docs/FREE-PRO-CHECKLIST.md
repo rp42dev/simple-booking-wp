@@ -329,6 +329,59 @@ Quick reference for tracking implementation progress.
 
 ---
 
+## 6️⃣ Calendar Provider Architecture (Google + Outlook + ICS Fallback) - Phase 6 (v3.6.0) - Days 25-30
+
+### Day 25: Provider Core Abstraction
+- [ ] Create `includes/calendar/interface-calendar-provider.php`
+- [ ] Create `includes/calendar/class-calendar-provider-manager.php`
+- [ ] Define provider contract (`create/update/delete/fetch_busy/is_connected`)
+- [ ] Add provider selection resolution logic
+- [ ] Add provider-level error normalization
+
+### Day 26: Google Provider Adapter
+- [ ] Create `includes/calendar/providers/class-google-provider.php`
+- [ ] Move Google event logic behind provider interface
+- [ ] Preserve token refresh/retry logic
+- [ ] Preserve availability + slot conflict behavior
+- [ ] Add regression checks vs current Google flow
+
+### Day 27: Outlook Provider Adapter
+- [ ] Create `includes/calendar/providers/class-outlook-provider.php`
+- [ ] Implement Microsoft OAuth flow wiring
+- [ ] Implement create/update/delete event actions
+- [ ] Implement busy-window fetch for availability
+- [ ] Add Outlook settings validation in admin
+
+### Day 28: ICS Feed Provider
+- [ ] Create `includes/calendar/providers/class-ics-provider.php`
+- [ ] Create `includes/calendar/class-ics-feed-controller.php`
+- [ ] Generate dynamic ICS URL(s)
+- [ ] Include booking changes (create/update/cancel) in feed output
+- [ ] Add secure token/nonce for feed access
+
+### Day 29: Provider Selection UI + Gating
+- [ ] Add provider selector to settings (Google / Outlook / ICS)
+- [ ] Pro-gate Google and Outlook options
+- [ ] Keep ICS available in Free tier
+- [ ] Add helper copy about ICS refresh delay behavior
+- [ ] Add migration helper when switching active provider
+
+### Day 30: Integration & Validation
+- [ ] Test full booking lifecycle with Google provider
+- [ ] Test full booking lifecycle with Outlook provider
+- [ ] Test full booking lifecycle with ICS provider
+- [ ] Verify fallback behavior when provider API fails
+- [ ] Verify paid and free booking flows remain stable
+
+### Testing Phase 6
+- [ ] Google, Outlook, and ICS all pass create/update/cancel tests
+- [ ] Provider switching does not break historical bookings
+- [ ] ICS subscriptions update as expected after booking changes
+- [ ] No fatal errors if provider credentials are missing
+- [ ] Calendar integration remains optional and non-blocking
+
+---
+
 ## Post-Launch Monitoring (First Week)
 
 ### Daily Checks

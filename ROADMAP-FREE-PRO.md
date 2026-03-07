@@ -2,8 +2,8 @@
 
 **Strategy:** Soft Launch (Option B)  
 **Start Date:** March 7, 2026  
-**Target Completion:** Early April 2026  
-**Total Duration:** 17-24 days
+**Target Completion:** Mid April 2026  
+**Total Duration:** 21-30 days
 
 ---
 
@@ -23,10 +23,12 @@ Transform Simple Booking into a freemium product with Free (WordPress.org) and P
 - ✅ Custom availability schedules
 - ✅ Static meeting links
 - ✅ Free bookings (no payment required)
+- ✅ ICS feed fallback (no OAuth setup)
 
 ### PRO Version (Licensed)
 - 💎 **Stripe Payments** - Checkout sessions, webhooks, refunds
 - 💎 **Google Calendar** - OAuth sync, automatic event creation
+- 💎 **Microsoft Outlook Calendar** - Graph API sync, automatic event lifecycle
 - 💎 **Auto Google Meet** - Generated meeting links
 - 💎 **Multi-Staff** - Staff CPT, availability routing
 - 💎 **Tokenized Links** - Secure reschedule/cancel
@@ -710,6 +712,99 @@ Metadata: plan=pro_agency, sites=unlimited
 
 ---
 
+## 6️⃣ Calendar Provider Architecture (Google + Outlook + ICS Fallback) - Phase 6 (v3.6.0)
+
+**Duration:** 4-6 days  
+**Focus:** Multi-provider calendar sync with OAuth and no-OAuth fallback
+
+### Deliverables
+
+#### 6.1 Provider Interface Layer ✏️
+**Files:**
+- `includes/calendar/interface-calendar-provider.php` (NEW)
+- `includes/calendar/class-calendar-provider-manager.php` (NEW)
+
+**Standard Methods:**
+- `create_event()`
+- `update_event()`
+- `delete_event()`
+- `fetch_busy_windows()`
+- `is_connected()`
+
+**Acceptance Criteria:**
+- Booking flow calls provider manager only (not provider-specific classes directly)
+- Provider can be swapped without changing booking core logic
+
+---
+
+#### 6.2 Google Provider Adapter ✏️
+**Files:**
+- `includes/calendar/providers/class-google-provider.php` (NEW)
+
+**Scope:**
+- Wrap existing Google logic behind provider interface
+- Preserve token refresh + retry behavior
+- Preserve current staff routing support
+
+---
+
+#### 6.3 Outlook Provider Adapter (Microsoft Graph) ✏️
+**Files:**
+- `includes/calendar/providers/class-outlook-provider.php` (NEW)
+
+**Scope:**
+- OAuth flow for Microsoft account
+- Event create/update/delete via Graph API
+- Busy-window lookup for availability checks
+
+**Admin Requirements:**
+- Microsoft App Client ID
+- Microsoft App Client Secret
+- Tenant/common settings
+
+---
+
+#### 6.4 ICS Feed Fallback Provider ✏️
+**Files:**
+- `includes/calendar/providers/class-ics-provider.php` (NEW)
+- `includes/calendar/class-ics-feed-controller.php` (NEW)
+
+**Scope:**
+- Generate per-site or per-staff ICS subscription URL
+- Include booking events as VEVENTs
+- Reflect updates/cancellations through regenerated feed output
+- No OAuth required
+
+**UX Note:**
+- Document that refresh timing depends on calendar client polling interval
+
+---
+
+#### 6.5 Calendar Provider Selection UI ✏️
+**Files:**
+- `includes/admin/class-admin-settings.php`
+
+**Options:**
+1. Google Calendar API
+2. Microsoft Outlook Calendar (Graph)
+3. ICS Feed (fallback)
+
+**Behavior:**
+- One active provider at a time (MVP)
+- ICS always available as fallback option
+- Pro-gate Google/Outlook, allow ICS in Free
+
+---
+
+#### 6.6 Testing Checklist ✅
+- [ ] Google provider handles create/update/delete/reschedule correctly
+- [ ] Outlook provider handles create/update/delete/reschedule correctly
+- [ ] ICS feed includes new bookings and reflects cancellations
+- [ ] Switching provider does not break existing booking flow
+- [ ] Provider failures gracefully degrade without blocking checkout
+
+---
+
 ## Success Metrics
 
 ### Week 1-4 (Launch)
@@ -829,4 +924,4 @@ git push origin feature/free-pro-split
 
 **Status:** 📋 Planning Complete - Ready to Begin  
 **Next Action:** Create `includes/license/class-license-manager.php`  
-**Estimated Completion:** April 7, 2026
+**Estimated Completion:** April 15, 2026
