@@ -10,6 +10,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.14] - 2026-03-10
+
+### Added
+- Admin setting: Refund Percentage (0-100%, configurable per-instance)
+- Admin setting: Refund Policy text (optional, for future frontend display)
+- Automatic refund processing on booking cancellation (using configured percentage)
+- Free reschedule flow for paid bookings (no re-payment required)
+- Refund tracking: stores refund ID, status, and error messages in booking meta
+
+### Changed
+- Paid bookings can now be rescheduled without requiring new payment
+- Rescheduling a paid booking applies the same service to a new time slot
+- Stripe refund API integration: refunds issued to original payment method
+- Cancel action now processes refund before trashing booking
+
+### Technical
+- Added `Simple_Booking_Booking_Creator::is_paid_booking()` to detect paid bookings
+- Added `Simple_Booking_Booking_Creator::refund_booking()` to issue refunds
+- Added `Simple_Booking_Stripe::issue_refund()` to process Stripe refunds
+- Modified `cancel_booking()` to process refunds before deletion
+- Modified booking form submission to skip Stripe checkout for paid booking reschedules
+- Refund percentage setting stored in `simple_booking_settings[refund_percentage]` (default 100)
+- Booking meta fields: `_refund_status`, `_refund_id`, `_refund_error`
+
+### Admin UI
+- New "Refund Settings" section in Simple Booking Settings
+- Refund Percentage field (0-100, default 100%)
+- Refund Policy text field for custom policy text
+
 ## [3.0.13] - 2026-03-10
 
 ### Fixed

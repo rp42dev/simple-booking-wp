@@ -545,8 +545,16 @@ class Simple_Booking_Form {
             $booking_data['reschedule_token'] = $reschedule_token;
         }
 
-        // Free booking flow (no Stripe Price ID)
-        if ( empty( $service['stripe_price_id'] ) ) {
+        // Check if this is a reschedule of a paid booking - if so, treat as free reschedule
+        $reschedule_paid_booking = false;
+        if ( $reschedule_booking_id && ! empty( $reschedule_token ) && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
+            if ( Simple_Booking_Booking_Creator::is_paid_booking( $reschedule_booking_id ) ) {
+                $reschedule_paid_booking = true;
+            }
+        }
+
+        // Free booking flow (no Stripe Price ID) OR free reschedule of paid booking
+        if ( empty( $service['stripe_price_id'] ) || $reschedule_paid_booking ) {
             $duration = isset( $service['duration'] ) ? absint( $service['duration'] ) : 60;
             if ( $duration <= 0 ) {
                 $duration = 60;

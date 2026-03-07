@@ -184,4 +184,50 @@ class Simple_Booking_Stripe {
         $separator = ( strpos( $url, '?' ) !== false ) ? '&' : '?';
         return $url . $separator . $param . '=' . $value;
     }
-}
+
+    /**
+     * Issue a refund for a Stripe Checkout session
+     *
+     * @param string $session_id Stripe Checkout session ID
+     * @param int    $refund_percentage Percentage to refund (0-100)
+     * @return string|WP_Error Refund ID on success, WP_Error on failure
+     */
+    public function issue_refund( $session_id, $refund_percentage = 100 ) {
+        if ( ! $this->stripe ) {
+            return new WP_Error( 'stripe_not_initialized', __( 'Stripe not initialized', 'simple-booking' ) );
+        }
+
+        $refund_percentage = intval( $refund_percentage );
+        $refund_percentage = min( 100, max( 0, $refund_percentage ) );
+
+        if ( 0 === $refund_percentage ) {
+            return new WP_Error( 'refund_percentage_zero', __( 'Refund percentage is 0%', 'simple-booking' ) );
+        }
+
+        try {
+            // Fetch the checkout session
+            $session = $this->stripe->checkout->sessions->retrieve( $session_id );
+            if ( ! isset( $session->payment_intent ) ) {
+                return new WP_Error( 'no_payment_intent', __( 'No payment intent found for session', 'simple-booking' ) );
+            }
+
+            // Get the payment intent to find associated charges
+            $payment_intent = $this->stripe->paymentIntents->retrieve( $session->payment_intent );
+            if ( ! isset( $payment_intent->charges->data[0] ) ) {
+                return new WP_Error( 'no_charges', __( 'No charges found for payment', 'simple-booking' ) );
+            }
+
+            $charge = $payment_intent->charges->data[0];
+            $amount_to_refund = intval( $charge->amount * $refund_percentage / 100 );
+
+            // Create refund
+            $refund = $this->stripe->refunds->create( array(
+                'charge' => $charge->id,
+                'amount' => $amount_to_refund,
+            ) );
+
+            return $refund->id;
+        } catch ( \Exception $e ) {
+            return new WP_Error( 'stripe_refund_error', $e->getMessage() );
+        }
+    }

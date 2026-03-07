@@ -3,7 +3,7 @@
  * Plugin Name: Simple Booking
  * Plugin URI: https://example.com/simple-booking
  * Description: A lightweight, modular booking engine with Stripe and Google Calendar integration
- * Version: 3.0.13
+ * Version: 3.0.14
  * Author: Grow Smart Online
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html

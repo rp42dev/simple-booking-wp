@@ -7,11 +7,11 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.13 (RELEASED) → v3.0 (STABILIZING)
+v3.0.14 (RELEASED) → v3.0 (STABILIZING)
 
-Core booking flow is operational. Automatic OAuth token refresh implemented.
+Core booking flow is operational.Refund management and free-reschedule for paid bookings implemented.
 
-**v3.0 Progress:** OAuth token refresh deployed; expired Google tokens now refresh automatically on API failures.
+**v3.0 Progress:** Admin refund settings added; paid bookings can be rescheduled without re-payment; cancellations now proces refunds.
 
 ## Release Control (Mandatory Before New Feature Work)
 

@@ -334,6 +334,15 @@ class Simple_Booking_Booking_Creator {
             return new WP_Error( 'invalid_token', __( 'Invalid booking management token', 'simple-booking' ) );
         }
 
+        // Process refund if booking was paid
+        if ( self::is_paid_booking( $booking_id ) ) {
+            $refund_result = self::refund_booking( $booking_id );
+            if ( is_wp_error( $refund_result ) ) {
+                self::debug_log( 'Refund failed during cancel: ' . $refund_result->get_error_message(), 'BOOKING' );
+                // Continue with cancellation even if refund fails
+            }
+        }
+
         self::delete_google_event_for_booking( $booking_id );
         update_post_meta( $booking_id, '_booking_status', 'cancelled' );
         update_post_meta( $booking_id, '_booking_cancelled_at', current_time( 'mysql' ) );
@@ -453,4 +462,87 @@ class Simple_Booking_Booking_Creator {
 
         wp_mail( $to, $email_subject, $email_body, $headers );
     }
-}
+
+    /**
+     * Check if a booking is paid (has Stripe payment ID)
+     *
+     * @param int $booking_id
+     * @return bool
+     */
+    public static function is_paid_booking( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return false;
+        }
+        $stripe_payment_id = get_post_meta( $booking_id, '_stripe_payment_id', true );
+        return ! empty( $stripe_payment_id );
+    }
+
+    /**
+     * Get Stripe payment ID for a booking
+     *
+     * @param int $booking_id
+     * @return string|null
+     */
+    public static function get_stripe_payment_id( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return null;
+        }
+        return get_post_meta( $booking_id, '_stripe_payment_id', true );
+    }
+
+    /**
+     * Refund a paid booking
+     *
+     * @param int $booking_id
+     * @return true|WP_Error
+     */
+    public static function refund_booking( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return new WP_Error( 'invalid_booking_id', __( 'Invalid booking ID', 'simple-booking' ) );
+        }
+
+        $stripe_payment_id = self::get_stripe_payment_id( $booking_id );
+        if ( ! $stripe_payment_id ) {
+            self::debug_log( 'Booking ' . $booking_id . ' is not paid; no refund needed', 'BOOKING' );
+            return true; // Not a paid booking, no refund needed
+        }
+
+        // Get refund percentage setting
+        $refund_percentage = intval( simple_booking()->get_setting( 'refund_percentage', 100 ) );
+        $refund_percentage = min( 100, max( 0, $refund_percentage ) );
+
+        if ( 0 === $refund_percentage ) {
+            self::debug_log( 'Refund percentage is 0%; not issuing refund for booking ' . $booking_id, 'BOOKING' );
+            update_post_meta( $booking_id, '_refund_status', 'skipped_zero_percentage' );
+            return true; // Refunds disabled (0%)
+        }
+
+        try {
+            // Check if Stripe is configured
+            if ( ! class_exists( 'Simple_Booking_Stripe' ) ) {
+                self::debug_log( 'Stripe Handler not available; cannot refund booking ' . $booking_id, 'BOOKING' );
+                return new WP_Error( 'stripe_handler_missing', __( 'Stripe integration not available', 'simple-booking' ) );
+            }
+
+            $stripe_handler = new Simple_Booking_Stripe();
+            $refund_result = $stripe_handler->issue_refund( $stripe_payment_id, $refund_percentage );
+
+            if ( is_wp_error( $refund_result ) ) {
+                self::debug_log( 'Refund failed for booking ' . $booking_id . ': ' . $refund_result->get_error_message(), 'BOOKING' );
+                update_post_meta( $booking_id, '_refund_status', 'failed' );
+                update_post_meta( $booking_id, '_refund_error', $refund_result->get_error_message() );
+                return $refund_result;
+            }
+
+            self::debug_log( 'Refund successful for booking ' . $booking_id . ': ' . $refund_result, 'BOOKING' );
+            update_post_meta( $booking_id, '_refund_status', 'completed' );
+            update_post_meta( $booking_id, '_refund_id', $refund_result );
+            return true;
+        } catch ( Exception $e ) {
+            self::debug_log( 'Exception during refund for booking ' . $booking_id . ': ' . $e->getMessage(), 'BOOKING' );
+            return new WP_Error( 'refund_exception', $e->getMessage() );
+        }
+    }

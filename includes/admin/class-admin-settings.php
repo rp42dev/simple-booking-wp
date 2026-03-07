@@ -222,6 +222,42 @@ class Simple_Booking_Admin_Settings {
             )
         );
 
+        // Refund Settings
+        add_settings_section(
+            'simple_booking_refunds',
+            __( 'Refund Settings', 'simple-booking' ),
+            array( $this, 'render_refund_section' ),
+            self::PAGE_SLUG
+        );
+
+        add_settings_field(
+            'refund_percentage',
+            __( 'Refund Percentage', 'simple-booking' ),
+            array( $this, 'render_number_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_refunds',
+            array(
+                'name'        => 'refund_percentage',
+                'min'         => 0,
+                'max'         => 100,
+                'default'     => 100,
+                'description' => __( 'Percentage of booking amount to refund when customer cancels (0-100)', 'simple-booking' ),
+            )
+        );
+
+        add_settings_field(
+            'refund_policy',
+            __( 'Refund Policy Text', 'simple-booking' ),
+            array( $this, 'render_textarea_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_refunds',
+            array(
+                'name'        => 'refund_policy',
+                'placeholder' => 'Describe your refund policy for customers (optional)',
+                'rows'        => 5,
+            )
+        );
+
         // Webhook Settings
         add_settings_section(
             'simple_booking_webhook',
@@ -274,6 +310,14 @@ class Simple_Booking_Admin_Settings {
             sanitize_text_field( $input['email_subject'] ) : '';
         $sanitized['email_body'] = isset( $input['email_body'] ) ?
             sanitize_textarea_field( $input['email_body'] ) : '';
+
+        // Refund settings
+        $sanitized['refund_percentage'] = isset( $input['refund_percentage'] ) ?
+            intval( $input['refund_percentage'] ) : 100;
+        // Ensure percentage is between 0-100
+        $sanitized['refund_percentage'] = min( 100, max( 0, $sanitized['refund_percentage'] ) );
+        $sanitized['refund_policy'] = isset( $input['refund_policy'] ) ?
+            sanitize_textarea_field( $input['refund_policy'] ) : '';
 
         // Webhook
         $sanitized['webhook_url'] = isset( $input['webhook_url'] ) ?
@@ -449,6 +493,13 @@ class Simple_Booking_Admin_Settings {
     }
 
     /**
+     * Render Refund section
+     */
+    public function render_refund_section() {
+        echo '<p>' . __( 'Configure refund settings for cancelled paid bookings.', 'simple-booking' ) . '</p>';
+    }
+
+    /**
      * Render working days checkboxes (unused but kept for backward compatibility)
      */
     public function render_working_days() {
@@ -602,6 +653,27 @@ class Simple_Booking_Admin_Settings {
                   rows="<?php echo esc_attr( $rows ); ?>"
                   class="large-text code"
                   placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
+        <?php
+    }
+
+    /**
+     * Render number field
+     */
+    public function render_number_field( $args ) {
+        $options = get_option( 'simple_booking_settings', array() );
+        $value   = isset( $options[ $args['name'] ] ) ? $options[ $args['name'] ] : ( isset( $args['default'] ) ? $args['default'] : 0 );
+        $min     = isset( $args['min'] ) ? $args['min'] : 0;
+        $max     = isset( $args['max'] ) ? $args['max'] : 100;
+        ?>
+        <input type="number"
+               name="simple_booking_settings[<?php echo esc_attr( $args['name'] ); ?>]"
+               value="<?php echo esc_attr( $value ); ?>"
+               min="<?php echo esc_attr( $min ); ?>"
+               max="<?php echo esc_attr( $max ); ?>"
+               class="small-text" />
+        <?php if ( ! empty( $args['description'] ) ) : ?>
+            <p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+        <?php endif; ?>
         <?php
     }
 
