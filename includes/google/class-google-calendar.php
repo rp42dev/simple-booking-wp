@@ -737,6 +737,7 @@ class Simple_Booking_Google_Calendar {
 
         // Check each assigned staff member's calendar
         $active_staff_count = 0;
+        $error_staff_count = 0;
         foreach ( $assigned_staff as $staff_id ) {
             $staff_id = absint( $staff_id );
             if ( ! $staff_id ) {
@@ -762,6 +763,7 @@ class Simple_Booking_Google_Calendar {
             // If we get an error from Google API for this staff, skip them and try next
             if ( is_wp_error( $available ) ) {
                 $this->debug_log( 'Staff member ' . $staff_id . ' availability check error: ' . $available->get_error_message() . ', skipping', 'SLOTS' );
+                $error_staff_count++;
                 continue;
             }
             
@@ -774,6 +776,19 @@ class Simple_Booking_Google_Calendar {
             }
 
             $this->debug_log( 'Staff member ' . $staff_id . ' not available for slot ' . $start_datetime, 'SLOTS' );
+        }
+
+        // If all active staff had API errors, use graceful fallback (assume available)
+        if ( $active_staff_count > 0 && $error_staff_count === $active_staff_count ) {
+            $this->debug_log( 'All ' . $active_staff_count . ' active staff had availability check errors; using graceful fallback', 'SLOTS' );
+            $staff_calendar_id = get_post_meta( $assigned_staff[0], '_staff_calendar_id', true );
+            if ( empty( $staff_calendar_id ) ) {
+                $staff_calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+            }
+            return array(
+                'staff_id'    => $assigned_staff[0],
+                'calendar_id' => $staff_calendar_id,
+            );
         }
 
         // If all assigned staff are inactive, fallback to global calendar availability.

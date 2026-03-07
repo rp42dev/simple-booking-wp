@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.12] - 2026-03-10
+
+### Fixed
+- Improved error handling for Google Calendar API timeouts: when ALL assigned staff have API errors, booking proceeds with graceful fallback instead of graying out all slots
+- Added tracking of staff members with availability check errors to detect cascading failures
+- Slots now display and allow booking even when Google Calendar integration is experiencing issues
+
+### Changed
+- Enhanced `find_available_staff()` to count error cases per staff member
+- When all active staff encounter API failures, system now allows booking to proceed instead of hard-blocking
+
+### Technical
+- Added `$error_staff_count` variable to track how many active staff had API failures
+- If `error_staff_count === active_staff_count` and both > 0, use graceful fallback with first staff member
+- Prevents cascading failures from completely blocking bookings
+
 ## [3.0.11] - 2026-03-07
 
 ### Fixed

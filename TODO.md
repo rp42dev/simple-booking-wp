@@ -7,11 +7,11 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.11 (RELEASED) → v3.0 (STABILIZING)
+v3.0.12 (RELEASED) → v3.0 (STABILIZING)
 
-Core booking flow is operational. Slot availability and error handling improved.
+Core booking flow is operational. Improved cascading failure handling for Google Calendar integration.
 
-**v3.0 Progress:** Safe slot availability fix deployed; Google API error handling now graceful (skip staff with errors instead of blocking all slots).
+**v3.0 Progress:** Enhanced error handling deployed; all-staff-API-error scenario now uses graceful fallback.
 
 ## Release Control (Mandatory Before New Feature Work)
 
