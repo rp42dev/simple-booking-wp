@@ -19,6 +19,18 @@
         const emailField = form.find('[name="customer_email"]');
         const phoneField = form.find('[name="customer_phone"]');
         const timeContainer = form.find('#time-container');
+        const timezoneNotice = form.closest('#simple-booking-form-wrapper').find('.booking-timezone-notice');
+        const customerTimezone = (function() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || simpleBooking.timezone || '';
+            } catch (e) {
+                return simpleBooking.timezone || '';
+            }
+        })();
+
+        if (timezoneNotice.length && customerTimezone) {
+            timezoneNotice.html('Times are shown in <strong>' + customerTimezone + '</strong>');
+        }
 
         // Ensure unique element IDs per form instance (datepicker is sensitive to duplicate IDs)
         const idSuffix = '_' + formIndex;
@@ -94,6 +106,7 @@
                     nonce: simpleBooking.nonce,
                     date: date,
                     service_id: serviceId,
+                    customer_timezone: customerTimezone,
                 },
                 dataType: 'json'
             }).done(function(response) {
@@ -104,6 +117,9 @@
                 if (response.success && response.data && response.data.options) {
                     timeField.html(response.data.options);
                     timeField.prop('disabled', false);
+                    if (timezoneNotice.length && response.data.timezone) {
+                        timezoneNotice.html('Times are shown in <strong>' + response.data.timezone + '</strong>');
+                    }
                 } else {
                     timeField.html('<option value="">' + (response.data && response.data.message ? response.data.message : 'No slots') + '</option>');
                     timeField.prop('disabled', true);
@@ -215,10 +231,19 @@
                 service_id: serviceField.val(),
                 // booking date/time fields replaced by separate inputs
             booking_datetime: (function(){
-                const d = dateField.val();
                 const t = timeField.val();
-                return d && t ? d + 'T' + t : '';
+                if (!t) {
+                    return '';
+                }
+                // New flow: slot value is ISO datetime from server
+                if (String(t).indexOf('T') !== -1) {
+                    return t;
+                }
+                // Legacy fallback: HH:mm value + selected date
+                const d = dateField.val();
+                return d ? d + 'T' + t : '';
             })(),
+                customer_timezone: customerTimezone,
                 customer_name: nameField.val(),
                 customer_email: emailField.val(),
                 customer_phone: phoneField.val()
@@ -303,7 +328,15 @@
             const serviceId = serviceField.val();
             const date = dateField.val();
             const time = timeField.val();
-            const datetime = date && time ? date + 'T' + time : '';
+            const datetime = (function() {
+                if (!time) {
+                    return '';
+                }
+                if (String(time).indexOf('T') !== -1) {
+                    return time;
+                }
+                return date ? date + 'T' + time : '';
+            })();
             const name = nameField.val();
             const email = emailField.val();
             const phone = phoneField.val();

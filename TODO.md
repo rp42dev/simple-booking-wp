@@ -7,11 +7,11 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.4 (RELEASED) → v3.0 (IN PROGRESS)
+v3.0.5 (RELEASED) → v3.0 (IN PROGRESS)
 
 Core booking flow is operational.
 
-**v3.0 Progress:** Staff assignment + staff-aware slots complete, including inactive-staff fallback to global calendar availability.
+**v3.0 Progress:** Timezone detection and customer-local slot rendering complete, with canonical ISO slot submission preserved for booking accuracy.
 
 ## Release Control (Mandatory Before New Feature Work)
 

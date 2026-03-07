@@ -8,8 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- v3.0.5: Timezone detection and customer-local rendering
 - v3.0.6: Reschedule/cancel tokenized links
+
+## [3.0.5] - 2026-03-07
+
+### Added
+- Customer timezone detection in booking form using browser timezone
+- Customer-local slot label rendering in time dropdown
+- Canonical ISO slot value submission to keep booking and availability checks timezone-safe
+
+### Changed
+- Slot AJAX now accepts `customer_timezone` and returns labels for that timezone
+- Booking submit flow now sends selected slot datetime directly instead of rebuilding from date + local time
+- Timezone notice in the form now reflects detected/customer timezone
+
+### Technical
+- Updated `assets/js/booking-form.js` to send `customer_timezone` for slots and submission
+- Updated `includes/frontend/class-booking-form.php` to render slot option labels in customer timezone while preserving canonical slot values
 
 ## [3.0.4] - 2026-03-07
 

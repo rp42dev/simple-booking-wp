@@ -545,6 +545,15 @@ class Simple_Booking_Form {
         $debug = array();
         $date       = isset( $_POST['date'] ) ? sanitize_text_field( $_POST['date'] ) : '';
         $service_id = isset( $_POST['service_id'] ) ? absint( $_POST['service_id'] ) : 0;
+        $customer_timezone = isset( $_POST['customer_timezone'] ) ? sanitize_text_field( $_POST['customer_timezone'] ) : '';
+        $display_timezone = wp_timezone_string();
+        if ( ! empty( $customer_timezone ) ) {
+            try {
+                $display_timezone = ( new DateTimeZone( $customer_timezone ) )->getName();
+            } catch ( Exception $e ) {
+                $display_timezone = wp_timezone_string();
+            }
+        }
         // Normalize date to YYYY-MM-DD to protect against locale variations
         if ( $date ) {
             $dt = DateTime::createFromFormat( 'Y-m-d', $date );
@@ -720,8 +729,13 @@ class Simple_Booking_Form {
 
         // return options html instead of full container
         $options = '<option value="">' . esc_html__( 'Choose a time…', 'simple-booking' ) . '</option>';
+        $display_tz = new DateTimeZone( $display_timezone );
+        $site_tz = new DateTimeZone( wp_timezone_string() );
         foreach ( $slots as $slot ) {
-            $timeLabel = date_i18n( 'H:i', strtotime( $slot['start'] ) );
+            $slotStartSite = new DateTime( $slot['start'], $site_tz );
+            $slotStartLocal = clone $slotStartSite;
+            $slotStartLocal->setTimezone( $display_tz );
+            $timeLabel = $slotStartLocal->format( 'H:i' );
             $disabled = $slot['available'] ? '' : ' disabled';
             $title = '';
             if ( ! $slot['available'] ) {
@@ -740,11 +754,11 @@ class Simple_Booking_Form {
                     $title = __( 'Unavailable', 'simple-booking' );
                 }
             }
-            // use only the local time as value; date is provided separately
-            $options .= '<option value="' . esc_attr( $timeLabel ) . '"' . $disabled . ( $title ? ' title="' . esc_attr( $title ) . '"' : '' ) . '>' . esc_html( $timeLabel ) . '</option>';
+            // use canonical slot datetime as value so submit remains timezone-safe
+            $options .= '<option value="' . esc_attr( $slot['start'] ) . '"' . $disabled . ( $title ? ' title="' . esc_attr( $title ) . '"' : '' ) . '>' . esc_html( $timeLabel ) . '</option>';
         }
 
-        wp_send_json_success( array( 'options' => $options, 'debug' => $debug, 'work_end' => $work_end, 'work_start' => $work_start, 'timezone' => wp_timezone_string() ) );
+        wp_send_json_success( array( 'options' => $options, 'debug' => $debug, 'work_end' => $work_end, 'work_start' => $work_start, 'timezone' => $display_timezone ) );
     }
 
     /**
