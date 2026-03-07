@@ -230,4 +230,4 @@ class Simple_Booking_Stripe {
         } catch ( \Exception $e ) {
             return new WP_Error( 'stripe_refund_error', $e->getMessage() );
         }
-    }
+    }}
