@@ -125,20 +125,21 @@ class Simple_Booking_Form {
 
         $booking_id = isset( $_GET['booking_id'] ) ? absint( $_GET['booking_id'] ) : 0;
         $token = isset( $_GET['sb_token'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_token'] ) ) : '';
+        $manage_page_url = $this->get_manage_page_url();
 
         if ( ! $booking_id || empty( $token ) || ! class_exists( 'Simple_Booking_Booking_Creator' ) ) {
-            wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', home_url( '/' ) ) );
+            wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', $manage_page_url ) );
             exit;
         }
 
         if ( ! Simple_Booking_Booking_Creator::verify_booking_management_token( $booking_id, $token ) ) {
-            wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', home_url( '/' ) ) );
+            wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', $manage_page_url ) );
             exit;
         }
 
         if ( 'cancel' === $action ) {
             update_post_meta( $booking_id, '_booking_status', 'cancelled' );
-            wp_safe_redirect( add_query_arg( 'sb_manage', 'cancelled', home_url( '/' ) ) );
+            wp_safe_redirect( $this->get_cancel_redirect_url() );
             exit;
         }
 
@@ -148,9 +149,9 @@ class Simple_Booking_Form {
                 array(
                     'sb_manage'               => 'reschedule',
                     'reschedule_booking_id'   => $booking_id,
-                    'reschedule_token'        => rawurlencode( $token ),
+                    'reschedule_token'        => $token,
                 ),
-                home_url( '/' )
+                $manage_page_url
             )
         );
         exit;
@@ -264,6 +265,14 @@ class Simple_Booking_Form {
             <?php elseif ( 'reschedule' === $manage_status && $reschedule_context_valid ) : ?>
                 <div class="booking-message success">
                     <p><?php _e( 'Choose a new date and time below to reschedule your booking.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'rescheduled' === $manage_status ) : ?>
+                <div class="booking-message success">
+                    <p><?php _e( 'Your booking has been successfully rescheduled. Check your email for the updated details.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'rescheduled_pending' === $manage_status ) : ?>
+                <div class="booking-message success">
+                    <p><?php _e( 'Payment received. We are finalizing your rescheduled booking and will email confirmation shortly.', 'simple-booking' ); ?></p>
                 </div>
             <?php elseif ( 'invalid' === $manage_status ) : ?>
                 <div class="booking-message error">
@@ -574,9 +583,14 @@ class Simple_Booking_Form {
 
             Simple_Booking_Booking_Creator::send_confirmation_email( $booking_id );
 
+            $redirect_url = $this->get_success_redirect_url();
+            if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
+                $redirect_url = add_query_arg( 'sb_manage', 'rescheduled', $this->get_manage_page_url() );
+            }
+
             wp_send_json_success( array(
                 'booking_id'    => $booking_id,
-                'redirect_url'  => $this->get_success_redirect_url(),
+                'redirect_url'  => $redirect_url,
                 'message'       => __( 'Booking confirmed successfully.', 'simple-booking' ),
             ) );
         }
@@ -616,6 +630,42 @@ class Simple_Booking_Form {
         }
 
         return add_query_arg( 'booking', 'success', home_url( '/' ) );
+    }
+
+    /**
+     * Get management page URL.
+     *
+     * @return string
+     */
+    private function get_manage_page_url() {
+        $page_id = get_option( 'simple_booking_manage_page' );
+        if ( $page_id ) {
+            $page = get_post( $page_id );
+            if ( $page && 'publish' === $page->post_status ) {
+                return get_permalink( $page_id );
+            }
+            delete_option( 'simple_booking_manage_page' );
+        }
+
+        return home_url( '/' );
+    }
+
+    /**
+     * Get cancel redirect URL.
+     *
+     * @return string
+     */
+    private function get_cancel_redirect_url() {
+        $page_id = get_option( 'simple_booking_cancel_page' );
+        if ( $page_id ) {
+            $page = get_post( $page_id );
+            if ( $page && 'publish' === $page->post_status ) {
+                return get_permalink( $page_id );
+            }
+            delete_option( 'simple_booking_cancel_page' );
+        }
+
+        return add_query_arg( 'sb_manage', 'cancelled', $this->get_manage_page_url() );
     }
 
     /**

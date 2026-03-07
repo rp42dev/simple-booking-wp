@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.7] - 2026-03-07
+
+### Added
+- Dedicated "Manage Booking" page (`booking-manage`) created automatically with embedded booking form shortcode
+- Upgrade-safe page initialization so required pages are created without requiring plugin reactivation
+
+### Changed
+- Tokenized cancel links now redirect customers to the cancel page for a cleaner post-action UX
+- Tokenized reschedule links now route to the dedicated manage page instead of generic home URL
+- Free reschedules now return a clear "rescheduled successfully" management message after completion
+- Paid reschedules now return a "rescheduled pending" success-page state after Stripe checkout completion
+
+### Technical
+- Added `simple_booking_manage_page` and `simple_booking_pages_initialized` options in page provisioning flow
+- Added management/cancel URL helpers in `includes/frontend/class-booking-form.php`
+- Updated Stripe success URL behavior for reschedule context in `includes/stripe/class-stripe-handler.php`
+
 ## [3.0.6] - 2026-03-07
 
 ### Added

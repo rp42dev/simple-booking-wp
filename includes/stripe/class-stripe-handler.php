@@ -65,6 +65,10 @@ class Simple_Booking_Stripe {
         $success_url = $this->get_success_page_url();
         $cancel_url = $this->get_cancel_page_url();
 
+        if ( ! empty( $booking_data['reschedule_from_booking_id'] ) ) {
+            $success_url = $this->append_query_param( $success_url, 'sb_manage', 'rescheduled_pending' );
+        }
+
         try {
             $session = \Stripe\Checkout\Session::create(
                 array(

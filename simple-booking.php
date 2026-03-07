@@ -3,7 +3,7 @@
  * Plugin Name: Simple Booking
  * Plugin URI: https://example.com/simple-booking
  * Description: A lightweight, modular booking engine with Stripe and Google Calendar integration
- * Version: 3.0.6
+ * Version: 3.0.7
  * Author: Grow Smart Online
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants
-define( 'SIMPLE_BOOKING_VERSION', '3.0.6' );
+define( 'SIMPLE_BOOKING_VERSION', '3.0.7' );
 define( 'SIMPLE_BOOKING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SIMPLE_BOOKING_URL', plugin_dir_url( __FILE__ ) );
 define( 'SIMPLE_BOOKING_INCLUDES', SIMPLE_BOOKING_PATH . 'includes/' );
@@ -86,6 +86,7 @@ class Simple_Booking {
 
         // Create success and cancel pages
         $this->create_default_pages();
+        update_option( 'simple_booking_pages_initialized', '1' );
     }
 
     /**
@@ -113,12 +114,22 @@ class Simple_Booking {
             __( 'Your booking has been cancelled. No charges were made to your account.', 'simple-booking' )
         );
 
+        // Create Booking Management page (used for tokenized reschedule links)
+        $manage_page_id = $this->create_page_if_not_exists(
+            __( 'Manage Booking', 'simple-booking' ),
+            'booking-manage',
+            __( 'Use the form below to manage your booking.', 'simple-booking' ) . "\n\n" . '[simple_booking_form]'
+        );
+
         // Store page IDs in options
         if ( $success_page_id ) {
             update_option( 'simple_booking_success_page', $success_page_id );
         }
         if ( $cancel_page_id ) {
             update_option( 'simple_booking_cancel_page', $cancel_page_id );
+        }
+        if ( $manage_page_id ) {
+            update_option( 'simple_booking_manage_page', $manage_page_id );
         }
     }
 
@@ -155,6 +166,12 @@ class Simple_Booking {
         Simple_Booking_Service::register();
         Simple_Booking_Post::register();
         Simple_Booking_Staff::register();
+
+        // Ensure default pages exist after plugin upgrades (without requiring reactivation)
+        if ( '1' !== get_option( 'simple_booking_pages_initialized', '' ) ) {
+            $this->create_default_pages();
+            update_option( 'simple_booking_pages_initialized', '1' );
+        }
 
         // Load plugin text domain
         load_plugin_textdomain( 'simple-booking', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
