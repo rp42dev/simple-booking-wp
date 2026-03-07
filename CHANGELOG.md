@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.10] - 2026-03-07
+
+### Fixed
+- Emergency recovery release to restore site stability after v3.0.9 caused a critical runtime failure
+
+### Changed
+- Reverted v3.0.9 slot-availability error-handling changes
+- Restored stable behavior baseline equivalent to v3.0.8
+
+### Notes
+- Critical outage mitigation release; targeted v3.0.9 fix will be reworked and reintroduced safely in a later patch
+
 ## [3.0.8] - 2026-03-07
 
 ### Fixed
