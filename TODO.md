@@ -7,11 +7,11 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.8 (RELEASED) → v3.0 (IN PROGRESS)
+v3.0.9 (RELEASED) → v3.0 (IN PROGRESS)
 
 Core booking flow is operational.
 
-**v3.0 Progress:** Cancel/reschedule lifecycle now cleans old Google events, removes old bookings from active admin list, and exposes clear admin status indicators.
+**v3.0 Progress:** Slot availability hardening now handles backend availability errors explicitly and prevents silent all-grey slot states.
 
 ## Release Control (Mandatory Before New Feature Work)
 

@@ -56,17 +56,20 @@ class Simple_Booking_Booking_Creator {
             if ( class_exists( 'Simple_Booking_Google_Calendar' ) ) {
                 $google = new Simple_Booking_Google_Calendar();
                 $staff_availability = $google->find_available_staff( $service_id, $data['start_datetime'], $service_duration );
-                
-                if ( false === $staff_availability ) {
+
+                if ( is_wp_error( $staff_availability ) ) {
+                    self::debug_log( 'Slot availability check error: ' . $staff_availability->get_error_message(), 'BOOKING' );
+                    // allow booking when we can't verify to avoid hard failure
+                } elseif ( false === $staff_availability ) {
                     $requested = ( new DateTime( $data['start_datetime'], wp_timezone() ) )->format( DateTime::ATOM );
                     self::debug_log( 'Requested slot ' . $requested . ' has no available staff', 'BOOKING' );
                     return new WP_Error( 'slot_taken', __( 'Requested time slot is no longer available', 'simple-booking' ) );
+                } elseif ( is_array( $staff_availability ) ) {
+                    // Store staff and calendar info for later use
+                    self::debug_log( 'Slot available with staff_id: ' . ( $staff_availability['staff_id'] ?? 'null' ), 'BOOKING' );
+                    $data['assigned_staff_id'] = $staff_availability['staff_id'] ?? null;
+                    $data['calendar_id'] = $staff_availability['calendar_id'] ?? null;
                 }
-                
-                // Store staff and calendar info for later use
-                self::debug_log( 'Slot available with staff_id: ' . ( $staff_availability['staff_id'] ?? 'null' ), 'BOOKING' );
-                $data['assigned_staff_id'] = $staff_availability['staff_id'] ?? null;
-                $data['calendar_id'] = $staff_availability['calendar_id'] ?? null;
             } else {
                 self::debug_log( 'Google Calendar not available - skipping slot availability check', 'BOOKING' );
             }

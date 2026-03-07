@@ -703,7 +703,7 @@ class Simple_Booking_Google_Calendar {
      * @param int    $service_id Service post ID
      * @param string $start_datetime ISO string or datetime parsable by DateTime
      * @param int    $service_duration Minutes
-     * @return array|false Array with 'staff_id' and 'calendar_id' if available, false if none available
+    * @return array|false|WP_Error Array with 'staff_id' and 'calendar_id' if available, false if none available
      */
     public function find_available_staff( $service_id, $start_datetime, $service_duration ) {
         // Get assigned staff for this service
@@ -714,6 +714,10 @@ class Simple_Booking_Google_Calendar {
         // If no staff assigned, use global calendar
         if ( empty( $assigned_staff ) || ! is_array( $assigned_staff ) ) {
             $available = $this->is_slot_available( $start_datetime, $service_duration, $global_calendar_id );
+
+            if ( is_wp_error( $available ) ) {
+                return $available;
+            }
             
             if ( true === $available ) {
                 return array(
@@ -727,6 +731,7 @@ class Simple_Booking_Google_Calendar {
 
         // Check each assigned staff member's calendar
         $active_staff_count = 0;
+        $first_error = null;
         foreach ( $assigned_staff as $staff_id ) {
             $staff_id = absint( $staff_id );
             if ( ! $staff_id ) {
@@ -748,6 +753,13 @@ class Simple_Booking_Google_Calendar {
 
             // Check if this staff member has the slot available
             $available = $this->is_slot_available( $start_datetime, $service_duration, $staff_calendar_id );
+
+            if ( is_wp_error( $available ) ) {
+                if ( null === $first_error ) {
+                    $first_error = $available;
+                }
+                continue;
+            }
             
             if ( true === $available ) {
                 $this->debug_log( 'Staff member ' . $staff_id . ' available for slot ' . $start_datetime, 'SLOTS' );
@@ -765,12 +777,20 @@ class Simple_Booking_Google_Calendar {
             $this->debug_log( 'No active assigned staff found; falling back to global calendar', 'SLOTS' );
             $available = $this->is_slot_available( $start_datetime, $service_duration, $global_calendar_id );
 
+            if ( is_wp_error( $available ) ) {
+                return $available;
+            }
+
             if ( true === $available ) {
                 return array(
                     'staff_id'    => null,
                     'calendar_id' => $global_calendar_id,
                 );
             }
+        }
+
+        if ( null !== $first_error ) {
+            return $first_error;
         }
 
         // No staff available

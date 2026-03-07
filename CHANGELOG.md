@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.9] - 2026-03-07
+
+### Fixed
+- Reschedule and booking forms no longer silently gray out all slots when calendar/staff availability checks return backend errors
+- Staff availability check now propagates real availability errors instead of treating them as generic "unavailable"
+
+### Changed
+- Slot AJAX endpoint now returns actionable error responses for availability backend failures
+- Submission-time slot validation now returns backend availability errors directly when present
+
+### Technical
+- Hardened `find_available_staff()` return handling in `includes/google/class-google-calendar.php`
+- Added WP_Error-aware guards in booking creation flow in `includes/booking/class-booking-creator.php`
+- Updated slot and submit validation in `includes/frontend/class-booking-form.php` to handle WP_Error explicitly
+
 ## [3.0.8] - 2026-03-07
 
 ### Fixed
