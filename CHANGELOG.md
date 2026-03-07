@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.14.4] - 2026-03-10
+
+### Fixed
+- Stripe refund processing now works correctly (uses `latest_charge` from PaymentIntent)
+- Refunds now properly issued on booking cancellation
+- Tested and validated with live Stripe test charges
+
+## [3.0.14.3] - 2026-03-10
+
+### Fixed
+- Fixed Stripe refund charge lookup (improved error handling for edge cases)
+- Better support for Stripe PaymentIntent charge retrieval
+
 ## [3.0.14.2] - 2026-03-10
 
 ### Fixed
