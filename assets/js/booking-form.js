@@ -18,6 +18,8 @@
         const nameField = form.find('[name="customer_name"]');
         const emailField = form.find('[name="customer_email"]');
         const phoneField = form.find('[name="customer_phone"]');
+        const rescheduleBookingIdField = form.find('[name="reschedule_booking_id"]');
+        const rescheduleTokenField = form.find('[name="reschedule_token"]');
         const timeContainer = form.find('#time-container');
         const timezoneNotice = form.closest('#simple-booking-form-wrapper').find('.booking-timezone-notice');
         const customerTimezone = (function() {
@@ -246,7 +248,9 @@
                 customer_timezone: customerTimezone,
                 customer_name: nameField.val(),
                 customer_email: emailField.val(),
-                customer_phone: phoneField.val()
+                customer_phone: phoneField.val(),
+                reschedule_booking_id: rescheduleBookingIdField.length ? rescheduleBookingIdField.val() : '',
+                reschedule_token: rescheduleTokenField.length ? rescheduleTokenField.val() : ''
             };
 
             // Submit via AJAX

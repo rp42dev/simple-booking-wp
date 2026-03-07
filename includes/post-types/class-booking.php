@@ -298,6 +298,41 @@ class Simple_Booking_Post {
                 'sanitize_callback' => 'absint',
             )
         );
+
+        // Booking Status: confirmed|cancelled|reschedule_requested|rescheduled
+        register_post_meta(
+            self::POST_TYPE,
+            '_booking_status',
+            array(
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'sanitize_text_field',
+            )
+        );
+
+        // Reschedule linkage metadata
+        register_post_meta(
+            self::POST_TYPE,
+            '_rescheduled_from_booking_id',
+            array(
+                'type'         => 'integer',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'absint',
+            )
+        );
+
+        register_post_meta(
+            self::POST_TYPE,
+            '_rescheduled_to_booking_id',
+            array(
+                'type'         => 'integer',
+                'single'       => true,
+                'show_in_rest' => true,
+                'sanitize_callback' => 'absint',
+            )
+        );
     }
 
     /**
@@ -533,6 +568,8 @@ class Simple_Booking_Post {
         if ( ! empty( $data['google_event_id'] ) ) {
             update_post_meta( $post_id, '_google_event_id', sanitize_text_field( $data['google_event_id'] ) );
         }
+
+        update_post_meta( $post_id, '_booking_status', 'confirmed' );
 
         return $post_id;
     }

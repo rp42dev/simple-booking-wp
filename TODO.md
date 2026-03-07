@@ -7,11 +7,11 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.5 (RELEASED) → v3.0 (IN PROGRESS)
+v3.0.6 (RELEASED) → v3.0 (IN PROGRESS)
 
 Core booking flow is operational.
 
-**v3.0 Progress:** Timezone detection and customer-local slot rendering complete, with canonical ISO slot submission preserved for booking accuracy.
+**v3.0 Progress:** Tokenized reschedule/cancel links complete with secure verification, status tracking, and reschedule linkage after successful rebooking.
 
 ## Release Control (Mandatory Before New Feature Work)
 

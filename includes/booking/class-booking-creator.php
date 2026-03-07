@@ -20,6 +20,8 @@ class Simple_Booking_Booking_Creator {
      */
     const DEBUG_FILE = SIMPLE_BOOKING_PATH . 'debug-google.txt';
     const DEBUG_ENABLED = true; // set to false to disable from this class
+    const MANAGEMENT_TOKEN_META = '_booking_management_token';
+    const MANAGEMENT_TOKEN_CREATED_META = '_booking_management_token_created';
     // @todo remove DEBUG_FILE/DEBUG_ENABLED and related logging after issue is resolved
 
     /**
@@ -111,7 +113,89 @@ class Simple_Booking_Booking_Creator {
             }
         }
 
+        // Handle reschedule linkage if request was token-authorized
+        if ( ! empty( $data['reschedule_from_booking_id'] ) && ! empty( $data['reschedule_token'] ) ) {
+            $from_booking_id = absint( $data['reschedule_from_booking_id'] );
+            $reschedule_token = sanitize_text_field( $data['reschedule_token'] );
+
+            if ( self::verify_booking_management_token( $from_booking_id, $reschedule_token ) ) {
+                update_post_meta( $from_booking_id, '_booking_status', 'rescheduled' );
+                update_post_meta( $from_booking_id, '_rescheduled_to_booking_id', absint( $booking_id ) );
+                update_post_meta( $booking_id, '_rescheduled_from_booking_id', absint( $from_booking_id ) );
+            }
+        }
+
         return $booking_id;
+    }
+
+    /**
+     * Get existing management token or create a new one.
+     *
+     * @param int $booking_id
+     * @return string
+     */
+    public static function get_or_create_management_token( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return '';
+        }
+
+        $existing = get_post_meta( $booking_id, self::MANAGEMENT_TOKEN_META, true );
+        if ( ! empty( $existing ) ) {
+            return $existing;
+        }
+
+        $token = wp_generate_password( 48, false, false );
+        update_post_meta( $booking_id, self::MANAGEMENT_TOKEN_META, $token );
+        update_post_meta( $booking_id, self::MANAGEMENT_TOKEN_CREATED_META, current_time( 'mysql' ) );
+
+        return $token;
+    }
+
+    /**
+     * Verify booking management token.
+     *
+     * @param int    $booking_id
+     * @param string $token
+     * @return bool
+     */
+    public static function verify_booking_management_token( $booking_id, $token ) {
+        $booking_id = absint( $booking_id );
+        $token = (string) $token;
+
+        if ( ! $booking_id || '' === $token ) {
+            return false;
+        }
+
+        $stored = (string) get_post_meta( $booking_id, self::MANAGEMENT_TOKEN_META, true );
+        if ( '' === $stored ) {
+            return false;
+        }
+
+        return hash_equals( $stored, $token );
+    }
+
+    /**
+     * Build booking management URL.
+     *
+     * @param int    $booking_id
+     * @param string $action cancel|reschedule
+     * @param string $token
+     * @return string
+     */
+    public static function get_management_url( $booking_id, $action, $token ) {
+        $booking_id = absint( $booking_id );
+        $action = sanitize_key( $action );
+        $token = sanitize_text_field( $token );
+
+        return add_query_arg(
+            array(
+                'sb_action'   => $action,
+                'booking_id'  => $booking_id,
+                'sb_token'    => $token,
+            ),
+            home_url( '/' )
+        );
     }
 
     /**
@@ -198,6 +282,9 @@ class Simple_Booking_Booking_Creator {
         }
 
         $timezone = wp_timezone_string();
+        $management_token = self::get_or_create_management_token( $booking_id );
+        $reschedule_link = self::get_management_url( $booking_id, 'reschedule', $management_token );
+        $cancel_link = self::get_management_url( $booking_id, 'cancel', $management_token );
 
         // Parse datetime for template variables (fail-safe)
         $booking_date = $start_datetime;
@@ -227,13 +314,15 @@ class Simple_Booking_Booking_Creator {
             }
 
             $email_body = sprintf(
-                "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s%s\n\nThank you for your booking.\n\n%s",
+                "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s%s\n\nManage your booking:\nReschedule: %s\nCancel: %s\n\nThank you for your booking.\n\n%s",
                 $customer_name,
                 $service_name,
                 $start_datetime,
                 $end_datetime,
                 $timezone,
                 $meeting_info,
+                $reschedule_link,
+                $cancel_link,
                 get_bloginfo( 'name' )
             );
         } else {
@@ -244,6 +333,8 @@ class Simple_Booking_Booking_Creator {
                 '{booking_date}'  => $booking_date,
                 '{booking_time}'  => $booking_time,
                 '{meeting_link}'  => ! empty( $meeting_link ) ? $meeting_link : '',
+                '{reschedule_link}' => $reschedule_link,
+                '{cancel_link}'   => $cancel_link,
                 '{timezone}'      => $timezone,
                 '{site_name}'     => get_bloginfo( 'name' ),
             );

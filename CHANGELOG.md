@@ -8,7 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- v3.0.6: Reschedule/cancel tokenized links
+- (No planned items currently)
+
+## [3.0.6] - 2026-03-07
+
+### Added
+- Tokenized booking management links (`reschedule` and `cancel`) generated per booking and included in confirmation emails
+- Public management action handler for secure cancel/reschedule entry points
+- Reschedule context support in booking form with hidden linkage fields and customer data prefill
+
+### Changed
+- Booking confirmation email templates now support `{reschedule_link}` and `{cancel_link}` variables
+- Stripe metadata now carries reschedule context so paid bookings preserve reschedule linkage through webhook booking creation
+- Free and paid reschedules both mark original booking as rescheduled after successful new booking creation
+
+### Technical
+- Added management token utilities in `includes/booking/class-booking-creator.php`
+- Added booking status and reschedule relation meta fields in `includes/post-types/class-booking.php`
+- Added token verification and management redirects in `includes/frontend/class-booking-form.php`
+- Added reschedule context pass-through in `assets/js/booking-form.js`, `includes/stripe/class-stripe-handler.php`, and `includes/webhook/class-stripe-webhook.php`
 
 ## [3.0.5] - 2026-03-07
 

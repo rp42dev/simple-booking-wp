@@ -116,6 +116,11 @@ class Simple_Booking_Stripe_Webhook {
             'auto_google_meet' => isset( $service['auto_google_meet'] ) ? $service['auto_google_meet'] : '0',
         );
 
+        if ( isset( $metadata->reschedule_from_booking_id ) && isset( $metadata->reschedule_token ) ) {
+            $booking_data['reschedule_from_booking_id'] = absint( $metadata->reschedule_from_booking_id );
+            $booking_data['reschedule_token'] = sanitize_text_field( $metadata->reschedule_token );
+        }
+
         // Create booking
         $booking_id = Simple_Booking_Booking_Creator::create_booking( $booking_data );
 

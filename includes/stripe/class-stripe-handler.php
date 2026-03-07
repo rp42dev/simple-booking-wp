@@ -83,6 +83,8 @@ class Simple_Booking_Stripe {
                         'customer_phone'   => sanitize_text_field( $booking_data['customer_phone'] ),
                         'service_id'       => absint( $booking_data['service_id'] ),
                         'start_datetime'   => sanitize_text_field( $booking_data['start_datetime'] ),
+                        'reschedule_from_booking_id' => isset( $booking_data['reschedule_from_booking_id'] ) ? absint( $booking_data['reschedule_from_booking_id'] ) : 0,
+                        'reschedule_token' => isset( $booking_data['reschedule_token'] ) ? sanitize_text_field( $booking_data['reschedule_token'] ) : '',
                     ),
                 )
             );

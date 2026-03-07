@@ -23,6 +23,7 @@ class Simple_Booking_Form {
     public function __construct() {
         add_shortcode( self::SHORTCODE, array( $this, 'render_shortcode' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+        add_action( 'template_redirect', array( $this, 'handle_booking_management_action' ) );
         add_action( 'wp_ajax_simple_booking_submit', array( $this, 'handle_submission' ) );
         add_action( 'wp_ajax_nopriv_simple_booking_submit', array( $this, 'handle_submission' ) );
 
@@ -97,6 +98,7 @@ class Simple_Booking_Form {
                 'schedule'   => $schedule,
                 'timezone'   => wp_timezone_string(),
                 'minDate'    => $minDate,
+                'homeUrl'    => home_url( '/' ),
                 'i18n'      => array(
                     'selectService' => __( 'Please select a service', 'simple-booking' ),
                     'selectDateTime' => __( 'Please select a date and time', 'simple-booking' ),
@@ -110,6 +112,48 @@ class Simple_Booking_Form {
                 ),
             )
         );
+    }
+
+    /**
+     * Handle tokenized booking management actions.
+     */
+    public function handle_booking_management_action() {
+        $action = isset( $_GET['sb_action'] ) ? sanitize_key( wp_unslash( $_GET['sb_action'] ) ) : '';
+        if ( empty( $action ) || ! in_array( $action, array( 'cancel', 'reschedule' ), true ) ) {
+            return;
+        }
+
+        $booking_id = isset( $_GET['booking_id'] ) ? absint( $_GET['booking_id'] ) : 0;
+        $token = isset( $_GET['sb_token'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_token'] ) ) : '';
+
+        if ( ! $booking_id || empty( $token ) || ! class_exists( 'Simple_Booking_Booking_Creator' ) ) {
+            wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', home_url( '/' ) ) );
+            exit;
+        }
+
+        if ( ! Simple_Booking_Booking_Creator::verify_booking_management_token( $booking_id, $token ) ) {
+            wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', home_url( '/' ) ) );
+            exit;
+        }
+
+        if ( 'cancel' === $action ) {
+            update_post_meta( $booking_id, '_booking_status', 'cancelled' );
+            wp_safe_redirect( add_query_arg( 'sb_manage', 'cancelled', home_url( '/' ) ) );
+            exit;
+        }
+
+        update_post_meta( $booking_id, '_booking_status', 'reschedule_requested' );
+        wp_safe_redirect(
+            add_query_arg(
+                array(
+                    'sb_manage'               => 'reschedule',
+                    'reschedule_booking_id'   => $booking_id,
+                    'reschedule_token'        => rawurlencode( $token ),
+                ),
+                home_url( '/' )
+            )
+        );
+        exit;
     }
 
     /**
@@ -166,6 +210,39 @@ class Simple_Booking_Form {
 
         // Check for booking status in URL
         $booking_status = isset( $_GET['booking'] ) ? sanitize_text_field( $_GET['booking'] ) : '';
+        $manage_status = isset( $_GET['sb_manage'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_manage'] ) ) : '';
+        $reschedule_booking_id = isset( $_GET['reschedule_booking_id'] ) ? absint( $_GET['reschedule_booking_id'] ) : 0;
+        $reschedule_token = isset( $_GET['reschedule_token'] ) ? sanitize_text_field( wp_unslash( $_GET['reschedule_token'] ) ) : '';
+        $reschedule_context_valid = false;
+        $reschedule_prefill = array(
+            'service_id' => 0,
+            'customer_name' => '',
+            'customer_email' => '',
+            'customer_phone' => '',
+        );
+
+        if ( 'reschedule' === $manage_status && $reschedule_booking_id && $reschedule_token && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
+            $reschedule_context_valid = Simple_Booking_Booking_Creator::verify_booking_management_token( $reschedule_booking_id, $reschedule_token );
+            if ( $reschedule_context_valid ) {
+                $reschedule_prefill['service_id'] = absint( get_post_meta( $reschedule_booking_id, '_service_id', true ) );
+                $reschedule_prefill['customer_name'] = get_post_meta( $reschedule_booking_id, '_customer_name', true );
+                $reschedule_prefill['customer_email'] = get_post_meta( $reschedule_booking_id, '_customer_email', true );
+                $reschedule_prefill['customer_phone'] = get_post_meta( $reschedule_booking_id, '_customer_phone', true );
+
+                if ( ! $selected_service_id && ! empty( $reschedule_prefill['service_id'] ) ) {
+                    $selected_service_id = absint( $reschedule_prefill['service_id'] );
+                    $services = array_values(
+                        array_filter(
+                            $services,
+                            function( $service ) use ( $selected_service_id ) {
+                                return absint( $service->ID ) === $selected_service_id;
+                            }
+                        )
+                    );
+                    $is_single_service_form = count( $services ) === 1;
+                }
+            }
+        }
 
         ob_start();
         ?>
@@ -180,8 +257,26 @@ class Simple_Booking_Form {
                 </div>
             <?php endif; ?>
 
+            <?php if ( 'cancelled' === $manage_status ) : ?>
+                <div class="booking-message success">
+                    <p><?php _e( 'Your booking has been cancelled successfully.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'reschedule' === $manage_status && $reschedule_context_valid ) : ?>
+                <div class="booking-message success">
+                    <p><?php _e( 'Choose a new date and time below to reschedule your booking.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'invalid' === $manage_status ) : ?>
+                <div class="booking-message error">
+                    <p><?php _e( 'This booking management link is invalid or expired.', 'simple-booking' ); ?></p>
+                </div>
+            <?php endif; ?>
+
             <form id="simple-booking-form" class="simple-booking-form" method="post">
                 <?php wp_nonce_field( 'simple_booking_submit', 'simple_booking_nonce' ); ?>
+                <?php if ( $reschedule_context_valid ) : ?>
+                    <input type="hidden" name="reschedule_booking_id" value="<?php echo esc_attr( $reschedule_booking_id ); ?>" />
+                    <input type="hidden" name="reschedule_token" value="<?php echo esc_attr( $reschedule_token ); ?>" />
+                <?php endif; ?>
 
                 <!-- Service Selection -->
                 <div class="booking-field">
@@ -213,7 +308,8 @@ class Simple_Booking_Form {
                                 ?>
                                 <option value="<?php echo esc_attr( $service->ID ); ?>"
                                         data-duration="<?php echo esc_attr( $duration ); ?>"
-                                        data-has-price="<?php echo ! empty( $price_id ) ? '1' : '0'; ?>">
+                                        data-has-price="<?php echo ! empty( $price_id ) ? '1' : '0'; ?>"
+                                        <?php selected( absint( $selected_service_id ), absint( $service->ID ) ); ?>>
                                     <?php echo esc_html( $service->post_title . ' (' . $duration . ' min)' ); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -246,6 +342,7 @@ class Simple_Booking_Form {
                     <input type="text"
                            id="customer_name"
                            name="customer_name"
+                              value="<?php echo esc_attr( $reschedule_prefill['customer_name'] ); ?>"
                            required
                            maxlength="100" />
                 </div>
@@ -256,6 +353,7 @@ class Simple_Booking_Form {
                     <input type="email"
                            id="customer_email"
                            name="customer_email"
+                              value="<?php echo esc_attr( $reschedule_prefill['customer_email'] ); ?>"
                            required
                            maxlength="150" />
                 </div>
@@ -266,6 +364,7 @@ class Simple_Booking_Form {
                     <input type="tel"
                            id="customer_phone"
                            name="customer_phone"
+                              value="<?php echo esc_attr( $reschedule_prefill['customer_phone'] ); ?>"
                            required
                            maxlength="30" />
                 </div>
@@ -332,6 +431,8 @@ class Simple_Booking_Form {
         $customer_name    = isset( $_POST['customer_name'] ) ? sanitize_text_field( $_POST['customer_name'] ) : '';
         $customer_email   = isset( $_POST['customer_email'] ) ? sanitize_email( $_POST['customer_email'] ) : '';
         $customer_phone  = isset( $_POST['customer_phone'] ) ? sanitize_text_field( $_POST['customer_phone'] ) : '';
+        $reschedule_booking_id = isset( $_POST['reschedule_booking_id'] ) ? absint( $_POST['reschedule_booking_id'] ) : 0;
+        $reschedule_token = isset( $_POST['reschedule_token'] ) ? sanitize_text_field( $_POST['reschedule_token'] ) : '';
 
         // Validate inputs
         $errors = array();
@@ -425,6 +526,11 @@ class Simple_Booking_Form {
             'start_datetime' => $booking_datetime,
         );
 
+        if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
+            $booking_data['reschedule_from_booking_id'] = $reschedule_booking_id;
+            $booking_data['reschedule_token'] = $reschedule_token;
+        }
+
         // Free booking flow (no Stripe Price ID)
         if ( empty( $service['stripe_price_id'] ) ) {
             $duration = isset( $service['duration'] ) ? absint( $service['duration'] ) : 60;
@@ -454,6 +560,11 @@ class Simple_Booking_Form {
                 'auto_google_meet'  => isset( $service['auto_google_meet'] ) ? $service['auto_google_meet'] : '0',
                 'stripe_payment_id' => '',
             );
+
+            if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
+                $booking_payload['reschedule_from_booking_id'] = $reschedule_booking_id;
+                $booking_payload['reschedule_token'] = $reschedule_token;
+            }
 
             $booking_id = Simple_Booking_Booking_Creator::create_booking( $booking_payload );
 

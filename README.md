@@ -2,7 +2,7 @@
 
 A lightweight, modular WordPress booking engine with Stripe and Google Calendar integration.
 
-Current release: v3.0.5 (stable)
+Current release: v3.0.6 (stable)
 
 ## Features
 
@@ -16,6 +16,7 @@ Current release: v3.0.5 (stable)
 - **Free Booking Support**: Services without Stripe Price ID book instantly
 - **Service-Specific Forms**: Scope form to one service via shortcode attributes
 - **Email Notifications**: Confirmation emails sent automatically
+- **Tokenized Booking Management**: Secure reschedule/cancel links included in confirmation emails
 - **Success/Cancel Pages**: Automatic creation of dedicated redirect pages for better UX
 - **Meeting Link Audit**: Booking-level source tracking (`generated`, `static`, `none`)
 - **Admin Override**: Editable booking meeting link with validation and admin error notice
