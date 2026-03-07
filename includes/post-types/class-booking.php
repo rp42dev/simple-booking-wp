@@ -79,6 +79,7 @@ class Simple_Booking_Post {
         $columns['service']        = __( 'Service', 'simple-booking' );
         $columns['customer']       = __( 'Customer', 'simple-booking' );
         $columns['booking_date']   = __( 'Booking Date', 'simple-booking' );
+        $columns['booking_status'] = __( 'Status', 'simple-booking' );
         $columns['meeting_source'] = __( 'Meeting Link Source', 'simple-booking' );
         $columns['payment_status'] = __( 'Payment', 'simple-booking' );
 
@@ -139,6 +140,23 @@ class Simple_Booking_Post {
                     echo '<span style="color: #46b450;">● ' . __( 'Paid', 'simple-booking' ) . '</span>';
                 } else {
                     echo '<span style="color: #00a0d2;">● ' . __( 'Free', 'simple-booking' ) . '</span>';
+                }
+                break;
+
+            case 'booking_status':
+                $booking_status = get_post_meta( $post_id, '_booking_status', true );
+                if ( empty( $booking_status ) ) {
+                    $booking_status = 'confirmed';
+                }
+
+                if ( 'cancelled' === $booking_status ) {
+                    echo '<span style="color: #d63638;">● ' . __( 'Cancelled', 'simple-booking' ) . '</span>';
+                } elseif ( 'rescheduled' === $booking_status ) {
+                    echo '<span style="color: #a15c07;">● ' . __( 'Rescheduled', 'simple-booking' ) . '</span>';
+                } elseif ( 'reschedule_requested' === $booking_status ) {
+                    echo '<span style="color: #00a0d2;">● ' . __( 'Reschedule Requested', 'simple-booking' ) . '</span>';
+                } else {
+                    echo '<span style="color: #46b450;">● ' . __( 'Confirmed', 'simple-booking' ) . '</span>';
                 }
                 break;
 

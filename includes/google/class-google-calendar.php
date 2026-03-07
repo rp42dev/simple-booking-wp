@@ -470,6 +470,63 @@ class Simple_Booking_Google_Calendar {
     }
 
     /**
+     * Delete calendar event.
+     *
+     * @param string $event_id
+     * @param string $calendar_id Optional. Specific calendar ID. Falls back to global setting.
+     * @return true|WP_Error
+     */
+    public function delete_event( $event_id, $calendar_id = null ) {
+        $event_id = sanitize_text_field( $event_id );
+        if ( empty( $event_id ) ) {
+            return new WP_Error( 'missing_event_id', __( 'Missing Google event ID', 'simple-booking' ) );
+        }
+
+        $access_token = $this->get_access_token();
+        if ( empty( $access_token ) ) {
+            return new WP_Error( 'not_connected', __( 'Google Calendar not connected', 'simple-booking' ) );
+        }
+
+        if ( empty( $calendar_id ) ) {
+            $calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+        }
+        if ( empty( $calendar_id ) ) {
+            return new WP_Error( 'no_calendar_id', __( 'No Calendar ID configured', 'simple-booking' ) );
+        }
+
+        $url = sprintf(
+            'https://www.googleapis.com/calendar/v3/calendars/%s/events/%s',
+            urlencode( $calendar_id ),
+            urlencode( $event_id )
+        );
+
+        $response = wp_remote_request(
+            $url,
+            array(
+                'method'  => 'DELETE',
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                ),
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $code = wp_remote_retrieve_response_code( $response );
+        if ( in_array( $code, array( 200, 204, 404 ), true ) ) {
+            // 404 means event already gone, treat as success
+            return true;
+        }
+
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        $message = isset( $body['error']['message'] ) ? $body['error']['message'] : ( 'HTTP ' . $code );
+
+        return new WP_Error( 'google_api_error', $message );
+    }
+
+    /**
      * Fetch all Google Calendar events on a given date.
      *
      * Returns array of arrays with 'start' and 'end' ISO8601 strings (site timezone)

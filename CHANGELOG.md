@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.8] - 2026-03-07
+
+### Fixed
+- Cancel action now removes the related Google Calendar event and moves the old booking out of active admin list
+- Reschedule completion now removes the old booking's Google Calendar event and moves the old booking out of active admin list
+- Free reschedule completion now redirects to confirmation flow
+
+### Changed
+- Added booking status indication column in WP admin booking list
+- Email customization UI now lists all supported template variables including `{reschedule_link}` and `{cancel_link}`
+
+### Technical
+- Added Google event deletion API wrapper in `includes/google/class-google-calendar.php`
+- Added booking cancel/delete helpers in `includes/booking/class-booking-creator.php`
+- Updated booking management action handler in `includes/frontend/class-booking-form.php` to use centralized cancel logic
+
 ## [3.0.7] - 2026-03-07
 
 ### Added

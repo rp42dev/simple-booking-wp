@@ -119,9 +119,11 @@ class Simple_Booking_Booking_Creator {
             $reschedule_token = sanitize_text_field( $data['reschedule_token'] );
 
             if ( self::verify_booking_management_token( $from_booking_id, $reschedule_token ) ) {
+                self::delete_google_event_for_booking( $from_booking_id );
                 update_post_meta( $from_booking_id, '_booking_status', 'rescheduled' );
                 update_post_meta( $from_booking_id, '_rescheduled_to_booking_id', absint( $booking_id ) );
                 update_post_meta( $booking_id, '_rescheduled_from_booking_id', absint( $from_booking_id ) );
+                wp_trash_post( $from_booking_id );
             }
         }
 
@@ -258,6 +260,86 @@ class Simple_Booking_Booking_Creator {
 
         self::debug_log( '=== Booking Creator: create_google_event END ===', 'BOOKING' );
         return $result;
+    }
+
+    /**
+     * Resolve calendar ID for an existing booking.
+     *
+     * @param int $booking_id
+     * @return string
+     */
+    private static function get_booking_calendar_id( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        $calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+
+        $assigned_staff_id = absint( get_post_meta( $booking_id, '_assigned_staff_id', true ) );
+        if ( $assigned_staff_id ) {
+            $staff_calendar_id = get_post_meta( $assigned_staff_id, '_staff_calendar_id', true );
+            if ( ! empty( $staff_calendar_id ) ) {
+                $calendar_id = $staff_calendar_id;
+            }
+        }
+
+        return $calendar_id;
+    }
+
+    /**
+     * Delete Google event associated with a booking.
+     *
+     * @param int $booking_id
+     * @return true|WP_Error
+     */
+    public static function delete_google_event_for_booking( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return new WP_Error( 'invalid_booking', __( 'Invalid booking ID', 'simple-booking' ) );
+        }
+
+        $event_id = get_post_meta( $booking_id, '_google_event_id', true );
+        if ( empty( $event_id ) ) {
+            return true;
+        }
+
+        if ( ! class_exists( 'Simple_Booking_Google_Calendar' ) ) {
+            return true;
+        }
+
+        $google = new Simple_Booking_Google_Calendar();
+        $calendar_id = self::get_booking_calendar_id( $booking_id );
+        $deleted = $google->delete_event( $event_id, $calendar_id );
+
+        if ( is_wp_error( $deleted ) ) {
+            self::debug_log( 'Failed to delete Google event for booking ' . $booking_id . ': ' . $deleted->get_error_message(), 'BOOKING' );
+            return $deleted;
+        }
+
+        delete_post_meta( $booking_id, '_google_event_id' );
+        delete_post_meta( $booking_id, '_meeting_link' );
+
+        return true;
+    }
+
+    /**
+     * Cancel a booking by token and remove external calendar event.
+     *
+     * @param int    $booking_id
+     * @param string $token
+     * @return true|WP_Error
+     */
+    public static function cancel_booking( $booking_id, $token ) {
+        $booking_id = absint( $booking_id );
+        $token = sanitize_text_field( $token );
+
+        if ( ! self::verify_booking_management_token( $booking_id, $token ) ) {
+            return new WP_Error( 'invalid_token', __( 'Invalid booking management token', 'simple-booking' ) );
+        }
+
+        self::delete_google_event_for_booking( $booking_id );
+        update_post_meta( $booking_id, '_booking_status', 'cancelled' );
+        update_post_meta( $booking_id, '_booking_cancelled_at', current_time( 'mysql' ) );
+        wp_trash_post( $booking_id );
+
+        return true;
     }
 
     /**

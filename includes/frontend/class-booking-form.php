@@ -138,7 +138,12 @@ class Simple_Booking_Form {
         }
 
         if ( 'cancel' === $action ) {
-            update_post_meta( $booking_id, '_booking_status', 'cancelled' );
+            $cancel_result = Simple_Booking_Booking_Creator::cancel_booking( $booking_id, $token );
+            if ( is_wp_error( $cancel_result ) ) {
+                wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', $manage_page_url ) );
+                exit;
+            }
+
             wp_safe_redirect( $this->get_cancel_redirect_url() );
             exit;
         }
@@ -585,7 +590,7 @@ class Simple_Booking_Form {
 
             $redirect_url = $this->get_success_redirect_url();
             if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
-                $redirect_url = add_query_arg( 'sb_manage', 'rescheduled', $this->get_manage_page_url() );
+                $redirect_url = add_query_arg( 'booking', 'success', $this->get_success_redirect_url() );
             }
 
             wp_send_json_success( array(

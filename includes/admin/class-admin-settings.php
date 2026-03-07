@@ -217,7 +217,7 @@ class Simple_Booking_Admin_Settings {
             'simple_booking_email',
             array(
                 'name'        => 'email_body',
-                'placeholder' => "Dear {customer_name},\n\nYour booking has been confirmed!\n\nService: {service_name}\nDate: {booking_date}\nTime: {booking_time}\n\nMeeting Link: {meeting_link}\n\nThank you!",
+                'placeholder' => "Dear {customer_name},\n\nYour booking has been confirmed!\n\nService: {service_name}\nDate: {booking_date}\nTime: {booking_time}\n\nMeeting Link: {meeting_link}\n\nManage your booking:\nReschedule: {reschedule_link}\nCancel: {cancel_link}\n\nThank you!\n\n{site_name}",
                 'rows'        => 10,
             )
         );
@@ -438,7 +438,7 @@ class Simple_Booking_Admin_Settings {
      */
     public function render_email_section() {
         echo '<p>' . __( 'Customize the confirmation email sent to customers after booking.', 'simple-booking' ) . '</p>';
-        echo '<p>' . __( 'Available template variables:', 'simple-booking' ) . ' <code>{customer_name}</code>, <code>{service_name}</code>, <code>{booking_date}</code>, <code>{booking_time}</code>, <code>{meeting_link}</code>, <code>{timezone}</code></p>';
+        echo '<p>' . __( 'Available template variables:', 'simple-booking' ) . ' <code>{customer_name}</code>, <code>{service_name}</code>, <code>{booking_date}</code>, <code>{booking_time}</code>, <code>{meeting_link}</code>, <code>{reschedule_link}</code>, <code>{cancel_link}</code>, <code>{timezone}</code>, <code>{site_name}</code></p>';
     }
 
     /**
