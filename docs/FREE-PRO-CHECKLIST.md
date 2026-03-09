@@ -2,6 +2,8 @@
 
 Quick reference for tracking implementation progress.
 
+Testing runbook: [PHASE6-TEST-PLAN.md](docs/PHASE6-TEST-PLAN.md)
+
 ---
 
 ## Phase 1: License Foundation (v3.1.0) - Days 1-5

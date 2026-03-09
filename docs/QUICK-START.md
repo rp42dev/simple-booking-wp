@@ -239,6 +239,7 @@ main - Production releases (tagged)
 - Technical: [IMPLEMENTATION-NOTES.md](docs/IMPLEMENTATION-NOTES.md)
 - Tasks: [FREE-PRO-CHECKLIST.md](docs/FREE-PRO-CHECKLIST.md)
 - Features: [FEATURES-COMPARISON.md](docs/FEATURES-COMPARISON.md)
+- Testing: [PHASE6-TEST-PLAN.md](docs/PHASE6-TEST-PLAN.md)
 
 **Stuck?** Check:
 1. Implementation notes for code examples
@@ -272,13 +273,14 @@ docs/
 ├── FREE-PRO-CHECKLIST.md                    (Day-by-day tasks)
 ├── FEATURES-COMPARISON.md                   (Marketing content)
 ├── IMPLEMENTATION-NOTES.md                  (Technical guide)
+├── PHASE6-TEST-PLAN.md                      (Manual test runbook)
 └── QUICK-START.md                           (This file)
 includes/
 └── license/
     └── class-license-manager.php            (Starter template)
 ```
 
-**Total:** 2,700+ lines of planning documentation ready!
+**Total:** 2,900+ lines of planning documentation ready!
 
 ---
 
