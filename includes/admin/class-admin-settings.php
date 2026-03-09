@@ -145,6 +145,22 @@ class Simple_Booking_Admin_Settings {
             'simple_booking_google'
         );
 
+        // Calendar Provider Selection
+        add_settings_section(
+            'simple_booking_calendar_provider',
+            __( 'Calendar Provider', 'simple-booking' ),
+            array( $this, 'render_calendar_provider_section' ),
+            self::PAGE_SLUG
+        );
+
+        add_settings_field(
+            'calendar_provider',
+            __( 'Calendar Provider', 'simple-booking' ),
+            array( $this, 'render_calendar_provider_select' ),
+            self::PAGE_SLUG,
+            'simple_booking_calendar_provider'
+        );
+
         // General Settings
         add_settings_section(
             'simple_booking_general',
@@ -301,6 +317,33 @@ class Simple_Booking_Admin_Settings {
             sanitize_text_field( $input['google_client_secret'] ) : '';
         $sanitized['google_calendar_id'] = isset( $input['google_calendar_id'] ) ?
             sanitize_text_field( $input['google_calendar_id'] ) : '';
+
+        // Calendar Provider Selection (with Pro gating)
+        $allowed_providers = array( 'google', 'outlook', 'ics' );
+        $provider = isset( $input['calendar_provider'] ) ? sanitize_text_field( $input['calendar_provider'] ) : 'ics';
+        
+        if ( ! in_array( $provider, $allowed_providers, true ) ) {
+            $provider = 'ics'; // Default to ICS if invalid
+        }
+        
+        // Check if trying to set Pro provider without Pro license
+        if ( class_exists( 'Simple_Booking_License_Manager' ) ) {
+            $license = new Simple_Booking_License_Manager();
+            $is_pro = $license->is_pro_active();
+            
+            // If not Pro, only allow ICS
+            if ( ! $is_pro && in_array( $provider, array( 'google', 'outlook' ), true ) ) {
+                $provider = 'ics';
+                add_settings_error(
+                    'simple_booking_settings',
+                    'pro_required',
+                    __( 'Pro license required for Google Calendar and Outlook. Reverting to ICS.', 'simple-booking' ),
+                    'warning'
+                );
+            }
+        }
+        
+        $sanitized['calendar_provider'] = $provider;
 
         // Debug toggle
         $sanitized['debug_mode'] = ! empty( $input['debug_mode'] ) ? 1 : 0;
@@ -461,6 +504,51 @@ class Simple_Booking_Admin_Settings {
             </p>
             <?php
         }
+    }
+
+    /**
+     * Render Calendar Provider section
+     */
+    public function render_calendar_provider_section() {
+        echo '<p>' . __( 'Select which calendar system to use for booking sync. Google Calendar and Outlook require a Pro license.', 'simple-booking' ) . '</p>';
+    }
+
+    /**
+     * Render Calendar Provider selection dropdown
+     */
+    public function render_calendar_provider_select() {
+        $options = get_option( 'simple_booking_settings', array() );
+        $current_provider = isset( $options['calendar_provider'] ) ? $options['calendar_provider'] : 'ics';
+        
+        // Check Pro status
+        $is_pro = false;
+        if ( class_exists( 'Simple_Booking_License_Manager' ) ) {
+            $license = new Simple_Booking_License_Manager();
+            $is_pro = $license->is_pro_active();
+        }
+        
+        ?>
+        <select name="simple_booking_settings[calendar_provider]">
+            <option value="ics" <?php selected( $current_provider, 'ics' ); ?>>
+                <?php _e( 'ICS Feed (Free)', 'simple-booking' ); ?>
+            </option>
+            <option value="google" <?php selected( $current_provider, 'google' ); ?> <?php disabled( $is_pro, false ); ?>>
+                <?php _e( 'Google Calendar', 'simple-booking' ); ?> <?php if ( ! $is_pro ) { echo '(Pro)'; } ?>
+            </option>
+            <option value="outlook" <?php selected( $current_provider, 'outlook' ); ?> <?php disabled( $is_pro, false ); ?>>
+                <?php _e( 'Outlook Calendar', 'simple-booking' ); ?> <?php if ( ! $is_pro ) { echo '(Pro)'; } ?>
+            </option>
+        </select>
+        <p class="description">
+            <?php 
+            if ( ! $is_pro ) {
+                _e( 'Google Calendar and Outlook are Pro features. Upgrade your license to enable them.', 'simple-booking' );
+            } else {
+                _e( 'Your Pro license enables all calendar options.', 'simple-booking' );
+            }
+            ?>
+        </p>
+        <?php
     }
 
     /**
