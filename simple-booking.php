@@ -69,6 +69,9 @@ class Simple_Booking {
         // Google Calendar
         require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
 
+        // Outlook Calendar
+        require_once SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php';
+
         // Booking Creator
         require_once SIMPLE_BOOKING_INCLUDES . 'booking/class-booking-creator.php';
     }

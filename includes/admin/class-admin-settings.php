@@ -169,6 +169,39 @@ class Simple_Booking_Admin_Settings {
             self::PAGE_SLUG
         );
 
+        add_settings_field(
+            'outlook_client_id',
+            __( 'Application (Client) ID', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_outlook',
+            array(
+                'name'        => 'outlook_client_id',
+                'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+            )
+        );
+
+        add_settings_field(
+            'outlook_client_secret',
+            __( 'Client Secret Value', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_outlook',
+            array(
+                'name'        => 'outlook_client_secret',
+                'placeholder' => 'xxxxxxxxxxxxxxxxxxxxxx',
+                'type'        => 'password',
+            )
+        );
+
+        add_settings_field(
+            'outlook_redirect_uri',
+            __( 'Redirect URI', 'simple-booking' ),
+            array( $this, 'render_outlook_redirect' ),
+            self::PAGE_SLUG,
+            'simple_booking_outlook'
+        );
+
         // General Settings
         add_settings_section(
             'simple_booking_general',
@@ -326,6 +359,12 @@ class Simple_Booking_Admin_Settings {
             sanitize_text_field( $input['google_client_secret'] ) : ( isset( $existing['google_client_secret'] ) ? $existing['google_client_secret'] : '' );
         $sanitized['google_calendar_id'] = isset( $input['google_calendar_id'] ) ?
             sanitize_text_field( $input['google_calendar_id'] ) : ( isset( $existing['google_calendar_id'] ) ? $existing['google_calendar_id'] : '' );
+
+        // Outlook
+        $sanitized['outlook_client_id'] = isset( $input['outlook_client_id'] ) ?
+            sanitize_text_field( $input['outlook_client_id'] ) : ( isset( $existing['outlook_client_id'] ) ? $existing['outlook_client_id'] : '' );
+        $sanitized['outlook_client_secret'] = isset( $input['outlook_client_secret'] ) ?
+            sanitize_text_field( $input['outlook_client_secret'] ) : ( isset( $existing['outlook_client_secret'] ) ? $existing['outlook_client_secret'] : '' );
 
         // Calendar Provider Selection (with Pro gating)
         $allowed_providers = array( 'google', 'outlook', 'ics' );
@@ -520,8 +559,113 @@ class Simple_Booking_Admin_Settings {
      * Render Outlook section
      */
     public function render_outlook_section() {
-        echo '<p>' . __( 'Microsoft Outlook Calendar integration is planned and currently not implemented.', 'simple-booking' ) . '</p>';
-        echo '<p class="description">' . __( 'Select Outlook as provider for testing provider-switch UX, but booking sync currently uses fallback behavior until Outlook API integration is added.', 'simple-booking' ) . '</p>';
+        $options = get_option( 'simple_booking_settings', array() );
+        $client_id = isset( $options['outlook_client_id'] ) ? $options['outlook_client_id'] : '';
+
+        // Check for success message from OAuth redirect
+        if ( isset( $_GET['outlook'] ) && $_GET['outlook'] === 'connected' ) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . __( 'Outlook Calendar connected successfully!', 'simple-booking' ) . '</p></div>';
+        }
+
+        // Check for error message
+        if ( isset( $_GET['outlook'] ) && $_GET['outlook'] === 'error' ) {
+            $message = isset( $_GET['message'] ) ? sanitize_text_field( $_GET['message'] ) : __( 'Connection failed', 'simple-booking' );
+            echo '<div class="notice notice-error is-dismissible"><p>' . sprintf( __( 'Outlook connection error: %s', 'simple-booking' ), esc_html( $message ) ) . '</p></div>';
+        }
+
+        // Check if Client ID is missing
+        if ( empty( $client_id ) ) {
+            echo '<p style="color: #d32626; font-weight: bold;">' . __( 'Please enter your Application (Client) ID first and save settings.', 'simple-booking' ) . '</p>';
+            return;
+        }
+
+        echo '<p>' . __( 'Enter your Microsoft Azure app credentials. You need to register an application in Azure Portal and configure Microsoft Graph API permissions.', 'simple-booking' ) . '</p>';
+
+        // Check if connected (access token exists)
+        $access_token = get_option( 'simple_booking_outlook_tokens', array() );
+
+        if ( ! empty( $access_token ) && isset( $access_token['access_token'] ) ) {
+            // Connected - show status and disconnect button
+            echo '<p style="color: #2ecc71; font-weight: bold; font-size: 16px; margin-bottom: 15px;">' . __( 'Connected ✅', 'simple-booking' ) . '</p>';
+
+            // Handle disconnect action
+            if ( isset( $_GET['page'] ) && $_GET['page'] === self::PAGE_SLUG &&
+                 isset( $_GET['outlook_disconnect'] ) && isset( $_GET['_wpnonce'] ) ) {
+
+                if ( wp_verify_nonce( $_GET['_wpnonce'], 'outlook_disconnect_' . get_current_user_id() ) ) {
+                    delete_option( 'simple_booking_outlook_tokens' );
+                    echo '<div class="notice notice-success is-dismissible"><p>' . __( 'Outlook Calendar disconnected successfully.', 'simple-booking' ) . '</p></div>';
+                    // Redirect to remove query args
+                    echo '<script>window.location.href = "' . esc_url( admin_url( 'options-general.php?page=' . self::PAGE_SLUG ) ) . '";</script>';
+                    return;
+                }
+            }
+
+            // Show disconnect button with nonce
+            $disconnect_url = add_query_arg(
+                array(
+                    'page'              => self::PAGE_SLUG,
+                    'outlook_disconnect' => '1',
+                    '_wpnonce'          => wp_create_nonce( 'outlook_disconnect_' . get_current_user_id() ),
+                ),
+                admin_url( 'options-general.php' )
+            );
+            ?>
+            <a href="<?php echo esc_url( $disconnect_url ); ?>"
+               class="button"
+               style="background: #d32626; border-color: #b91c1c; color: white;"
+               onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to disconnect Outlook Calendar?', 'simple-booking' ) ); ?>');">
+                <?php _e( 'Disconnect Outlook Calendar', 'simple-booking' ); ?>
+            </a>
+            <?php
+        } else {
+            // Not connected - show connect button
+            if ( class_exists( 'Simple_Booking_Calendar_Provider_Manager' ) ) {
+                $manager = new Simple_Booking_Calendar_Provider_Manager();
+                $provider = $manager->get_provider( 'outlook' );
+                
+                if ( ! is_wp_error( $provider ) && method_exists( $provider, 'get_oauth_url' ) ) {
+                    $oauth_url = $provider->get_oauth_url( true );
+                } else {
+                    $oauth_url = null;
+                }
+            } else {
+                $oauth_url = null;
+            }
+
+            if ( ! $oauth_url ) {
+                echo '<p style="color: #d32626;">' . __( 'Unable to generate OAuth URL. Please check your credentials.', 'simple-booking' ) . '</p>';
+                return;
+            }
+            ?>
+            <a href="<?php echo esc_url( $oauth_url ); ?>"
+               class="button button-primary"
+               style="margin-top: 10px;">
+                <?php _e( 'Connect / Authorize Outlook Calendar', 'simple-booking' ); ?>
+            </a>
+            <p class="description" style="margin-top: 10px;">
+                <?php _e( 'Click the button above to authorize the plugin to create calendar events.', 'simple-booking' ); ?>
+            </p>
+            <?php
+        }
+    }
+
+    /**
+     * Render Outlook Redirect URI (read-only)
+     */
+    public function render_outlook_redirect() {
+        $redirect_uri = rest_url( 'simple-booking/v1/outlook/oauth' );
+        ?>
+        <input type="text"
+               value="<?php echo esc_attr( $redirect_uri ); ?>"
+               readonly
+               class="regular-text"
+               style="background-color: #f0f0f1;"
+               onclick="this.select();" />
+        <p class="description">
+            <?php _e( 'Copy this URI and add it to your Azure app\'s Redirect URIs.', 'simple-booking' ); ?>
+        </p>
+        <?php
     }
 
     /**
