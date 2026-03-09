@@ -164,3 +164,11 @@ Single-service form examples:
 - Nonce verification on forms
 - Stripe signature verification on webhooks
 - WordPress coding standards followed
+
+## Pre-release Checklist
+
+- Ensure test override is disabled in production: `SIMPLE_BOOKING_FORCE_PRO` must be removed or set to `false`
+- Verify Calendar Provider is set intentionally (`ics` or `google`) in **Settings > Simple Booking**
+- Confirm Google credentials persist after provider switching in settings
+- Run one paid cancel flow and confirm only one refund is attempted (repeat cancel should be blocked)
+- Confirm no PHP fatal errors in `debug.log` after booking create/reschedule/cancel smoke test

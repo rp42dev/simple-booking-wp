@@ -327,24 +327,12 @@ class Simple_Booking_License_Manager {
      * Show admin notices
      */
     public function show_admin_notices() {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            return;
-        }
+        // TODO: Implement notices
 
-        if ( ! defined( 'SIMPLE_BOOKING_FORCE_PRO' ) || ! SIMPLE_BOOKING_FORCE_PRO ) {
-            return;
-        }
-
-        if ( function_exists( 'get_current_screen' ) ) {
-            $screen = get_current_screen();
-            if ( ! $screen || 'settings_page_simple-booking-settings' !== $screen->id ) {
-                return;
-            }
-        }
-
-        echo '<div class="notice notice-warning is-dismissible"><p>';
-        echo esc_html__( 'Simple Booking: Pro is currently forced ON via SIMPLE_BOOKING_FORCE_PRO (development override).', 'simple-booking' );
-        echo '</p></div>';
+        // Welcome notice (free)
+        // Grace period warning
+        // Grace period expired
+        // Activation success
     }
 
     /**
