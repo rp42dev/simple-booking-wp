@@ -54,13 +54,34 @@ Release gate:
 
 ---
 
+## Mini Regression Run - PENDING
+
+**Commit:** `6aec657`
+**Duration:** ~20 minutes (estimated)
+**Result:** Pending
+
+### Focus Areas
+
+- [ ] Admin settings provider dropdown loads correctly
+- [ ] ICS provider selectable (Free)
+- [ ] Google provider disabled for Free users, shows "Pro" label
+- [ ] Outlook provider disabled for Free users, shows "Pro" label
+- [ ] Switching providers saves to settings
+- [ ] Create booking with ICS provider active
+- [ ] Create booking with Google provider active
+- [ ] Old bookings still exist after provider switch
+- [ ] Events still sync to original provider after switch
+- [ ] No fatal errors in debug.log
+
+---
+
 ## Current status snapshot
 
-- Latest commit tested: `8060db9`
-- Latest provider tested: Google (default)
-- Smoke Suite status: ✅ PASSED (2026-03-09)
-- Mini Regression status: Ready
-- Issues discovered: Cancel/reschedule links are reusable (should be one-time use only) - noted for future security polish
+- Latest commit tested: `6aec657` (provider selector UI added)
+- Latest provider tested: All three (Google/Outlook/ICS via dropdown)
+- Smoke Suite status: ✅ PASSED (2026-03-09, commit 8060db9)
+- Mini Regression status: Ready to run (Days 25-26)
+- Issues discovered: D001 (reusable cancel/reschedule links) - noted for future polish
 - Full Regression status: Not run
 - Open blockers (P0/P1): 0
 
