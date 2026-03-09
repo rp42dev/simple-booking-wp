@@ -157,6 +157,11 @@ class Simple_Booking_Form {
         if ( 'cancel' === $action ) {
             $cancel_result = Simple_Booking_Booking_Creator::cancel_booking( $booking_id, $token );
             if ( is_wp_error( $cancel_result ) ) {
+                // Check if it's already cancelled
+                if ( 'already_cancelled' === $cancel_result->get_error_code() ) {
+                    wp_safe_redirect( add_query_arg( 'sb_manage', 'already_cancelled', $manage_page_url ) );
+                    exit;
+                }
                 wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', $manage_page_url ) );
                 exit;
             }
@@ -309,6 +314,10 @@ class Simple_Booking_Form {
             <?php elseif ( 'stale' === $manage_status ) : ?>
                 <div class="booking-message error">
                     <p><?php _e( 'This booking has already been cancelled or rescheduled and cannot be modified.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'already_cancelled' === $manage_status ) : ?>
+                <div class="booking-message error">
+                    <p><?php _e( 'This booking has already been cancelled. No further action is needed.', 'simple-booking' ); ?></p>
                 </div>
             <?php endif; ?>
 

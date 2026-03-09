@@ -185,12 +185,13 @@ Release gate:
 | ID | Date | Severity | Provider | Flow | Summary | Status | Owner |
 |----|------|----------|----------|------|---------|--------|-------|
 | D001 | 2026-03-09 | P2 | All | Cancel/Reschedule | Cancel/reschedule links reusable, no consumed-token check | 📍 Phase 6.7 | - |
-| D002 | 2026-03-09 | P1 | All | Reschedule after Cancel | After canceling booking (with refund), rescheduling triggers duplicate refund attempt. Stripe returns 400 error: POST /v1/refunds - Request ID req_oTczQxTfCRBRdC, Idempotency key 5c2eb35e-5340-4e34-bc0b-f703954be585. **Root cause:** No status check before reschedule - cancelled bookings shouldn't be reschedulable. | ✅ Fixed | - |
+| D002 | 2026-03-09 | P1 | All | Reusable Management Links | **Scenario 1:** Cancel booking (refund succeeds), then cancel AGAIN from same link → Stripe 400 error (duplicate refund). **Scenario 2:** Cancel booking, then try to reschedule → should be blocked. **Root cause:** No booking status validation before processing cancel/reschedule actions. **Fix:** Added status checks to block cancel on already-cancelled bookings and reschedule on cancelled/rescheduled bookings. | ✅ Fixed | - |
 
 ---
 
 ## Change log
 
+- 2026-03-09 17:05: D002 fix expanded - added cancel status check to prevent duplicate refund attempts when cancel link clicked multiple times. Both cancel-after-cancel and reschedule-after-cancel now blocked.
 - 2026-03-09 16:55: D002 fix implemented - added booking status validation to block reschedule on cancelled/rescheduled bookings. User-friendly error message added. Awaiting retest.
 - 2026-03-09 16:40: Mini Regression completed on commit eba6874. Passed with P1 defect D002 (reschedule after cancel triggers duplicate refund). ICS provider fully functional. Pro-gating verified.
 - 2026-03-09: Created initial Phase 6 test results logging template.

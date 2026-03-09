@@ -397,6 +397,13 @@ class Simple_Booking_Booking_Creator {
             $booking_id = $target_booking_id;
         }
 
+        // Check if booking is already cancelled to prevent duplicate refunds
+        $booking_status = get_post_meta( $booking_id, '_booking_status', true );
+        if ( 'cancelled' === $booking_status ) {
+            self::debug_log( 'Cancel blocked for booking ' . $booking_id . '; already cancelled', 'BOOKING' );
+            return new WP_Error( 'already_cancelled', __( 'This booking has already been cancelled', 'simple-booking' ) );
+        }
+
         // Log cancellation start
         $stripe_payment_id = self::get_stripe_payment_id( $booking_id );
         self::debug_log( 'Cancellation initiated for booking ' . $booking_id . '; stripe_payment_id=' . ( $stripe_payment_id ?: 'EMPTY' ), 'BOOKING' );
