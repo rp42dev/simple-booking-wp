@@ -9,6 +9,7 @@ Current release: v3.0.14 (stable)
 - **Custom Post Types**: Services and Bookings managed in WordPress admin
 - **Stripe Checkout**: Secure payment processing with Stripe Checkout
 - **Google Calendar**: Automatic event creation for bookings
+- **Microsoft Outlook Calendar**: Automatic event creation with Microsoft Graph API integration
 - **Auto Google Meet**: Optional per-service Google Meet link generation on event creation
 - **Staff Assignment UI**: Assign active staff to services directly in Service editor
 - **Frontend Form**: Simple shortcode `[simple_booking_form]`
@@ -90,7 +91,14 @@ composer install
    - Create a product or price
    - Copy the Price ID (starts with `price_`)
 
-### 2. Configure Google Calendar (Optional)
+### 2. Configure Calendar Provider (Optional)
+
+Choose your calendar provider in **Settings > Simple Booking > Calendar Provider**:
+- **ICS Feed**: Default option, no OAuth required
+- **Google Calendar**: Sync bookings to Google Calendar
+- **Microsoft Outlook**: Sync bookings to Microsoft Outlook Calendar
+
+#### Option A: Google Calendar
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project
@@ -107,6 +115,31 @@ composer install
 8. Click **Connect / Authorize Google Calendar** button to complete OAuth authorization
 
 **Note:** The OAuth connection is optional. Without connecting, bookings will be created but won't sync to Google Calendar.
+
+#### Option B: Microsoft Outlook Calendar
+
+1. Go to [Azure Portal](https://portal.azure.com/)
+2. Navigate to **Azure Active Directory > App registrations**
+3. Click **New registration**:
+   - Name: Simple Booking
+   - Supported account types: Accounts in any organizational directory and personal Microsoft accounts
+   - Redirect URI: Web - `https://your-site.com/wp-json/simple-booking/v1/outlook/oauth`
+4. After registration, copy the **Application (client) ID**
+5. Go to **Certificates & secrets** > **New client secret**:
+   - Description: Simple Booking Secret
+   - Copy the secret **Value** (not the Secret ID)
+6. Go to **API permissions** > **Add a permission**:
+   - Select **Microsoft Graph** > **Delegated permissions**
+   - Add: `Calendars.ReadWrite`, `offline_access`
+   - Click **Grant admin consent** (if required by your organization)
+7. In plugin settings:
+   - **Outlook Client ID**: Paste the Application (client) ID
+   - **Outlook Client Secret**: Paste the client secret value
+   - **Outlook Redirect URI**: Auto-populated, copy this to Azure if needed
+8. Click **Save Settings**
+9. Click **Connect / Authorize Outlook Calendar** button to complete OAuth authorization
+
+**Note:** The OAuth connection is optional. Without connecting, bookings will be created but won't sync to Outlook Calendar.
 
 ### 3. Add Stripe Webhook
 
@@ -168,7 +201,7 @@ Single-service form examples:
 ## Pre-release Checklist
 
 - Ensure test override is disabled in production: `SIMPLE_BOOKING_FORCE_PRO` must be removed or set to boolean `false` (not string `'false'`)
-- Verify Calendar Provider is set intentionally (`ics` or `google`) in **Settings > Simple Booking**
-- Confirm Google credentials persist after provider switching in settings
+- Verify Calendar Provider is set intentionally (`ics`, `google`, or `outlook`) in **Settings > Simple Booking**
+- Confirm Google/Outlook credentials persist after provider switching in settings
 - Run one paid cancel flow and confirm only one refund is attempted (repeat cancel should be blocked)
 - Confirm no PHP fatal errors in `debug.log` after booking create/reschedule/cancel smoke test

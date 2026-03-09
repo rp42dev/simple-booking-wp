@@ -12,7 +12,7 @@ Comprehensive feature breakdown for marketing and documentation.
 | **Services** | ✅ Unlimited | ✅ Unlimited |
 | **Email Notifications** | ✅ Basic | ✅ Enhanced |
 | **Payment Processing** | ❌ | ✅ Stripe |
-| **Google Calendar** | ❌ | ✅ Full Sync |
+| **Calendar Integration** | ❌ | ✅ Google/Outlook |
 | **Staff Management** | ❌ | ✅ Unlimited Staff |
 | **Refund Management** | ❌ | ✅ Automatic |
 | **Reschedule/Cancel Links** | ❌ | ✅ Tokenized |
@@ -73,6 +73,7 @@ Comprehensive feature breakdown for marketing and documentation.
 | **Payment status** | ❌ | ✅ | Paid/Free |
 | **Refund status** | ❌ | ✅ | Completed/Failed |
 | **Google event ID** | ❌ | ✅ | Calendar link |
+| **Calendar event ID** | ❌ | ✅ | Provider-specific |
 | **Assigned staff** | ❌ | ✅ | Who took booking |
 
 ---
@@ -99,6 +100,8 @@ Comprehensive feature breakdown for marketing and documentation.
 | Feature | Free | Pro | Notes |
 |---------|------|-----|-------|
 | **Google Calendar OAuth** | ❌ | ✅ | Secure connection |
+| **Microsoft Outlook OAuth** | ❌ | ✅ | Graph API integration |
+| **ICS Feed fallback** | ❌ | ✅ | No OAuth required |
 | **Automatic event creation** | ❌ | ✅ | On booking |
 | **Auto Google Meet links** | ❌ | ✅ | Per service setting |
 | **Event deletion** | ❌ | ✅ | On cancel/reschedule |
@@ -107,6 +110,7 @@ Comprehensive feature breakdown for marketing and documentation.
 | **Multi-calendar support** | ❌ | ✅ | Different calendars per staff |
 | **Token refresh** | ❌ | ✅ | Automatic OAuth refresh |
 | **Calendar disconnect** | ❌ | ✅ | One-click disconnect |
+| **Provider selection** | ❌ | ✅ | ICS/Google/Outlook |
 
 ---
 
@@ -140,7 +144,7 @@ Comprehensive feature breakdown for marketing and documentation.
 | **Reschedule link** | ❌ | ✅ | Tokenized |
 | **Cancel link** | ❌ | ✅ | Tokenized |
 | **Payment receipt** | ❌ | ✅ | Stripe amount |
-| **Google Calendar attachment** | ❌ | ✅ | .ics file |
+| **Calendar attachment** | ❌ | ✅ | .ics file |
 
 #### Booking Management (Customer)
 | Feature | Free | Pro | Notes |
@@ -163,7 +167,7 @@ Comprehensive feature breakdown for marketing and documentation.
 | Time slot intervals | ✅ | ✅ | 15, 30, 60 min |
 | **Per-service schedules** | ❌ | ✅ | Override global |
 | **Buffer time** | ❌ | ✅ | Minutes between bookings |
-| **Google Calendar availability** | ❌ | ✅ | Check for conflicts |
+| **Calendar availability check** | ❌ | ✅ | Check for conflicts |
 | **Multi-staff availability** | ❌ | ✅ | Find any available staff |
 | **Graceful fallback** | ❌ | ✅ | Allow booking if check fails |
 
@@ -204,7 +208,7 @@ Comprehensive feature breakdown for marketing and documentation.
 | Schedule settings | ✅ | ✅ | |
 | Debug mode | ✅ | ✅ | |
 | **Stripe settings** | ❌ | ✅ | Keys, webhook secret |
-| **Google Calendar settings** | ❌ | ✅ | OAuth, calendar ID |
+| **Calendar settings** | ❌ | ✅ | Google/Outlook OAuth |
 | **Refund settings** | ❌ | ✅ | Percentage, policy |
 | **Webhook settings** | ❌ | ✅ | External URL |
 | **License management** | ✅ | ✅ | Activate/deactivate |

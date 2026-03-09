@@ -2,12 +2,12 @@
 
 ## 1. Project Overview
 
-A lightweight WordPress booking engine with Stripe payment processing and Google Calendar integration. The plugin handles:
+A lightweight WordPress booking engine with Stripe payment processing and calendar integration. The plugin handles:
 
 - Service management via custom post types
 - Frontend booking form with Stripe Checkout
 - Automatic booking creation via Stripe webhooks
-- Google Calendar event creation for bookings
+- Calendar event creation (Google Calendar, Microsoft Outlook, or ICS Feed)
 - Optional auto-generated Google Meet links per service
 - Booking-level meeting link source auditing and admin override support
 
@@ -26,8 +26,15 @@ simple-booking/
 │   │   └── class-booking-creator.php      # Booking creation logic
 │   ├── frontend/
 │   │   └── class-booking-form.php         # Frontend booking form
+│   ├── calendar/
+│   │   └── providers/
+│   │       ├── class-ics-provider.php     # ICS Feed provider
+│   │       ├── class-google-provider.php  # Google Calendar provider
+│   │       └── class-outlook-provider.php # Microsoft Outlook provider
 │   ├── google/
 │   │   └── class-google-calendar.php      # Google Calendar OAuth & API
+│   ├── outlook/
+│   │   └── class-outlook-calendar.php     # Microsoft Outlook OAuth & Graph API
 │   ├── post-types/
 │   │   ├── class-booking.php              # Booking post type
 │   │   └── class-booking-service.php      # Service post type
@@ -53,7 +60,7 @@ simple-booking/
    - User selects service, date/time, enters contact info
    - AJAX submission to `wp_ajax_simple_booking_submit`
    - Nonce verification: `check_ajax_referer('simple_booking_form_nonce', 'nonce')`
-   - Optional Google Calendar availability checking before payment
+   - Optional calendar provider availability checking before payment (Google, Outlook, or ICS)
 
 2. **Paid vs Free Branching** (`class-booking-form.php`)
     - If service has Stripe Price ID:
@@ -92,9 +99,9 @@ simple-booking/
    - Creates post with title: "Service Name - Customer Name"
    - Saves meta fields
 
-2. **Google Calendar Event** (`class-booking-creator.php:27`)
-   - Calls `create_google_event($data)`
-   - If successful, saves `_google_event_id` meta
+2. **Calendar Event Creation** (`class-booking-creator.php:27`)
+   - Calls `create_calendar_event($data)` based on configured provider
+   - If successful, saves provider-specific event ID meta (e.g., `_google_event_id`, `_outlook_event_id`)
 
 3. **Confirmation Email** (`class-booking-creator.php:70`)
    - Sends email to customer via `wp_mail()`
@@ -119,7 +126,22 @@ simple-booking/
 - **Permission**: `__return_true` (relies on signature verification)
 - **Event Type**: `checkout.session.completed`
 
-## 5. Google OAuth Flow
+## 5. Calendar Integration
+
+### 5.1 Calendar Provider Architecture
+
+The plugin supports multiple calendar providers through a unified interface:
+- **ICS Feed**: Default fallback, no OAuth required
+- **Google Calendar**: OAuth 2.0 with Google Calendar API v3
+- **Microsoft Outlook**: OAuth 2.0 with Microsoft Graph API v1.0
+
+All providers implement common operations:
+- `create_event()` - Create calendar event
+- `update_event()` - Update existing event
+- `delete_event()` - Delete event
+- `fetch_busy_windows()` - Check availability
+
+### 5.2 Google Calendar OAuth Flow
 
 ### 5.1 Admin Initiates OAuth
 1. Admin visits Settings > Simple Booking
@@ -203,9 +225,114 @@ simple-booking/
 - Checks for `body['error']`
 - Returns `body['id']` (Google Event ID) on success
 
-## 7. Data Storage Structure
+## 7. Microsoft Outlook Calendar Integration
 
-### 7.1 Custom Post Types
+### 7.1 Outlook OAuth Flow
+
+#### Admin Initiates OAuth
+1. Admin visits Settings > Simple Booking
+2. Selects "Microsoft Outlook" as Calendar Provider
+3. Clicks "Connect / Authorize Outlook Calendar"
+4. Button calls `Simple_Booking_Outlook_Provider::get_oauth_url(true)`
+
+#### State Generation
+- **Function**: `get_oauth_url($save_state = true)`
+- Generates UUID4: `wp_generate_uuid4()`
+- Saves to option: `simple_booking_outlook_oauth_state`
+- OAuth params:
+  - `client_id` from settings
+  - `redirect_uri`: `/wp-json/simple-booking/v1/outlook/oauth`
+  - `scope`: `offline_access Calendars.ReadWrite`
+  - `response_type`: `code`
+
+#### OAuth Callback
+- **Route**: `GET /wp-json/simple-booking/v1/outlook/oauth`
+- **Function**: `handle_oauth_callback()`
+- State verification:
+  - Get `state` param from request
+  - Compare with `simple_booking_outlook_oauth_state` option
+  - Delete option after verification
+  - Redirect to settings with success/error message
+
+#### Token Exchange
+- **Function**: `exchange_code($code)`
+- **Token URL**: `https://login.microsoftonline.com/common/oauth2/v2.0/token`
+- **Stored in**: `simple_booking_outlook_tokens` option
+- **Token fields**:
+  - `access_token`
+  - `refresh_token`
+  - `expires_in`
+  - `expires_at` (Unix timestamp)
+
+### 7.2 Outlook Event Management
+
+#### Event Creation
+- **URL**: `https://graph.microsoft.com/v1.0/me/events`
+- **Method**: `POST` via `wp_remote_post()`
+- **Headers**:
+  ```
+  Authorization: Bearer {access_token}
+  Content-Type: application/json
+  ```
+- **Payload**:
+  ```json
+  {
+    "subject": "Service Name - Customer Name",
+    "body": {
+      "contentType": "HTML",
+      "content": "<p>Customer: Name<br>Email: email<br>Phone: phone</p>"
+    },
+    "start": {
+      "dateTime": "2024-01-01T10:00:00",
+      "timeZone": "America/New_York"
+    },
+    "end": {
+      "dateTime": "2024-01-01T11:00:00",
+      "timeZone": "America/New_York"
+    },
+    "isOnlineMeeting": false
+  }
+  ```
+
+#### Event Update
+- **URL**: `https://graph.microsoft.com/v1.0/me/events/{event_id}`
+- **Method**: `PATCH` via `wp_remote_request()`
+- **Payload**: Same structure as create, but partial updates supported
+
+#### Event Deletion
+- **URL**: `https://graph.microsoft.com/v1.0/me/events/{event_id}`
+- **Method**: `DELETE` via `wp_remote_request()`
+
+#### Availability Check
+- **URL**: `https://graph.microsoft.com/v1.0/me/calendar/getSchedule`
+- **Method**: `POST` via `wp_remote_post()`
+- **Payload**:
+  ```json
+  {
+    "schedules": ["user@example.com"],
+    "startTime": {
+      "dateTime": "2024-01-01T00:00:00",
+      "timeZone": "America/New_York"
+    },
+    "endTime": {
+      "dateTime": "2024-01-01T23:59:59",
+      "timeZone": "America/New_York"
+    },
+    "availabilityViewInterval": 15
+  }
+  ```
+- Returns `scheduleItems` array with `status` (busy, tentative, oof, workingElsewhere, free)
+
+### 7.3 Token Refresh
+- **Function**: `refresh_token()`
+- Uses `refresh_token` from stored tokens
+- **Token URL**: `https://login.microsoftonline.com/common/oauth2/v2.0/token`
+- **Grant Type**: `refresh_token`
+- Updates `access_token`, `refresh_token`, and `expires_at` timestamp
+
+## 8. Data Storage Structure
+
+### 8.1 Custom Post Types
 
 #### Booking Service (`booking_service`)
 - **Post Type Key**: `booking_service`
@@ -231,23 +358,36 @@ simple-booking/
   | `_end_datetime` | string | Booking end (Y-m-d H:i:s) |
   | `_stripe_payment_id` | string | Stripe Session ID |
   | `_google_event_id` | string | Google Calendar Event ID |
+  | `_outlook_event_id` | string | Outlook Calendar Event ID |
 
-### 7.2 Options
+### 8.2 Options
 
 | Option Key | Type | Description |
 |------------|------|-------------|
-| `simple_booking_settings` | array | Plugin settings (Stripe keys, Google credentials) |
-| `simple_booking_google_tokens` | array | OAuth tokens (access_token, refresh_token, expires_in, created) |
-| `simple_booking_google_oauth_state` | string | Temporary OAuth state (UUID4) |
+| `simple_booking_settings` | array | Plugin settings (Stripe keys, calendar credentials) |
+| `simple_booking_google_tokens` | array | Google OAuth tokens (access_token, refresh_token, expires_in, created) |
+| `simple_booking_google_oauth_state` | string | Temporary Google OAuth state (UUID4) |
+| `simple_booking_outlook_tokens` | array | Outlook OAuth tokens (access_token, refresh_token, expires_in, expires_at) |
+| `simple_booking_outlook_oauth_state` | string | Temporary Outlook OAuth state (UUID4) |
 | `simple_booking_success_page` | integer | WordPress page ID used for Stripe success redirect |
 | `simple_booking_cancel_page` | integer | WordPress page ID used for Stripe cancel redirect |
 
-### 7.3 Settings Array Structure
+### 8.3 Settings Array Structure
 
 ```php
 // simple_booking_settings
 [
     'stripe_publishable_key' => 'pk_test_xxx',
+    'stripe_secret_key' => 'sk_test_xxx',
+    'stripe_webhook_secret' => 'whsec_xxx',
+    'calendar_provider' => 'google', // 'ics', 'google', or 'outlook'
+    'google_client_id' => 'xxx.apps.googleusercontent.com',
+    'google_client_secret' => 'xxx',
+    'google_calendar_id' => 'xxx@group.calendar.google.com',
+    'outlook_client_id' => 'xxx',
+    'outlook_client_secret' => 'xxx',
+    'outlook_redirect_uri' => 'https://yoursite.com/wp-json/simple-booking/v1/outlook/oauth',
+]
     'stripe_secret_key' => 'sk_test_xxx',
     'stripe_webhook_secret' => 'whsec_xxx',
     'google_client_id' => 'xxx.apps.googleusercontent.com',
