@@ -47,6 +47,9 @@ class Simple_Booking_Admin_Settings {
             array( $this, 'sanitize_settings' )
         );
 
+        $active_provider = sanitize_key( simple_booking()->get_setting( 'calendar_provider', 'ics' ) );
+        $show_google_settings = ( 'ics' !== $active_provider );
+
         // Stripe Settings
         add_settings_section(
             'simple_booking_stripe',
@@ -92,58 +95,60 @@ class Simple_Booking_Admin_Settings {
             )
         );
 
-        // Google Calendar Settings
-        add_settings_section(
-            'simple_booking_google',
-            __( 'Google Calendar Settings', 'simple-booking' ),
-            array( $this, 'render_google_section' ),
-            self::PAGE_SLUG
-        );
+        if ( $show_google_settings ) {
+            // Google Calendar Settings
+            add_settings_section(
+                'simple_booking_google',
+                __( 'Google Calendar Settings', 'simple-booking' ),
+                array( $this, 'render_google_section' ),
+                self::PAGE_SLUG
+            );
 
-        add_settings_field(
-            'google_client_id',
-            __( 'Client ID', 'simple-booking' ),
-            array( $this, 'render_text_field' ),
-            self::PAGE_SLUG,
-            'simple_booking_google',
-            array(
-                'name'        => 'google_client_id',
-                'placeholder' => 'xxxxxxxxxxxxxx.apps.googleusercontent.com',
-            )
-        );
+            add_settings_field(
+                'google_client_id',
+                __( 'Client ID', 'simple-booking' ),
+                array( $this, 'render_text_field' ),
+                self::PAGE_SLUG,
+                'simple_booking_google',
+                array(
+                    'name'        => 'google_client_id',
+                    'placeholder' => 'xxxxxxxxxxxxxx.apps.googleusercontent.com',
+                )
+            );
 
-        add_settings_field(
-            'google_client_secret',
-            __( 'Client Secret', 'simple-booking' ),
-            array( $this, 'render_text_field' ),
-            self::PAGE_SLUG,
-            'simple_booking_google',
-            array(
-                'name'        => 'google_client_secret',
-                'placeholder' => 'xxxxxxxxxxxxxx',
-                'type'        => 'password',
-            )
-        );
+            add_settings_field(
+                'google_client_secret',
+                __( 'Client Secret', 'simple-booking' ),
+                array( $this, 'render_text_field' ),
+                self::PAGE_SLUG,
+                'simple_booking_google',
+                array(
+                    'name'        => 'google_client_secret',
+                    'placeholder' => 'xxxxxxxxxxxxxx',
+                    'type'        => 'password',
+                )
+            );
 
-        add_settings_field(
-            'google_calendar_id',
-            __( 'Calendar ID', 'simple-booking' ),
-            array( $this, 'render_text_field' ),
-            self::PAGE_SLUG,
-            'simple_booking_google',
-            array(
-                'name'        => 'google_calendar_id',
-                'placeholder' => 'xxxxxxxxxxxxxx@group.calendar.google.com',
-            )
-        );
+            add_settings_field(
+                'google_calendar_id',
+                __( 'Calendar ID', 'simple-booking' ),
+                array( $this, 'render_text_field' ),
+                self::PAGE_SLUG,
+                'simple_booking_google',
+                array(
+                    'name'        => 'google_calendar_id',
+                    'placeholder' => 'xxxxxxxxxxxxxx@group.calendar.google.com',
+                )
+            );
 
-        add_settings_field(
-            'google_redirect_uri',
-            __( 'Redirect URI', 'simple-booking' ),
-            array( $this, 'render_google_redirect' ),
-            self::PAGE_SLUG,
-            'simple_booking_google'
-        );
+            add_settings_field(
+                'google_redirect_uri',
+                __( 'Redirect URI', 'simple-booking' ),
+                array( $this, 'render_google_redirect' ),
+                self::PAGE_SLUG,
+                'simple_booking_google'
+            );
+        }
 
         // Calendar Provider Selection
         add_settings_section(

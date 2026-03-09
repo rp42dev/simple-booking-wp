@@ -98,7 +98,7 @@
 	}
 
 	/**
-	 * Toggle static meeting link field when auto Google Meet is enabled
+	 * Keep meeting link editable and only adjust Google toggle dependency state.
 	 */
 	function initAutoMeetToggle() {
 		const autoMeetInput = document.getElementById( 'auto_google_meet' );
@@ -109,7 +109,6 @@
 			return;
 		}
 
-		const meetingLinkRow = meetingLinkInput.closest( 'tr' );
 		const autoMeetLabels = document.querySelectorAll( 'label[for="auto_google_meet"]' );
 
 		function updateToggleState() {
@@ -130,16 +129,11 @@
 				? 'Enable "Create Google Calendar Event" first to use auto-generated Google Meet links.'
 				: '';
 
-			// Update Meeting Link field state (disable if Auto-Meet is ON)
-			meetingLinkInput.disabled = autoMeetEnabled;
-			meetingLinkInput.setAttribute( 'aria-disabled', autoMeetEnabled ? 'true' : 'false' );
-
-			if ( meetingLinkRow ) {
-				meetingLinkRow.style.opacity = autoMeetEnabled ? '0.65' : '1';
-			}
-
+			// Keep manual meeting link editable; it serves as fallback/default URL.
+			meetingLinkInput.disabled = false;
+			meetingLinkInput.setAttribute( 'aria-disabled', 'false' );
 			meetingLinkInput.title = autoMeetEnabled
-				? 'Auto Google Meet is enabled. Static link is kept as fallback and will not be used for new generated Meet bookings.'
+				? 'Auto Google Meet is enabled. New bookings may use generated Meet links; this manual link remains available as fallback.'
 				: '';
 		}
 

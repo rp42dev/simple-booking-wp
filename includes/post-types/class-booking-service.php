@@ -492,6 +492,10 @@ class Simple_Booking_Service {
         $available_hours_end = get_post_meta( $post->ID, '_available_hours_end', true );
         $buffer_time = get_post_meta( $post->ID, '_buffer_time', true );
         $schedule_mode = get_post_meta( $post->ID, '_schedule_mode', true );
+        $active_calendar_provider = function_exists( 'simple_booking' )
+            ? sanitize_key( simple_booking()->get_setting( 'calendar_provider', 'ics' ) )
+            : 'ics';
+        $is_google_provider_active = ( 'google' === $active_calendar_provider );
         $service_schedule_json = get_post_meta( $post->ID, '_service_schedule', true );
         $service_schedule = $service_schedule_json ? json_decode( $service_schedule_json, true ) : null;
         $assigned_staff_json = get_post_meta( $post->ID, '_assigned_staff', true );
@@ -573,7 +577,9 @@ class Simple_Booking_Service {
                            class="regular-text"
                            placeholder="https://zoom.us/j/xxxxx or https://meet.google.com/xxxxx" />
                     <p class="description"><?php _e( 'Optional: Zoom, Google Meet, or other meeting URL', 'simple-booking' ); ?></p>
-                    <p class="description"><?php _e( 'If "Auto-Create Google Meet Link" is enabled, the generated per-booking Meet link will override this static link in confirmations.', 'simple-booking' ); ?></p>
+                    <?php if ( $is_google_provider_active ) : ?>
+                        <p class="description"><?php _e( 'If "Auto-Create Google Meet Link" is enabled, the generated per-booking Meet link will override this static link in confirmations.', 'simple-booking' ); ?></p>
+                    <?php endif; ?>
                 </td>
             </tr>
             <tr>
@@ -589,33 +595,42 @@ class Simple_Booking_Service {
                     <label for="service_active"><?php _e( 'Service is available for booking', 'simple-booking' ); ?></label>
                 </td>
             </tr>
-            <tr>
-                <th scope="row">
-                    <label for="create_google_event"><?php _e( 'Create Google Calendar Event', 'simple-booking' ); ?></label>
-                </th>
-                <td>
-                    <input type="checkbox"
-                           id="create_google_event"
-                           name="create_google_event"
-                           value="1"
-                           <?php checked( $create_google_event, '1' ); ?> />
-                    <label for="create_google_event"><?php _e( 'Automatically create Google Calendar event for bookings', 'simple-booking' ); ?></label>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">
-                    <label for="auto_google_meet"><?php _e( 'Auto-Create Google Meet Link', 'simple-booking' ); ?></label>
-                </th>
-                <td>
-                    <input type="checkbox"
-                           id="auto_google_meet"
-                           name="auto_google_meet"
-                           value="1"
-                           <?php checked( $auto_google_meet, '1' ); ?> />
-                    <label for="auto_google_meet"><?php _e( 'Generate Google Meet link when creating Google Calendar events', 'simple-booking' ); ?></label>
-                    <p class="description"><?php _e( 'Requires "Create Google Calendar Event" enabled and connected Google Calendar account.', 'simple-booking' ); ?></p>
-                </td>
-            </tr>
+            <?php if ( $is_google_provider_active ) : ?>
+                <tr>
+                    <th scope="row">
+                        <label for="create_google_event"><?php _e( 'Create Google Calendar Event', 'simple-booking' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="checkbox"
+                               id="create_google_event"
+                               name="create_google_event"
+                               value="1"
+                               <?php checked( $create_google_event, '1' ); ?> />
+                        <label for="create_google_event"><?php _e( 'Automatically create Google Calendar event for bookings', 'simple-booking' ); ?></label>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="auto_google_meet"><?php _e( 'Auto-Create Google Meet Link', 'simple-booking' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="checkbox"
+                               id="auto_google_meet"
+                               name="auto_google_meet"
+                               value="1"
+                               <?php checked( $auto_google_meet, '1' ); ?> />
+                        <label for="auto_google_meet"><?php _e( 'Generate Google Meet link when creating Google Calendar events', 'simple-booking' ); ?></label>
+                        <p class="description"><?php _e( 'Requires "Create Google Calendar Event" enabled and connected Google Calendar account.', 'simple-booking' ); ?></p>
+                    </td>
+                </tr>
+            <?php else : ?>
+                <tr>
+                    <th scope="row"><?php _e( 'Google Event Options', 'simple-booking' ); ?></th>
+                    <td>
+                        <p class="description"><?php _e( 'Google-specific options are hidden because active Calendar Provider is not Google.', 'simple-booking' ); ?></p>
+                    </td>
+                </tr>
+            <?php endif; ?>
             <tr>
                 <th scope="row">
                     <label><?php _e( 'Assigned Staff', 'simple-booking' ); ?></label>
@@ -821,13 +836,19 @@ class Simple_Booking_Service {
         $is_active = isset( $_POST['service_active'] ) ? '1' : '0';
         update_post_meta( $post_id, '_service_active', $is_active );
 
-        // Save Google event creation toggle
-        $create_google_event = isset( $_POST['create_google_event'] ) ? '1' : '0';
-        update_post_meta( $post_id, '_create_google_event', $create_google_event );
+        // Save Google toggles only when fields are present in submitted form.
+        // This preserves values when Google-specific controls are hidden by provider.
+        if ( isset( $_POST['create_google_event'] ) ) {
+            update_post_meta( $post_id, '_create_google_event', '1' );
+        } elseif ( isset( $_POST['auto_google_meet'] ) ) {
+            update_post_meta( $post_id, '_create_google_event', '0' );
+        }
 
-        // Save auto Google Meet toggle
-        $auto_google_meet = isset( $_POST['auto_google_meet'] ) ? '1' : '0';
-        update_post_meta( $post_id, '_auto_google_meet', $auto_google_meet );
+        if ( isset( $_POST['auto_google_meet'] ) ) {
+            update_post_meta( $post_id, '_auto_google_meet', '1' );
+        } elseif ( isset( $_POST['create_google_event'] ) ) {
+            update_post_meta( $post_id, '_auto_google_meet', '0' );
+        }
 
         // Save assigned staff
         $assigned_staff = isset( $_POST['assigned_staff'] ) && is_array( $_POST['assigned_staff'] )
