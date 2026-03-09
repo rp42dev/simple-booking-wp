@@ -63,6 +63,9 @@ class Simple_Booking {
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php';
 
+        // License
+        require_once SIMPLE_BOOKING_INCLUDES . 'license/class-license-manager.php';
+
         // Google Calendar
         require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
 

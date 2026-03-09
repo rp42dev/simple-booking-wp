@@ -332,20 +332,21 @@ class Simple_Booking_Admin_Settings {
         }
         
         // Check if trying to set Pro provider without Pro license
-        if ( class_exists( 'Simple_Booking_License_Manager' ) ) {
+        $is_pro = ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && SIMPLE_BOOKING_FORCE_PRO );
+        if ( ! $is_pro && class_exists( 'Simple_Booking_License_Manager' ) ) {
             $license = new Simple_Booking_License_Manager();
             $is_pro = $license->is_pro_active();
-            
-            // If not Pro, only allow ICS
-            if ( ! $is_pro && in_array( $provider, array( 'google', 'outlook' ), true ) ) {
-                $provider = 'ics';
-                add_settings_error(
-                    'simple_booking_settings',
-                    'pro_required',
-                    __( 'Pro license required for Google Calendar and Outlook. Reverting to ICS.', 'simple-booking' ),
-                    'warning'
-                );
-            }
+        }
+
+        // If not Pro, only allow ICS
+        if ( ! $is_pro && in_array( $provider, array( 'google', 'outlook' ), true ) ) {
+            $provider = 'ics';
+            add_settings_error(
+                'simple_booking_settings',
+                'pro_required',
+                __( 'Pro license required for Google Calendar and Outlook. Reverting to ICS.', 'simple-booking' ),
+                'warning'
+            );
         }
         
         $sanitized['calendar_provider'] = $provider;
@@ -526,8 +527,8 @@ class Simple_Booking_Admin_Settings {
         $current_provider = isset( $options['calendar_provider'] ) ? $options['calendar_provider'] : 'ics';
         
         // Check Pro status
-        $is_pro = false;
-        if ( class_exists( 'Simple_Booking_License_Manager' ) ) {
+        $is_pro = ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && SIMPLE_BOOKING_FORCE_PRO );
+        if ( ! $is_pro && class_exists( 'Simple_Booking_License_Manager' ) ) {
             $license = new Simple_Booking_License_Manager();
             $is_pro = $license->is_pro_active();
         }
