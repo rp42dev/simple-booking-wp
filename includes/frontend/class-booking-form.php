@@ -146,6 +146,11 @@ class Simple_Booking_Form {
             exit;
         }
 
+        if ( Simple_Booking_Booking_Creator::is_management_token_consumed( $booking_id ) ) {
+            wp_safe_redirect( add_query_arg( 'sb_manage', 'used', $manage_page_url ) );
+            exit;
+        }
+
         if ( ! Simple_Booking_Booking_Creator::verify_booking_management_token( $booking_id, $token ) ) {
             wp_safe_redirect( add_query_arg( 'sb_manage', 'invalid', $manage_page_url ) );
             exit;
@@ -157,6 +162,10 @@ class Simple_Booking_Form {
         if ( 'cancel' === $action ) {
             $cancel_result = Simple_Booking_Booking_Creator::cancel_booking( $booking_id, $token );
             if ( is_wp_error( $cancel_result ) ) {
+                if ( 'link_used' === $cancel_result->get_error_code() ) {
+                    wp_safe_redirect( add_query_arg( 'sb_manage', 'used', $manage_page_url ) );
+                    exit;
+                }
                 // Check if it's already cancelled
                 if ( 'already_cancelled' === $cancel_result->get_error_code() ) {
                     wp_safe_redirect( add_query_arg( 'sb_manage', 'already_cancelled', $manage_page_url ) );
@@ -256,6 +265,10 @@ class Simple_Booking_Form {
         );
 
         if ( 'reschedule' === $manage_status && $reschedule_booking_id && $reschedule_token && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
+            if ( Simple_Booking_Booking_Creator::is_management_token_consumed( $reschedule_booking_id ) ) {
+                $manage_status = 'used';
+            }
+
             $reschedule_context_valid = Simple_Booking_Booking_Creator::verify_booking_management_token( $reschedule_booking_id, $reschedule_token );
             if ( $reschedule_context_valid ) {
                 $reschedule_prefill['service_id'] = absint( get_post_meta( $reschedule_booking_id, '_service_id', true ) );
@@ -318,6 +331,10 @@ class Simple_Booking_Form {
             <?php elseif ( 'already_cancelled' === $manage_status ) : ?>
                 <div class="booking-message error">
                     <p><?php _e( 'This booking has already been cancelled. No further action is needed.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'used' === $manage_status ) : ?>
+                <div class="booking-message error">
+                    <p><?php _e( 'This booking management link has already been used. Please use the latest link from your most recent booking email.', 'simple-booking' ); ?></p>
                 </div>
             <?php endif; ?>
 

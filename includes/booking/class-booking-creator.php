@@ -22,6 +22,8 @@ class Simple_Booking_Booking_Creator {
     const DEBUG_ENABLED = true; // set to false to disable from this class
     const MANAGEMENT_TOKEN_META = '_booking_management_token';
     const MANAGEMENT_TOKEN_CREATED_META = '_booking_management_token_created';
+    const MANAGEMENT_TOKEN_CONSUMED_META = '_booking_management_token_consumed_at';
+    const MANAGEMENT_TOKEN_CONSUMED_ACTION_META = '_booking_management_token_consumed_action';
     // @todo remove DEBUG_FILE/DEBUG_ENABLED and related logging after issue is resolved
 
     /**
@@ -150,6 +152,7 @@ class Simple_Booking_Booking_Creator {
                 update_post_meta( $from_booking_id, '_booking_status', 'rescheduled' );
                 update_post_meta( $from_booking_id, '_rescheduled_to_booking_id', absint( $booking_id ) );
                 update_post_meta( $booking_id, '_rescheduled_from_booking_id', absint( $from_booking_id ) );
+                self::consume_management_token( $from_booking_id, 'reschedule' );
                 wp_trash_post( $from_booking_id );
             }
         }
@@ -201,7 +204,50 @@ class Simple_Booking_Booking_Creator {
             return false;
         }
 
+        if ( self::is_management_token_consumed( $booking_id ) ) {
+            return false;
+        }
+
         return hash_equals( $stored, $token );
+    }
+
+    /**
+     * Check whether booking management token has already been consumed.
+     *
+     * @param int $booking_id
+     * @return bool
+     */
+    public static function is_management_token_consumed( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return false;
+        }
+
+        $consumed_at = get_post_meta( $booking_id, self::MANAGEMENT_TOKEN_CONSUMED_META, true );
+        return ! empty( $consumed_at );
+    }
+
+    /**
+     * Mark booking management token as consumed after a successful action.
+     *
+     * @param int    $booking_id
+     * @param string $action
+     * @return void
+     */
+    public static function consume_management_token( $booking_id, $action ) {
+        $booking_id = absint( $booking_id );
+        $action = sanitize_key( $action );
+
+        if ( ! $booking_id || '' === $action ) {
+            return;
+        }
+
+        if ( self::is_management_token_consumed( $booking_id ) ) {
+            return;
+        }
+
+        update_post_meta( $booking_id, self::MANAGEMENT_TOKEN_CONSUMED_META, current_time( 'mysql' ) );
+        update_post_meta( $booking_id, self::MANAGEMENT_TOKEN_CONSUMED_ACTION_META, $action );
     }
 
     /**
@@ -383,6 +429,10 @@ class Simple_Booking_Booking_Creator {
         $booking_id = absint( $booking_id );
         $token = sanitize_text_field( $token );
 
+        if ( self::is_management_token_consumed( $booking_id ) ) {
+            return new WP_Error( 'link_used', __( 'This booking management link has already been used', 'simple-booking' ) );
+        }
+
         if ( ! self::verify_booking_management_token( $booking_id, $token ) ) {
             return new WP_Error( 'invalid_token', __( 'Invalid booking management token', 'simple-booking' ) );
         }
@@ -423,6 +473,7 @@ class Simple_Booking_Booking_Creator {
         self::delete_google_event_for_booking( $booking_id );
         update_post_meta( $booking_id, '_booking_status', 'cancelled' );
         update_post_meta( $booking_id, '_booking_cancelled_at', current_time( 'mysql' ) );
+        self::consume_management_token( $booking_id, 'cancel' );
         wp_trash_post( $booking_id );
 
         return true;
