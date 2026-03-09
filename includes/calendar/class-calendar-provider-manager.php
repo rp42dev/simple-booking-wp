@@ -31,11 +31,11 @@ class Simple_Booking_Calendar_Provider_Manager {
      * @return string
      */
     public function get_active_provider_slug() {
-        $slug = simple_booking()->get_setting( 'calendar_provider', 'google' );
+        $slug = simple_booking()->get_setting( 'calendar_provider', 'ics' );
         $slug = sanitize_key( $slug );
 
         if ( ! isset( $this->provider_classes[ $slug ] ) ) {
-            return 'google';
+            return 'ics';
         }
 
         return $slug;
