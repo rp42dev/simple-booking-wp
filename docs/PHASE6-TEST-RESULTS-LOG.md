@@ -58,7 +58,7 @@ Release gate:
 
 **Commit:** `eba6874` (includes all provider-aware fixes + cancel chain resolution)
 **Duration:** ~25 minutes
-**Result:** ⚠️ PASSED with P1 defect (D002)
+**Result:** ✅ PASSED (D002 retest verified)
 
 **Test Summary:**
 - ✅ ICS provider selection works
@@ -68,8 +68,8 @@ Release gate:
 - ✅ Cancel flow works
 - ✅ Edge case: Cancel from old email link after reschedule correctly cancels latest booking
 - ✅ Pro-gating verified: Google/Outlook providers disabled (grayed out) for Free users
-- ⚠️ **P1 Issue**: Reschedule after cancel triggers Stripe 400 error (duplicate refund attempt) - See D002
-  - **Fix applied**: Added booking status validation to block reschedule on cancelled/rescheduled bookings
+- ✅ D002 retest passed: no Stripe 400 on repeated cancel attempts from original/new links
+- ℹ️ Non-blocking observation: webhook endpoint returned HTTP 429 during test runs
 
 ### Test Results by Focus Area
 
@@ -92,7 +92,7 @@ Release gate:
 - **Flow tested**: Free ICS booking + Meeting link conditional rendering + Paid booking reschedule + Cancel from old link
 - **Edge case validated**: Old email cancel links now follow reschedule chain to latest booking (commit 5533dde working)
 - **UX note**: Old links should ideally show user-friendly "this booking was moved" message (tracked in Phase 6.7 roadmap)
-- **Blocker identified**: D002 - Reschedule after cancel tries to refund again (Stripe 400 error)
+- **Retest verified**: D002 resolved in commit `306bf2c` (duplicate refund path blocked)
 
 ---
 
@@ -101,12 +101,12 @@ Release gate:
 - Latest commit tested: `eba6874` (provider fixes + cancel chain resolution + Phase 6.7 roadmap)
 - Latest provider tested: ICS (Free)
 - Smoke Suite status: ✅ PASSED (2026-03-09, commit 8060db9)
-- Mini Regression status: ⚠️ PASSED with P1 defect (2026-03-09, commit eba6874) → ✅ Fix ready for testing
-- Issues discovered: 
+- Mini Regression status: ✅ PASSED after D002 retest verification (2026-03-09)
+- Issues discovered:
   - D001 (reusable cancel/reschedule links) - tracked for Phase 6.7
-  - D002 (reschedule after cancel triggers duplicate refund) - ✅ **FIXED** - awaiting retest
+  - D002 (duplicate refund on repeated cancel/reschedule-after-cancel) - ✅ **VERIFIED FIXED**
 - Full Regression status: Not run
-- Open blockers (P0/P1): 0 (D002 fix pending verification)
+- Open blockers (P0/P1): 0
 
 ---
 
@@ -185,12 +185,13 @@ Release gate:
 | ID | Date | Severity | Provider | Flow | Summary | Status | Owner |
 |----|------|----------|----------|------|---------|--------|-------|
 | D001 | 2026-03-09 | P2 | All | Cancel/Reschedule | Cancel/reschedule links reusable, no consumed-token check | 📍 Phase 6.7 | - |
-| D002 | 2026-03-09 | P1 | All | Reusable Management Links | **Scenario 1:** Cancel booking (refund succeeds), then cancel AGAIN from same link → Stripe 400 error (duplicate refund). **Scenario 2:** Cancel booking, then try to reschedule → should be blocked. **Root cause:** No booking status validation before processing cancel/reschedule actions. **Fix:** Added status checks to block cancel on already-cancelled bookings and reschedule on cancelled/rescheduled bookings. | ✅ Fixed | - |
+| D002 | 2026-03-09 | P1 | All | Reusable Management Links | **Scenario 1:** Cancel booking (refund succeeds), then cancel AGAIN from same link → Stripe 400 error (duplicate refund). **Scenario 2:** Cancel booking, then try to reschedule → should be blocked. **Root cause:** No booking status validation before processing cancel/reschedule actions. **Fix:** Added status checks to block cancel on already-cancelled bookings and reschedule on cancelled/rescheduled bookings. | ✅ Verified Fixed | - |
 
 ---
 
 ## Change log
 
+- 2026-03-09 17:15: User retest confirmed D002 fix. No Stripe 400 on original/new repeated cancel links; cancellation now blocked cleanly when already cancelled.
 - 2026-03-09 17:05: D002 fix expanded - added cancel status check to prevent duplicate refund attempts when cancel link clicked multiple times. Both cancel-after-cancel and reschedule-after-cancel now blocked.
 - 2026-03-09 16:55: D002 fix implemented - added booking status validation to block reschedule on cancelled/rescheduled bookings. User-friendly error message added. Awaiting retest.
 - 2026-03-09 16:40: Mini Regression completed on commit eba6874. Passed with P1 defect D002 (reschedule after cancel triggers duplicate refund). ICS provider fully functional. Pro-gating verified.
