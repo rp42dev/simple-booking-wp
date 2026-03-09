@@ -2,6 +2,8 @@
 
 Purpose: keep the calendar-provider migration safe by testing after every meaningful change, not only at the milestone end.
 
+Execution log file: [PHASE6-TEST-RESULTS-LOG.md](docs/PHASE6-TEST-RESULTS-LOG.md)
+
 ---
 
 ## 1) Testing cadence (mandatory)
