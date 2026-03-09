@@ -146,6 +146,20 @@ class Simple_Booking_Form {
             exit;
         }
 
+        // Check if booking was rescheduled to a new booking
+        $rescheduled_to_id = get_post_meta( $booking_id, '_rescheduled_to_booking_id', true );
+        if ( ! empty( $rescheduled_to_id ) ) {
+            $new_start_datetime = get_post_meta( $rescheduled_to_id, '_start_datetime', true );
+            $redirect_args = array(
+                'sb_manage' => 'booking_moved',
+            );
+            if ( ! empty( $new_start_datetime ) ) {
+                $redirect_args['new_datetime'] = urlencode( $new_start_datetime );
+            }
+            wp_safe_redirect( add_query_arg( $redirect_args, $manage_page_url ) );
+            exit;
+        }
+
         if ( Simple_Booking_Booking_Creator::is_management_token_consumed( $booking_id ) ) {
             wp_safe_redirect( add_query_arg( 'sb_manage', $this->get_consumed_manage_status( $booking_id, $action ), $manage_page_url ) );
             exit;
@@ -278,6 +292,7 @@ class Simple_Booking_Form {
         // Check for booking status in URL
         $booking_status = isset( $_GET['booking'] ) ? sanitize_text_field( $_GET['booking'] ) : '';
         $manage_status = isset( $_GET['sb_manage'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_manage'] ) ) : '';
+        $new_datetime = isset( $_GET['new_datetime'] ) ? sanitize_text_field( wp_unslash( $_GET['new_datetime'] ) ) : '';
         $reschedule_booking_id = isset( $_GET['reschedule_booking_id'] ) ? absint( $_GET['reschedule_booking_id'] ) : 0;
         $reschedule_token = isset( $_GET['reschedule_token'] ) ? sanitize_text_field( wp_unslash( $_GET['reschedule_token'] ) ) : '';
         $reschedule_context_valid = false;
@@ -359,6 +374,23 @@ class Simple_Booking_Form {
             <?php elseif ( 'used' === $manage_status ) : ?>
                 <div class="booking-message error">
                     <p><?php _e( 'This booking has already been cancelled or rescheduled and cannot be modified.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'booking_moved' === $manage_status ) : ?>
+                <div class="booking-message error">
+                    <?php if ( ! empty( $new_datetime ) ) : ?>
+                        <?php
+                        try {
+                            $dt = new DateTime( $new_datetime, wp_timezone() );
+                            $formatted_datetime = $dt->format( 'F j, Y \\a\\t g:i A' );
+                            /* translators: %s: new booking date and time */
+                            echo '<p>' . sprintf( __( 'This booking has been rescheduled to %s. Please check your email for the updated booking details and management links.', 'simple-booking' ), '<strong>' . esc_html( $formatted_datetime ) . '</strong>' ) . '</p>';
+                        } catch ( Exception $e ) {
+                            _e( 'This booking has been rescheduled. Please check your email for the updated booking details and management links.', 'simple-booking' );
+                        }
+                        ?>
+                    <?php else : ?>
+                        <p><?php _e( 'This booking has been rescheduled. Please check your email for the updated booking details and management links.', 'simple-booking' ); ?></p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
 
