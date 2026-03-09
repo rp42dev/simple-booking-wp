@@ -805,6 +805,25 @@ Metadata: plan=pro_agency, sites=unlimited
 
 ---
 
+#### 6.7 Booking Management Link Hardening (Edge Cases) ✏️
+**Files:**
+- `includes/booking/class-booking-creator.php`
+- `includes/frontend/class-booking-form.php`
+
+**Scope:**
+- Only latest booking in a reschedule chain is actionable
+- Old reschedule/cancel links show a stale-link message with next step
+- One-time-use management tokens for cancel/reschedule actions
+- Idempotent handling for repeated clicks ("already processed" response)
+
+**Acceptance Criteria:**
+- [ ] Cancel from original (old) email does not leave latest rescheduled booking active
+- [ ] Reusing a consumed cancel/reschedule link is blocked gracefully
+- [ ] User receives clear stale-link guidance when booking has moved
+- [ ] No duplicate refunds or duplicate cancellation state transitions
+
+---
+
 ## Success Metrics
 
 ### Week 1-4 (Launch)
