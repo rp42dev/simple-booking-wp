@@ -118,7 +118,15 @@ Choose your calendar provider in **Settings > Simple Booking > Calendar Provider
 
 #### Option B: Microsoft Outlook Calendar
 
-1. Go to [Azure Portal](https://portal.azure.com/)
+**Prerequisites:**
+- Azure account with an Azure AD tenant (directory)
+- If you don't have one:
+  - Join the [M365 Developer Program](https://developer.microsoft.com/microsoft-365/dev-program) (free) OR
+  - Sign up for [Azure](https://azure.microsoft.com/free/) (free tier available)
+
+**Setup Steps:**
+
+1. Go to [Azure Portal](https://portal.azure.com/) and sign in
 2. Navigate to **Azure Active Directory > App registrations**
 3. Click **New registration**:
    - Name: Simple Booking
