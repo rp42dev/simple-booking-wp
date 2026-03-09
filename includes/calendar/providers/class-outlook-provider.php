@@ -34,4 +34,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     public function fetch_busy_windows( $start_datetime, $end_datetime, $context = array() ) {
         return new WP_Error( 'outlook_not_implemented', __( 'Outlook provider is not implemented yet.', 'simple-booking' ) );
     }
+
+    public function find_available_staff( $service_id, $start_datetime, $duration_minutes, $context = array() ) {
+        return array(
+            'staff_id'    => null,
+            'calendar_id' => null,
+        );
+    }
 }

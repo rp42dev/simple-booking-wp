@@ -63,4 +63,15 @@ interface Simple_Booking_Calendar_Provider_Interface {
      * @return array|WP_Error
      */
     public function fetch_busy_windows( $start_datetime, $end_datetime, $context = array() );
+
+    /**
+     * Resolve staff availability for a requested slot.
+     *
+     * @param int    $service_id
+     * @param string $start_datetime
+     * @param int    $duration_minutes
+     * @param array  $context
+     * @return array|false|WP_Error
+     */
+    public function find_available_staff( $service_id, $start_datetime, $duration_minutes, $context = array() );
 }

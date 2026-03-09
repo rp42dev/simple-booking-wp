@@ -37,4 +37,11 @@ class Simple_Booking_Ics_Provider implements Simple_Booking_Calendar_Provider_In
     public function fetch_busy_windows( $start_datetime, $end_datetime, $context = array() ) {
         return array();
     }
+
+    public function find_available_staff( $service_id, $start_datetime, $duration_minutes, $context = array() ) {
+        return array(
+            'staff_id'    => null,
+            'calendar_id' => null,
+        );
+    }
 }

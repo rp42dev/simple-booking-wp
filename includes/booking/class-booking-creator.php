@@ -66,23 +66,27 @@ class Simple_Booking_Booking_Creator {
                 $service_duration = 60; // fallback
             }
 
-            // Check slot availability if Google Calendar is available
-            if ( class_exists( 'Simple_Booking_Google_Calendar' ) ) {
-                $google = new Simple_Booking_Google_Calendar();
-                $staff_availability = $google->find_available_staff( $service_id, $data['start_datetime'], $service_duration );
-                
+            // Check slot availability via active calendar provider
+            $provider = self::get_active_calendar_provider();
+            if ( is_wp_error( $provider ) ) {
+                self::debug_log( 'Calendar provider manager unavailable - skipping slot check: ' . $provider->get_error_message(), 'BOOKING' );
+            } else {
+                self::debug_log( 'Checking availability with provider: ' . $provider->get_slug(), 'BOOKING' );
+                $staff_availability = $provider->find_available_staff( $service_id, $data['start_datetime'], $service_duration );
+
                 if ( false === $staff_availability ) {
                     $requested = ( new DateTime( $data['start_datetime'], wp_timezone() ) )->format( DateTime::ATOM );
                     self::debug_log( 'Requested slot ' . $requested . ' has no available staff', 'BOOKING' );
                     return new WP_Error( 'slot_taken', __( 'Requested time slot is no longer available', 'simple-booking' ) );
                 }
-                
-                // Store staff and calendar info for later use
-                self::debug_log( 'Slot available with staff_id: ' . ( $staff_availability['staff_id'] ?? 'null' ), 'BOOKING' );
-                $data['assigned_staff_id'] = $staff_availability['staff_id'] ?? null;
-                $data['calendar_id'] = $staff_availability['calendar_id'] ?? null;
-            } else {
-                self::debug_log( 'Google Calendar not available - skipping slot availability check', 'BOOKING' );
+
+                if ( is_wp_error( $staff_availability ) ) {
+                    self::debug_log( 'Provider availability check failed; continuing gracefully: ' . $staff_availability->get_error_message(), 'BOOKING' );
+                } else {
+                    self::debug_log( 'Slot available with staff_id: ' . ( $staff_availability['staff_id'] ?? 'null' ), 'BOOKING' );
+                    $data['assigned_staff_id'] = $staff_availability['staff_id'] ?? null;
+                    $data['calendar_id'] = $staff_availability['calendar_id'] ?? null;
+                }
             }
         }
 

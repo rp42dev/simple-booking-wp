@@ -63,4 +63,12 @@ class Simple_Booking_Google_Provider implements Simple_Booking_Calendar_Provider
 
         return new WP_Error( 'google_busy_windows_not_implemented', __( 'Busy-window adapter for Google provider is not implemented yet.', 'simple-booking' ) );
     }
+
+    public function find_available_staff( $service_id, $start_datetime, $duration_minutes, $context = array() ) {
+        if ( ! $this->google ) {
+            return new WP_Error( 'google_provider_unavailable', __( 'Google provider unavailable.', 'simple-booking' ) );
+        }
+
+        return $this->google->find_available_staff( $service_id, $start_datetime, $duration_minutes );
+    }
 }
