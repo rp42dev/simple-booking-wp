@@ -67,6 +67,7 @@ Release gate:
 - 🔄 Pending retest after latest fix: provider-aware frontend slot/event behavior + Google settings visibility with ICS
 - ✅ Root cause identified for refund regression on reschedule: new rescheduled booking had empty `_stripe_payment_id`
 - ✅ Fix shipped in `b1383bb`: paid reschedule now copies Stripe session ID to new booking so cancel/refund remains eligible
+- ✅ Edge-case fix shipped: cancel from old email link now resolves to latest rescheduled booking before cancellation/refund (`cancel chain`)
 
 ### Focus Areas
 
@@ -82,6 +83,7 @@ Release gate:
 - [ ] Service editor: Meeting Link remains editable when Auto-Create Google Meet is enabled
 - [ ] Settings page: Google section hidden when provider is ICS
 - [ ] Paid booking -> reschedule -> cancel (refund should execute)
+- [ ] Paid booking -> reschedule -> cancel via original (old) email link should cancel latest booking in chain
 - [ ] No fatal errors in debug.log
 
 ---
