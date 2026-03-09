@@ -191,6 +191,7 @@ Release gate:
 
 ## Change log
 
+- 2026-03-09 17:35: Final UX copy unification applied. stale/used/already_cancelled states now all show: "This booking has already been cancelled or rescheduled and cannot be modified." (commit 325cce4).
 - 2026-03-09 17:25: Phase 6.7 UX polish verified. Reused cancel links now show "already cancelled" message; reused reschedule links show stale/rescheduled guidance (commit a0ac70c).
 - 2026-03-09 17:15: User retest confirmed D002 fix. No Stripe 400 on original/new repeated cancel links; cancellation now blocked cleanly when already cancelled.
 - 2026-03-09 17:05: D002 fix expanded - added cancel status check to prevent duplicate refund attempts when cancel link clicked multiple times. Both cancel-after-cancel and reschedule-after-cancel now blocked.
