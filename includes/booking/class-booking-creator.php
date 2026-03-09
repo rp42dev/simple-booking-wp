@@ -346,6 +346,33 @@ class Simple_Booking_Booking_Creator {
     }
 
     /**
+     * Resolve booking ID to the latest booking in a reschedule chain.
+     *
+     * @param int $booking_id
+     * @return int
+     */
+    private static function resolve_latest_rescheduled_booking_id( $booking_id ) {
+        $current_id = absint( $booking_id );
+        if ( ! $current_id ) {
+            return 0;
+        }
+
+        $visited = array();
+        while ( $current_id && ! in_array( $current_id, $visited, true ) ) {
+            $visited[] = $current_id;
+            $next_id = absint( get_post_meta( $current_id, '_rescheduled_to_booking_id', true ) );
+
+            if ( ! $next_id ) {
+                break;
+            }
+
+            $current_id = $next_id;
+        }
+
+        return $current_id;
+    }
+
+    /**
      * Cancel a booking by token and remove external calendar event.
      *
      * @param int    $booking_id
@@ -358,6 +385,16 @@ class Simple_Booking_Booking_Creator {
 
         if ( ! self::verify_booking_management_token( $booking_id, $token ) ) {
             return new WP_Error( 'invalid_token', __( 'Invalid booking management token', 'simple-booking' ) );
+        }
+
+        $target_booking_id = self::resolve_latest_rescheduled_booking_id( $booking_id );
+        if ( ! $target_booking_id ) {
+            return new WP_Error( 'invalid_booking', __( 'Invalid booking ID', 'simple-booking' ) );
+        }
+
+        if ( $target_booking_id !== $booking_id ) {
+            self::debug_log( 'Cancel requested for rescheduled-from booking ' . $booking_id . '; using latest booking ' . $target_booking_id, 'BOOKING' );
+            $booking_id = $target_booking_id;
         }
 
         // Log cancellation start
