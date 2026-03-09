@@ -24,6 +24,8 @@ class Simple_Booking_Booking_Creator {
     const MANAGEMENT_TOKEN_CREATED_META = '_booking_management_token_created';
     const MANAGEMENT_TOKEN_CONSUMED_META = '_booking_management_token_consumed_at';
     const MANAGEMENT_TOKEN_CONSUMED_ACTION_META = '_booking_management_token_consumed_action';
+    const ACTION_CANCEL_EXECUTED_META = '_cancel_action_executed_at';
+    const ACTION_RESCHEDULE_EXECUTED_META = '_reschedule_action_executed_at';
     // @todo remove DEBUG_FILE/DEBUG_ENABLED and related logging after issue is resolved
 
     /**
@@ -138,7 +140,10 @@ class Simple_Booking_Booking_Creator {
             $from_booking_id = absint( $data['reschedule_from_booking_id'] );
             $reschedule_token = sanitize_text_field( $data['reschedule_token'] );
 
-            if ( self::verify_booking_management_token( $from_booking_id, $reschedule_token ) ) {
+            // Idempotency check: if source booking already has reschedule executed, skip linkage
+            if ( self::is_reschedule_action_executed( $from_booking_id ) ) {
+                self::debug_log( 'Reschedule linkage skipped for booking ' . $from_booking_id . '; reschedule action already executed', 'BOOKING' );
+            } elseif ( self::verify_booking_management_token( $from_booking_id, $reschedule_token ) ) {
                 // Preserve original Stripe payment reference for paid reschedules.
                 // This ensures later cancellation/refund checks still work on the new booking.
                 $source_payment_id = self::get_stripe_payment_id( $from_booking_id );
@@ -152,6 +157,7 @@ class Simple_Booking_Booking_Creator {
                 update_post_meta( $from_booking_id, '_booking_status', 'rescheduled' );
                 update_post_meta( $from_booking_id, '_rescheduled_to_booking_id', absint( $booking_id ) );
                 update_post_meta( $booking_id, '_rescheduled_from_booking_id', absint( $from_booking_id ) );
+                self::mark_reschedule_action_executed( $from_booking_id );
                 self::consume_management_token( $from_booking_id, 'reschedule' );
                 wp_trash_post( $from_booking_id );
             }
@@ -263,6 +269,76 @@ class Simple_Booking_Booking_Creator {
         }
 
         return sanitize_key( (string) get_post_meta( $booking_id, self::MANAGEMENT_TOKEN_CONSUMED_ACTION_META, true ) );
+    }
+
+    /**
+     * Check if cancel action has already been executed for this booking.
+     *
+     * @param int $booking_id
+     * @return bool
+     */
+    public static function is_cancel_action_executed( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return false;
+        }
+
+        $executed_at = get_post_meta( $booking_id, self::ACTION_CANCEL_EXECUTED_META, true );
+        return ! empty( $executed_at );
+    }
+
+    /**
+     * Mark cancel action as executed for this booking.
+     *
+     * @param int $booking_id
+     * @return void
+     */
+    public static function mark_cancel_action_executed( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return;
+        }
+
+        if ( self::is_cancel_action_executed( $booking_id ) ) {
+            return;
+        }
+
+        update_post_meta( $booking_id, self::ACTION_CANCEL_EXECUTED_META, current_time( 'mysql' ) );
+    }
+
+    /**
+     * Check if reschedule action has already been executed for this booking.
+     *
+     * @param int $booking_id
+     * @return bool
+     */
+    public static function is_reschedule_action_executed( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return false;
+        }
+
+        $executed_at = get_post_meta( $booking_id, self::ACTION_RESCHEDULE_EXECUTED_META, true );
+        return ! empty( $executed_at );
+    }
+
+    /**
+     * Mark reschedule action as executed for this booking.
+     *
+     * @param int $booking_id
+     * @return void
+     */
+    public static function mark_reschedule_action_executed( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return;
+        }
+
+        if ( self::is_reschedule_action_executed( $booking_id ) ) {
+            return;
+        }
+
+        update_post_meta( $booking_id, self::ACTION_RESCHEDULE_EXECUTED_META, current_time( 'mysql' ) );
     }
 
     /**
@@ -444,6 +520,12 @@ class Simple_Booking_Booking_Creator {
         $booking_id = absint( $booking_id );
         $token = sanitize_text_field( $token );
 
+        // Idempotency check: if cancel was already successfully executed, reject immediately
+        if ( self::is_cancel_action_executed( $booking_id ) ) {
+            self::debug_log( 'Cancel blocked for booking ' . $booking_id . '; cancel action already executed', 'BOOKING' );
+            return new WP_Error( 'already_cancelled', __( 'This booking has already been cancelled', 'simple-booking' ) );
+        }
+
         if ( self::is_management_token_consumed( $booking_id ) ) {
             return new WP_Error( 'link_used', __( 'This booking management link has already been used', 'simple-booking' ) );
         }
@@ -488,6 +570,7 @@ class Simple_Booking_Booking_Creator {
         self::delete_google_event_for_booking( $booking_id );
         update_post_meta( $booking_id, '_booking_status', 'cancelled' );
         update_post_meta( $booking_id, '_booking_cancelled_at', current_time( 'mysql' ) );
+        self::mark_cancel_action_executed( $booking_id );
         self::consume_management_token( $booking_id, 'cancel' );
         wp_trash_post( $booking_id );
 
