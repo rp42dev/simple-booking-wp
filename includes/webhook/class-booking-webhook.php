@@ -121,7 +121,7 @@ class Simple_Booking_Booking_Webhook {
 
         $log_file = SIMPLE_BOOKING_PATH . 'debug-google.txt';
         $timestamp = current_time( 'mysql' );
-        $entry = sprintf( \"[%s] WEBHOOK: %s\\n\", $timestamp, $message );
+        $entry = sprintf( "[%s] WEBHOOK: %s\n", $timestamp, $message );
         @file_put_contents( $log_file, $entry, FILE_APPEND );
     }
 
