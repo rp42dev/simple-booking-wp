@@ -184,13 +184,14 @@ Release gate:
 
 | ID | Date | Severity | Provider | Flow | Summary | Status | Owner |
 |----|------|----------|----------|------|---------|--------|-------|
-| D001 | 2026-03-09 | P2 | All | Cancel/Reschedule | Cancel/reschedule links reusable, no consumed-token check | 📍 Phase 6.7 | - |
+| D001 | 2026-03-09 | P2 | All | Cancel/Reschedule | Cancel/reschedule links reusable, no consumed-token check | ✅ Verified Fixed | - |
 | D002 | 2026-03-09 | P1 | All | Reusable Management Links | **Scenario 1:** Cancel booking (refund succeeds), then cancel AGAIN from same link → Stripe 400 error (duplicate refund). **Scenario 2:** Cancel booking, then try to reschedule → should be blocked. **Root cause:** No booking status validation before processing cancel/reschedule actions. **Fix:** Added status checks to block cancel on already-cancelled bookings and reschedule on cancelled/rescheduled bookings. | ✅ Verified Fixed | - |
 
 ---
 
 ## Change log
 
+- 2026-03-09 17:45: Phase 6.7 action-level idempotency verified. Cancelled booking + manual token consumption meta deletion → retry cancel → still blocked by execution marker. No duplicate refund attempt (commit 20e5f77).
 - 2026-03-09 17:35: Final UX copy unification applied. stale/used/already_cancelled states now all show: "This booking has already been cancelled or rescheduled and cannot be modified." (commit 325cce4).
 - 2026-03-09 17:25: Phase 6.7 UX polish verified. Reused cancel links now show "already cancelled" message; reused reschedule links show stale/rescheduled guidance (commit a0ac70c).
 - 2026-03-09 17:15: User retest confirmed D002 fix. No Stripe 400 on original/new repeated cancel links; cancellation now blocked cleanly when already cancelled.
