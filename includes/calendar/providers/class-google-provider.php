@@ -37,7 +37,8 @@ class Simple_Booking_Google_Provider implements Simple_Booking_Calendar_Provider
             return new WP_Error( 'google_provider_unavailable', __( 'Google provider unavailable.', 'simple-booking' ) );
         }
 
-        return $this->google->create_event( $booking_data );
+        $calendar_id = isset( $booking_data['calendar_id'] ) ? $booking_data['calendar_id'] : null;
+        return $this->google->create_event( $booking_data, $calendar_id );
     }
 
     public function update_event( $event_id, $booking_data ) {

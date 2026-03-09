@@ -40,6 +40,20 @@ class Simple_Booking_Booking_Creator {
     }
 
     /**
+     * Get active calendar provider instance.
+     *
+     * @return Simple_Booking_Calendar_Provider_Interface|WP_Error
+     */
+    private static function get_active_calendar_provider() {
+        if ( ! class_exists( 'Simple_Booking_Calendar_Provider_Manager' ) ) {
+            return new WP_Error( 'calendar_provider_manager_missing', __( 'Calendar provider manager not available.', 'simple-booking' ) );
+        }
+
+        $manager = new Simple_Booking_Calendar_Provider_Manager();
+        return $manager->get_provider();
+    }
+
+    /**
      * Create booking post
      */
     public static function create_booking( $data ) {
@@ -224,38 +238,36 @@ class Simple_Booking_Booking_Creator {
             }
         }
 
-        // Check if Google Calendar class is available
-        if ( ! class_exists( 'Simple_Booking_Google_Calendar' ) ) {
-            self::debug_log( 'Google Calendar class not available - skipping event creation', 'BOOKING' );
+        $provider = self::get_active_calendar_provider();
+        if ( is_wp_error( $provider ) ) {
+            self::debug_log( 'Calendar provider manager error: ' . $provider->get_error_message(), 'BOOKING' );
             self::debug_log( '=== Booking Creator: create_google_event END ===', 'BOOKING' );
-            return ''; // Return empty string to indicate no event was created
+            return '';
         }
 
-        $google = new Simple_Booking_Google_Calendar();
+        self::debug_log( 'Active calendar provider: ' . $provider->get_slug(), 'BOOKING' );
 
-        $is_connected = $google->is_connected();
-        self::debug_log( 'Google is_connected(): ' . ( $is_connected ? 'true' : 'false' ), 'BOOKING' );
+        $is_connected = $provider->is_connected();
+        self::debug_log( 'Provider is_connected(): ' . ( $is_connected ? 'true' : 'false' ), 'BOOKING' );
 
         if ( ! $is_connected ) {
-            self::debug_log( 'ERROR: Google Calendar not connected', 'BOOKING' );
-            return new WP_Error( 'not_connected', __( 'Google Calendar not connected', 'simple-booking' ) );
+            self::debug_log( 'ERROR: Active calendar provider not connected', 'BOOKING' );
+            return new WP_Error( 'calendar_not_connected', __( 'Calendar provider not connected', 'simple-booking' ) );
         }
 
-        // Use staff's calendar ID if available
-        $calendar_id = isset( $booking_data['calendar_id'] ) ? $booking_data['calendar_id'] : null;
-        $result = $google->create_event( $booking_data, $calendar_id );
+        $result = $provider->create_event( $booking_data );
 
         if ( is_wp_error( $result ) ) {
             self::debug_log( 'ERROR: create_event returned WP_Error: ' . $result->get_error_code() . ' - ' . $result->get_error_message(), 'BOOKING' );
         } elseif ( empty( $result ) ) {
             self::debug_log( 'WARNING: create_event returned empty (no event ID)', 'BOOKING' );
         } elseif ( is_array( $result ) ) {
-            self::debug_log( 'SUCCESS: Google event ID: ' . ( isset( $result['event_id'] ) ? $result['event_id'] : '' ), 'BOOKING' );
+            self::debug_log( 'SUCCESS: Calendar event ID: ' . ( isset( $result['event_id'] ) ? $result['event_id'] : '' ), 'BOOKING' );
             if ( ! empty( $result['meeting_link'] ) ) {
                 self::debug_log( 'SUCCESS: Google Meet link generated', 'BOOKING' );
             }
         } else {
-            self::debug_log( 'SUCCESS: Google event ID: ' . $result, 'BOOKING' );
+            self::debug_log( 'SUCCESS: Calendar event ID: ' . $result, 'BOOKING' );
         }
 
         self::debug_log( '=== Booking Creator: create_google_event END ===', 'BOOKING' );
@@ -300,16 +312,17 @@ class Simple_Booking_Booking_Creator {
             return true;
         }
 
-        if ( ! class_exists( 'Simple_Booking_Google_Calendar' ) ) {
+        $provider = self::get_active_calendar_provider();
+        if ( is_wp_error( $provider ) ) {
+            self::debug_log( 'Calendar provider manager error on delete: ' . $provider->get_error_message(), 'BOOKING' );
             return true;
         }
 
-        $google = new Simple_Booking_Google_Calendar();
         $calendar_id = self::get_booking_calendar_id( $booking_id );
-        $deleted = $google->delete_event( $event_id, $calendar_id );
+        $deleted = $provider->delete_event( $event_id, array( 'calendar_id' => $calendar_id ) );
 
         if ( is_wp_error( $deleted ) ) {
-            self::debug_log( 'Failed to delete Google event for booking ' . $booking_id . ': ' . $deleted->get_error_message(), 'BOOKING' );
+            self::debug_log( 'Failed to delete calendar event for booking ' . $booking_id . ': ' . $deleted->get_error_message(), 'BOOKING' );
             return $deleted;
         }
 
