@@ -56,9 +56,15 @@ Release gate:
 
 ## Mini Regression Run - PENDING
 
-**Commit:** `6aec657`
+**Commit:** `f34137d`
 **Duration:** ~20 minutes (estimated)
 **Result:** Pending
+
+**Current observed checks from manual run (2026-03-09):**
+- ✅ ICS selected, free booking does not create calendar event
+- ✅ Cancel flow works
+- ✅ Email meeting link rendering works
+- 🔄 Pending retest after latest fix: provider-aware frontend slot/event behavior + Google settings visibility with ICS
 
 ### Focus Areas
 
@@ -71,6 +77,8 @@ Release gate:
 - [ ] Create booking with Google provider active
 - [ ] Old bookings still exist after provider switch
 - [ ] Events still sync to original provider after switch
+- [ ] Service editor: Meeting Link remains editable when Auto-Create Google Meet is enabled
+- [ ] Settings page: Google section hidden when provider is ICS
 - [ ] No fatal errors in debug.log
 
 ---
