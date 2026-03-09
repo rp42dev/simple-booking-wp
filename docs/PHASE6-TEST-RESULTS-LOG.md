@@ -22,12 +22,45 @@ Release gate:
 
 ---
 
+## Smoke Suite Run - 2026-03-09
+
+**Commit:** `8060db9`
+**Provider:** Google Calendar (default)
+**Duration:** ~8 minutes
+**Result:** ✅ PASSED
+
+### Test Results
+
+| Test Case | Status | Notes |
+|-----------|--------|-------|
+| Free booking create | ✅ PASS | Form submits, booking created in post_type |
+| Paid booking with Stripe | ✅ PASS | Redirects to Stripe test checkout |
+| Stripe test checkout completion | ✅ PASS | Webhook creates booking, email sent |
+| Cancel paid booking | ✅ PASS | Cancellation + refund processed |
+| Reschedule booking | ✅ PASS | Date updated, notification sent |
+| Debug.log check | ✅ PASS | No fatal errors |
+
+### Defects Discovered
+
+| ID | Severity | Issue | Impact | Status |
+|----|----------|-------|--------|--------|
+| D001 | P2 | Cancel/reschedule links reusable | User confusion, potential duplicate actions | 👀 Future polish (Phase 7) |
+
+### Notes
+
+- Calendar provider refactoring into booking creator working correctly
+- Provider manager resolution integrated successfully
+- Plan: Next step is either Mini Regression or admin UI provider selector implementation
+
+---
+
 ## Current status snapshot
 
-- Latest commit tested:
-- Latest provider tested:
-- Smoke Suite status: Not run
-- Mini Regression status: Not run
+- Latest commit tested: `8060db9`
+- Latest provider tested: Google (default)
+- Smoke Suite status: ✅ PASSED (2026-03-09)
+- Mini Regression status: Ready
+- Issues discovered: Cancel/reschedule links are reusable (should be one-time use only) - noted for future security polish
 - Full Regression status: Not run
 - Open blockers (P0/P1): 0
 
