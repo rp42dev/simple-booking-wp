@@ -56,6 +56,10 @@ class Simple_Booking {
         require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-booking-webhook.php';
 
+        // Calendar Provider Architecture (Phase 6 scaffolding)
+        require_once SIMPLE_BOOKING_INCLUDES . 'calendar/interface-calendar-provider.php';
+        require_once SIMPLE_BOOKING_INCLUDES . 'calendar/class-calendar-provider-manager.php';
+
         // Google Calendar
         require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
 
