@@ -151,6 +151,9 @@ class Simple_Booking_Form {
             exit;
         }
 
+        // Check booking status to prevent reschedule/cancel on stale bookings.
+        $booking_status = get_post_meta( $booking_id, '_booking_status', true );
+
         if ( 'cancel' === $action ) {
             $cancel_result = Simple_Booking_Booking_Creator::cancel_booking( $booking_id, $token );
             if ( is_wp_error( $cancel_result ) ) {
@@ -159,6 +162,12 @@ class Simple_Booking_Form {
             }
 
             wp_safe_redirect( $this->get_cancel_redirect_url() );
+            exit;
+        }
+
+        // Block reschedule if booking is already cancelled or rescheduled.
+        if ( in_array( $booking_status, array( 'cancelled', 'rescheduled' ), true ) ) {
+            wp_safe_redirect( add_query_arg( 'sb_manage', 'stale', $manage_page_url ) );
             exit;
         }
 
@@ -296,6 +305,10 @@ class Simple_Booking_Form {
             <?php elseif ( 'invalid' === $manage_status ) : ?>
                 <div class="booking-message error">
                     <p><?php _e( 'This booking management link is invalid or expired.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'stale' === $manage_status ) : ?>
+                <div class="booking-message error">
+                    <p><?php _e( 'This booking has already been cancelled or rescheduled and cannot be modified.', 'simple-booking' ); ?></p>
                 </div>
             <?php endif; ?>
 
