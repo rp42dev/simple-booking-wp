@@ -163,7 +163,7 @@ class Simple_Booking_License_Manager {
         // TODO: Implement with caching
 
         // Dev/test override for local environments.
-        if ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && SIMPLE_BOOKING_FORCE_PRO ) {
+        if ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && true === SIMPLE_BOOKING_FORCE_PRO ) {
             return array(
                 'valid'   => true,
                 'status'  => 'active',

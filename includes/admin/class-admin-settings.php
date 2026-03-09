@@ -336,7 +336,7 @@ class Simple_Booking_Admin_Settings {
         }
         
         // Check if trying to set Pro provider without Pro license
-        $is_pro = ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && SIMPLE_BOOKING_FORCE_PRO );
+        $is_pro = ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && true === SIMPLE_BOOKING_FORCE_PRO );
         if ( ! $is_pro && class_exists( 'Simple_Booking_License_Manager' ) ) {
             $license = new Simple_Booking_License_Manager();
             $is_pro = $license->is_pro_active();
@@ -539,7 +539,7 @@ class Simple_Booking_Admin_Settings {
         $current_provider = isset( $options['calendar_provider'] ) ? $options['calendar_provider'] : 'ics';
         
         // Check Pro status
-        $is_pro = ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && SIMPLE_BOOKING_FORCE_PRO );
+        $is_pro = ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && true === SIMPLE_BOOKING_FORCE_PRO );
         if ( ! $is_pro && class_exists( 'Simple_Booking_License_Manager' ) ) {
             $license = new Simple_Booking_License_Manager();
             $is_pro = $license->is_pro_active();

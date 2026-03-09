@@ -167,7 +167,7 @@ Single-service form examples:
 
 ## Pre-release Checklist
 
-- Ensure test override is disabled in production: `SIMPLE_BOOKING_FORCE_PRO` must be removed or set to `false`
+- Ensure test override is disabled in production: `SIMPLE_BOOKING_FORCE_PRO` must be removed or set to boolean `false` (not string `'false'`)
 - Verify Calendar Provider is set intentionally (`ics` or `google`) in **Settings > Simple Booking**
 - Confirm Google credentials persist after provider switching in settings
 - Run one paid cancel flow and confirm only one refund is attempted (repeat cancel should be blocked)
