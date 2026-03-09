@@ -191,6 +191,7 @@ Release gate:
 
 ## Change log
 
+- 2026-03-09 14:58: Post-fix retest confirmed parse fix + webhook retry behavior (commit a1cb4e3). Observed retries on 429 (attempts at +1s, +2s, +4s), then graceful webhook failure log without fatal. Reschedule chain behavior confirmed in admin (original booking retained as reschedule requested, latest booking active). Cancellation/refund executed on latest booking once; repeat cancel blocked by action-level idempotency.
 - 2026-03-09 17:45: Phase 6.7 action-level idempotency verified. Cancelled booking + manual token consumption meta deletion → retry cancel → still blocked by execution marker. No duplicate refund attempt (commit 20e5f77).
 - 2026-03-09 17:35: Final UX copy unification applied. stale/used/already_cancelled states now all show: "This booking has already been cancelled or rescheduled and cannot be modified." (commit 325cce4).
 - 2026-03-09 17:25: Phase 6.7 UX polish verified. Reused cancel links now show "already cancelled" message; reused reschedule links show stale/rescheduled guidance (commit a0ac70c).

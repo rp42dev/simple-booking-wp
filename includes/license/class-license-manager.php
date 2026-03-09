@@ -161,6 +161,29 @@ class Simple_Booking_License_Manager {
      */
     public function check_license_status() {
         // TODO: Implement with caching
+
+        // Dev/test override for local environments.
+        if ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && SIMPLE_BOOKING_FORCE_PRO ) {
+            return array(
+                'valid'   => true,
+                'status'  => 'active',
+                'plan'    => 'pro',
+                'expires' => null,
+            );
+        }
+
+        $override = apply_filters( 'simple_booking_license_status_override', null );
+        if ( is_array( $override ) ) {
+            return wp_parse_args(
+                $override,
+                array(
+                    'valid'   => false,
+                    'status'  => 'free',
+                    'plan'    => 'free',
+                    'expires' => null,
+                )
+            );
+        }
         
         // Check cache first
         $cached = get_transient( self::CACHE_KEY );
