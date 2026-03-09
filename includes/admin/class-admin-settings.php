@@ -47,9 +47,6 @@ class Simple_Booking_Admin_Settings {
             array( $this, 'sanitize_settings' )
         );
 
-        $active_provider = sanitize_key( simple_booking()->get_setting( 'calendar_provider', 'ics' ) );
-        $show_google_settings = ( 'ics' !== $active_provider );
-
         // Stripe Settings
         add_settings_section(
             'simple_booking_stripe',
@@ -95,61 +92,6 @@ class Simple_Booking_Admin_Settings {
             )
         );
 
-        if ( $show_google_settings ) {
-            // Google Calendar Settings
-            add_settings_section(
-                'simple_booking_google',
-                __( 'Google Calendar Settings', 'simple-booking' ),
-                array( $this, 'render_google_section' ),
-                self::PAGE_SLUG
-            );
-
-            add_settings_field(
-                'google_client_id',
-                __( 'Client ID', 'simple-booking' ),
-                array( $this, 'render_text_field' ),
-                self::PAGE_SLUG,
-                'simple_booking_google',
-                array(
-                    'name'        => 'google_client_id',
-                    'placeholder' => 'xxxxxxxxxxxxxx.apps.googleusercontent.com',
-                )
-            );
-
-            add_settings_field(
-                'google_client_secret',
-                __( 'Client Secret', 'simple-booking' ),
-                array( $this, 'render_text_field' ),
-                self::PAGE_SLUG,
-                'simple_booking_google',
-                array(
-                    'name'        => 'google_client_secret',
-                    'placeholder' => 'xxxxxxxxxxxxxx',
-                    'type'        => 'password',
-                )
-            );
-
-            add_settings_field(
-                'google_calendar_id',
-                __( 'Calendar ID', 'simple-booking' ),
-                array( $this, 'render_text_field' ),
-                self::PAGE_SLUG,
-                'simple_booking_google',
-                array(
-                    'name'        => 'google_calendar_id',
-                    'placeholder' => 'xxxxxxxxxxxxxx@group.calendar.google.com',
-                )
-            );
-
-            add_settings_field(
-                'google_redirect_uri',
-                __( 'Redirect URI', 'simple-booking' ),
-                array( $this, 'render_google_redirect' ),
-                self::PAGE_SLUG,
-                'simple_booking_google'
-            );
-        }
-
         // Calendar Provider Selection
         add_settings_section(
             'simple_booking_calendar_provider',
@@ -164,6 +106,59 @@ class Simple_Booking_Admin_Settings {
             array( $this, 'render_calendar_provider_select' ),
             self::PAGE_SLUG,
             'simple_booking_calendar_provider'
+        );
+
+        // Google Calendar Settings
+        add_settings_section(
+            'simple_booking_google',
+            __( 'Google Calendar Settings', 'simple-booking' ),
+            array( $this, 'render_google_section' ),
+            self::PAGE_SLUG
+        );
+
+        add_settings_field(
+            'google_client_id',
+            __( 'Client ID', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_google',
+            array(
+                'name'        => 'google_client_id',
+                'placeholder' => 'xxxxxxxxxxxxxx.apps.googleusercontent.com',
+            )
+        );
+
+        add_settings_field(
+            'google_client_secret',
+            __( 'Client Secret', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_google',
+            array(
+                'name'        => 'google_client_secret',
+                'placeholder' => 'xxxxxxxxxxxxxx',
+                'type'        => 'password',
+            )
+        );
+
+        add_settings_field(
+            'google_calendar_id',
+            __( 'Calendar ID', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_google',
+            array(
+                'name'        => 'google_calendar_id',
+                'placeholder' => 'xxxxxxxxxxxxxx@group.calendar.google.com',
+            )
+        );
+
+        add_settings_field(
+            'google_redirect_uri',
+            __( 'Redirect URI', 'simple-booking' ),
+            array( $this, 'render_google_redirect' ),
+            self::PAGE_SLUG,
+            'simple_booking_google'
         );
 
         // General Settings
@@ -306,6 +301,7 @@ class Simple_Booking_Admin_Settings {
      */
     public function sanitize_settings( $input ) {
         $sanitized = array();
+        $existing = get_option( 'simple_booking_settings', array() );
 
         // Stripe
         $sanitized['stripe_publishable_key'] = isset( $input['stripe_publishable_key'] ) ?
@@ -317,11 +313,11 @@ class Simple_Booking_Admin_Settings {
 
         // Google
         $sanitized['google_client_id'] = isset( $input['google_client_id'] ) ?
-            sanitize_text_field( $input['google_client_id'] ) : '';
+            sanitize_text_field( $input['google_client_id'] ) : ( isset( $existing['google_client_id'] ) ? $existing['google_client_id'] : '' );
         $sanitized['google_client_secret'] = isset( $input['google_client_secret'] ) ?
-            sanitize_text_field( $input['google_client_secret'] ) : '';
+            sanitize_text_field( $input['google_client_secret'] ) : ( isset( $existing['google_client_secret'] ) ? $existing['google_client_secret'] : '' );
         $sanitized['google_calendar_id'] = isset( $input['google_calendar_id'] ) ?
-            sanitize_text_field( $input['google_calendar_id'] ) : '';
+            sanitize_text_field( $input['google_calendar_id'] ) : ( isset( $existing['google_calendar_id'] ) ? $existing['google_calendar_id'] : '' );
 
         // Calendar Provider Selection (with Pro gating)
         $allowed_providers = array( 'google', 'outlook', 'ics' );
@@ -534,7 +530,7 @@ class Simple_Booking_Admin_Settings {
         }
         
         ?>
-        <select name="simple_booking_settings[calendar_provider]">
+        <select name="simple_booking_settings[calendar_provider]" id="simple-booking-calendar-provider-select">
             <option value="ics" <?php selected( $current_provider, 'ics' ); ?>>
                 <?php _e( 'ICS Feed (Free)', 'simple-booking' ); ?>
             </option>
@@ -554,6 +550,47 @@ class Simple_Booking_Admin_Settings {
             }
             ?>
         </p>
+        <script>
+        (function() {
+            function toggleGoogleSection() {
+                var providerSelect = document.getElementById('simple-booking-calendar-provider-select');
+                if (!providerSelect) {
+                    return;
+                }
+
+                var headings = document.querySelectorAll('.wrap h2');
+                var googleHeading = null;
+                for (var i = 0; i < headings.length; i++) {
+                    if (headings[i].textContent && headings[i].textContent.indexOf('Google Calendar Settings') !== -1) {
+                        googleHeading = headings[i];
+                        break;
+                    }
+                }
+
+                if (!googleHeading) {
+                    return;
+                }
+
+                var showGoogle = providerSelect.value === 'google';
+                googleHeading.style.display = showGoogle ? '' : 'none';
+
+                var node = googleHeading.nextElementSibling;
+                while (node && node.tagName !== 'H2') {
+                    node.style.display = showGoogle ? '' : 'none';
+                    node = node.nextElementSibling;
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var providerSelect = document.getElementById('simple-booking-calendar-provider-select');
+                if (!providerSelect) {
+                    return;
+                }
+                providerSelect.addEventListener('change', toggleGoogleSection);
+                toggleGoogleSection();
+            });
+        })();
+        </script>
         <?php
     }
 
