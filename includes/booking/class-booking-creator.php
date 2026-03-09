@@ -251,6 +251,21 @@ class Simple_Booking_Booking_Creator {
     }
 
     /**
+     * Get consumed management action for a booking token.
+     *
+     * @param int $booking_id
+     * @return string
+     */
+    public static function get_management_token_consumed_action( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return '';
+        }
+
+        return sanitize_key( (string) get_post_meta( $booking_id, self::MANAGEMENT_TOKEN_CONSUMED_ACTION_META, true ) );
+    }
+
+    /**
      * Build booking management URL.
      *
      * @param int    $booking_id
