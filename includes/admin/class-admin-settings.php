@@ -161,6 +161,14 @@ class Simple_Booking_Admin_Settings {
             'simple_booking_google'
         );
 
+        // Outlook Calendar Settings
+        add_settings_section(
+            'simple_booking_outlook',
+            __( 'Outlook Calendar Settings', 'simple-booking' ),
+            array( $this, 'render_outlook_section' ),
+            self::PAGE_SLUG
+        );
+
         // General Settings
         add_settings_section(
             'simple_booking_general',
@@ -509,6 +517,14 @@ class Simple_Booking_Admin_Settings {
     }
 
     /**
+     * Render Outlook section
+     */
+    public function render_outlook_section() {
+        echo '<p>' . __( 'Microsoft Outlook Calendar integration is planned and currently not implemented.', 'simple-booking' ) . '</p>';
+        echo '<p class="description">' . __( 'Select Outlook as provider for testing provider-switch UX, but booking sync currently uses fallback behavior until Outlook API integration is added.', 'simple-booking' ) . '</p>';
+    }
+
+    /**
      * Render Calendar Provider section
      */
     public function render_calendar_provider_section() {
@@ -552,33 +568,43 @@ class Simple_Booking_Admin_Settings {
         </p>
         <script>
         (function() {
+            function findSectionHeading(sectionTitle) {
+                var headings = document.querySelectorAll('.wrap h2');
+                for (var i = 0; i < headings.length; i++) {
+                    if (headings[i].textContent && headings[i].textContent.indexOf(sectionTitle) !== -1) {
+                        return headings[i];
+                    }
+                }
+                return null;
+            }
+
+            function setSectionVisible(heading, visible) {
+                if (!heading) {
+                    return;
+                }
+                heading.style.display = visible ? '' : 'none';
+
+                var node = heading.nextElementSibling;
+                while (node && node.tagName !== 'H2') {
+                    node.style.display = visible ? '' : 'none';
+                    node = node.nextElementSibling;
+                }
+            }
+
             function toggleGoogleSection() {
                 var providerSelect = document.getElementById('simple-booking-calendar-provider-select');
                 if (!providerSelect) {
                     return;
                 }
 
-                var headings = document.querySelectorAll('.wrap h2');
-                var googleHeading = null;
-                for (var i = 0; i < headings.length; i++) {
-                    if (headings[i].textContent && headings[i].textContent.indexOf('Google Calendar Settings') !== -1) {
-                        googleHeading = headings[i];
-                        break;
-                    }
-                }
-
-                if (!googleHeading) {
-                    return;
-                }
-
                 var showGoogle = providerSelect.value === 'google';
-                googleHeading.style.display = showGoogle ? '' : 'none';
+                var showOutlook = providerSelect.value === 'outlook';
 
-                var node = googleHeading.nextElementSibling;
-                while (node && node.tagName !== 'H2') {
-                    node.style.display = showGoogle ? '' : 'none';
-                    node = node.nextElementSibling;
-                }
+                var googleHeading = findSectionHeading('Google Calendar Settings');
+                var outlookHeading = findSectionHeading('Outlook Calendar Settings');
+
+                setSectionVisible(googleHeading, showGoogle);
+                setSectionVisible(outlookHeading, showOutlook);
             }
 
             document.addEventListener('DOMContentLoaded', function() {
