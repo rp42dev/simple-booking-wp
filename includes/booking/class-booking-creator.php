@@ -137,6 +137,15 @@ class Simple_Booking_Booking_Creator {
             $reschedule_token = sanitize_text_field( $data['reschedule_token'] );
 
             if ( self::verify_booking_management_token( $from_booking_id, $reschedule_token ) ) {
+                // Preserve original Stripe payment reference for paid reschedules.
+                // This ensures later cancellation/refund checks still work on the new booking.
+                $source_payment_id = self::get_stripe_payment_id( $from_booking_id );
+                $new_payment_id = self::get_stripe_payment_id( $booking_id );
+                if ( empty( $new_payment_id ) && ! empty( $source_payment_id ) ) {
+                    update_post_meta( $booking_id, '_stripe_payment_id', sanitize_text_field( $source_payment_id ) );
+                    self::debug_log( 'Copied stripe_payment_id from booking ' . $from_booking_id . ' to rescheduled booking ' . $booking_id, 'BOOKING' );
+                }
+
                 self::delete_google_event_for_booking( $from_booking_id );
                 update_post_meta( $from_booking_id, '_booking_status', 'rescheduled' );
                 update_post_meta( $from_booking_id, '_rescheduled_to_booking_id', absint( $booking_id ) );
