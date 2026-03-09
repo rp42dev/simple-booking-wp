@@ -33,6 +33,20 @@ class Simple_Booking_Form {
     }
 
     /**
+     * Get active calendar provider instance.
+     *
+     * @return Simple_Booking_Calendar_Provider_Interface|WP_Error
+     */
+    private function get_active_calendar_provider() {
+        if ( ! class_exists( 'Simple_Booking_Calendar_Provider_Manager' ) ) {
+            return new WP_Error( 'calendar_provider_manager_missing', __( 'Calendar provider manager not available.', 'simple-booking' ) );
+        }
+
+        $manager = new Simple_Booking_Calendar_Provider_Manager();
+        return $manager->get_provider();
+    }
+
+    /**
      * Enqueue scripts and styles
      */
     public function enqueue_scripts() {
@@ -510,21 +524,18 @@ class Simple_Booking_Form {
                 $end = clone $start;
                 $end->modify( "+{$duration} minutes" );
 
-                if ( class_exists( 'Simple_Booking_Google_Calendar' ) ) {
-                    $google = new Simple_Booking_Google_Calendar();
-                    $staff_availability = $google->find_available_staff( $service_id, $start->format( DateTime::ATOM ), $duration );
-                    if ( ! is_array( $staff_availability ) ) {
-                        wp_send_json_error( array( 'message' => __( 'Selected time slot is no longer available', 'simple-booking' ) ) );
-                    }
-                } else {
-                    $events = $this->get_existing_events( $start->format( 'Y-m-d' ) );
-                    if ( is_wp_error( $events ) ) {
-                        wp_send_json_error( array( 'message' => $events->get_error_message() ) );
-                    }
+                $provider = $this->get_active_calendar_provider();
+                if ( is_wp_error( $provider ) ) {
+                    wp_send_json_error( array( 'message' => __( 'Calendar provider is unavailable', 'simple-booking' ) ) );
+                }
 
-                    if ( ! $this->check_slot_availability( $start->format( DateTime::ATOM ), $end->format( DateTime::ATOM ), $events ) ) {
-                        wp_send_json_error( array( 'message' => __( 'Selected time slot is no longer available', 'simple-booking' ) ) );
-                    }
+                $staff_availability = $provider->find_available_staff( $service_id, $start->format( DateTime::ATOM ), $duration );
+                if ( false === $staff_availability ) {
+                    wp_send_json_error( array( 'message' => __( 'Selected time slot is no longer available', 'simple-booking' ) ) );
+                }
+
+                if ( is_wp_error( $staff_availability ) && simple_booking()->get_setting( 'debug_mode' ) ) {
+                    error_log( '[DEBUG]: provider slot check failed during submission: ' . $staff_availability->get_error_message() );
                 }
             } catch ( Exception $e ) {
                 // ignore parse problem, will be caught earlier
@@ -801,15 +812,10 @@ class Simple_Booking_Form {
             wp_send_json_error( array( 'message' => 'Service not found', 'debug' => $debug ) );
         }
 
-        $google = class_exists( 'Simple_Booking_Google_Calendar' ) ? new Simple_Booking_Google_Calendar() : null;
-
-        $events = array();
-        if ( ! $google ) {
-            $events = $this->get_existing_events( $date );
-            if ( is_wp_error( $events ) ) {
-                $debug[] = '[DEBUG]: get_existing_events error: ' . $events->get_error_message();
-                wp_send_json_error( array( 'message' => $events->get_error_message(), 'debug' => $debug ) );
-            }
+        $provider = $this->get_active_calendar_provider();
+        if ( is_wp_error( $provider ) ) {
+            $debug[] = '[DEBUG]: provider manager error: ' . $provider->get_error_message();
+            wp_send_json_error( array( 'message' => __( 'Calendar provider unavailable', 'simple-booking' ), 'debug' => $debug ) );
         }
 
         // build slots starting on each hour, respecting work hours if configured
@@ -860,12 +866,12 @@ class Simple_Booking_Form {
                 $reason = 'past';
                 $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' is in the past';
             } else {
-                if ( $google ) {
-                    $staff_availability = $google->find_available_staff( $service_id, $slotStart->format( DateTime::ATOM ), $duration );
+                if ( $provider ) {
+                    $staff_availability = $provider->find_available_staff( $service_id, $slotStart->format( DateTime::ATOM ), $duration );
                     $available_flag = is_array( $staff_availability );
                     if ( $available_flag ) {
                         $assigned_staff_id = isset( $staff_availability['staff_id'] ) ? $staff_availability['staff_id'] : 'none';
-                        $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' is available (staff_id=' . $assigned_staff_id . ')';
+                        $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' is available via provider ' . $provider->get_slug() . ' (staff_id=' . $assigned_staff_id . ')';
                     } else {
                         $reason = 'booked';
                         $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' unavailable (no staff available)';
