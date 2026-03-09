@@ -354,11 +354,11 @@ class Simple_Booking_Form {
                 </div>
             <?php elseif ( 'already_cancelled' === $manage_status ) : ?>
                 <div class="booking-message error">
-                    <p><?php _e( 'This booking has already been cancelled. No further action is needed.', 'simple-booking' ); ?></p>
+                    <p><?php _e( 'This booking has already been cancelled or rescheduled and cannot be modified.', 'simple-booking' ); ?></p>
                 </div>
             <?php elseif ( 'used' === $manage_status ) : ?>
                 <div class="booking-message error">
-                    <p><?php _e( 'This booking management link has already been used.', 'simple-booking' ); ?></p>
+                    <p><?php _e( 'This booking has already been cancelled or rescheduled and cannot be modified.', 'simple-booking' ); ?></p>
                 </div>
             <?php endif; ?>
 
