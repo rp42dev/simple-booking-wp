@@ -988,7 +988,27 @@ class Simple_Booking_Form {
                         $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' is available via provider ' . $provider->get_slug() . ' (staff_id=' . $assigned_staff_id . ')';
                     } elseif ( 'provider_error' !== $reason ) {
                         $reason = 'booked';
-                        $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' unavailable (no staff available)';
+                        $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' unavailable (provider reported busy/no availability)';
+
+                        if ( simple_booking()->get_setting( 'debug_mode' ) && method_exists( $provider, 'probe_slot' ) ) {
+                            $probe = $provider->probe_slot( $slotStart->format( DateTime::ATOM ), $duration );
+
+                            if ( is_wp_error( $probe ) ) {
+                                $debug[] = '[DEBUG]: probe_slot error for ' . $slotStart->format( DateTime::ATOM ) . ': ' . $probe->get_error_code() . ' - ' . $probe->get_error_message();
+                            } elseif ( is_array( $probe ) ) {
+                                $busy_count = isset( $probe['busy_count'] ) ? absint( $probe['busy_count'] ) : 0;
+                                $debug[] = '[DEBUG]: probe_slot ' . $slotStart->format( DateTime::ATOM ) . ' busy_count=' . $busy_count . ' available=' . ( ! empty( $probe['available'] ) ? 'true' : 'false' );
+
+                                if ( ! empty( $probe['busy_windows'] ) && is_array( $probe['busy_windows'] ) ) {
+                                    foreach ( array_slice( $probe['busy_windows'], 0, 2 ) as $busy_window ) {
+                                        $busy_subject = isset( $busy_window['subject'] ) ? (string) $busy_window['subject'] : 'N/A';
+                                        $busy_start = isset( $busy_window['start'] ) ? (string) $busy_window['start'] : 'N/A';
+                                        $busy_end = isset( $busy_window['end'] ) ? (string) $busy_window['end'] : 'N/A';
+                                        $debug[] = '[DEBUG]: probe busy window: ' . $busy_subject . ' ' . $busy_start . ' -> ' . $busy_end;
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
                     // fallback behavior when Google class is unavailable
