@@ -311,7 +311,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         if ( isset( $response_body['value'][0]['scheduleItems'] ) && is_array( $response_body['value'][0]['scheduleItems'] ) ) {
             foreach ( $response_body['value'][0]['scheduleItems'] as $item ) {
                 $status = isset( $item['status'] ) ? strtolower( (string) $item['status'] ) : '';
-                if ( in_array( $status, array( 'free', 'unknown' ), true ) ) {
+                if ( 'free' === $status ) {
                     continue;
                 }
 
@@ -594,7 +594,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         if ( isset( $response_body['value'] ) && is_array( $response_body['value'] ) ) {
             foreach ( $response_body['value'] as $item ) {
                 $show_as = isset( $item['showAs'] ) ? strtolower( (string) $item['showAs'] ) : '';
-                if ( in_array( $show_as, array( 'free', 'unknown' ), true ) ) {
+                if ( 'free' === $show_as ) {
                     continue;
                 }
 
