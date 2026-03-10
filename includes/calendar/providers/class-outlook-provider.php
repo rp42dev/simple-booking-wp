@@ -197,6 +197,71 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     }
 
     /**
+     * Resolve a normalized slot range from requested start + duration.
+     *
+     * @param string $start_datetime
+     * @param int    $duration_minutes
+     * @return array|WP_Error
+     */
+    private function resolve_slot_range( $start_datetime, $duration_minutes ) {
+        $start_ts = strtotime( (string) $start_datetime );
+        $duration_minutes = absint( $duration_minutes );
+        if ( $duration_minutes <= 0 ) {
+            $duration_minutes = 60;
+        }
+
+        if ( false === $start_ts ) {
+            return new WP_Error( 'outlook_invalid_start', __( 'Invalid start datetime for availability check.', 'simple-booking' ) );
+        }
+
+        $end_ts = $start_ts + ( $duration_minutes * 60 );
+
+        return array(
+            'start_ts' => $start_ts,
+            'end_ts'   => $end_ts,
+            'start'    => gmdate( 'c', $start_ts ),
+            'end'      => gmdate( 'c', $end_ts ),
+        );
+    }
+
+    /**
+     * Check if requested slot overlaps any busy windows.
+     *
+     * @param string $start_datetime
+     * @param int    $duration_minutes
+     * @return bool|WP_Error True when slot is available.
+     */
+    private function is_slot_available( $start_datetime, $duration_minutes ) {
+        $range = $this->resolve_slot_range( $start_datetime, $duration_minutes );
+        if ( is_wp_error( $range ) ) {
+            return $range;
+        }
+
+        $busy_windows = $this->fetch_busy_windows( $range['start'], $range['end'] );
+        if ( is_wp_error( $busy_windows ) ) {
+            return $busy_windows;
+        }
+
+        foreach ( $busy_windows as $window ) {
+            if ( empty( $window['start'] ) || empty( $window['end'] ) ) {
+                continue;
+            }
+
+            $busy_start_ts = strtotime( (string) $window['start'] );
+            $busy_end_ts = strtotime( (string) $window['end'] );
+            if ( false === $busy_start_ts || false === $busy_end_ts ) {
+                continue;
+            }
+
+            if ( $range['start_ts'] < $busy_end_ts && $range['end_ts'] > $busy_start_ts ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Resolve booking start/end datetimes for provider payloads.
      *
      * Supports current payload keys (`start_datetime`, `end_datetime`) and
@@ -455,7 +520,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         
         if ( isset( $response_body['value'][0]['scheduleItems'] ) ) {
             foreach ( $response_body['value'][0]['scheduleItems'] as $item ) {
-                if ( in_array( $item['status'], array( 'busy', 'tentative', 'oof' ), true ) ) {
+                if ( in_array( $item['status'], array( 'busy', 'tentative', 'oof', 'workingElsewhere' ), true ) ) {
                     $busy_windows[] = array(
                         'start' => $item['start']['dateTime'],
                         'end'   => $item['end']['dateTime'],
@@ -471,6 +536,19 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
      * Find available staff (placeholder for multi-staff support)
      */
     public function find_available_staff( $service_id, $start_datetime, $duration_minutes, $context = array() ) {
+        if ( ! $this->is_connected() ) {
+            return false;
+        }
+
+        $available = $this->is_slot_available( $start_datetime, $duration_minutes );
+        if ( is_wp_error( $available ) ) {
+            return false;
+        }
+
+        if ( true !== $available ) {
+            return false;
+        }
+
         return array(
             'staff_id'    => null,
             'calendar_id' => null,
