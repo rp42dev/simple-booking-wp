@@ -56,6 +56,7 @@ class Simple_Booking_Booking_Webhook {
      * @return true|WP_Error
      */
     private static function send_with_retry( $webhook_url, $payload, $max_retries = 3 ) {
+        $context = self::build_context_label( $payload );
         $result = self::send_request( $webhook_url, $payload );
 
         if ( true === $result['success'] ) {
@@ -65,7 +66,7 @@ class Simple_Booking_Booking_Webhook {
         if ( ! empty( $result['retryable'] ) && $max_retries > 0 ) {
             $delay = self::get_retry_delay( $result, 1 );
             self::schedule_retry( $webhook_url, $payload, 1, $max_retries, $delay );
-            self::debug_log( 'Webhook initial delivery deferred to background after ' . $result['message'] . '; retry scheduled in ' . $delay . 's' );
+            self::debug_log( 'Webhook [' . $context . '] initial delivery deferred to background after ' . $result['message'] . '; retry scheduled in ' . $delay . 's' );
             return true;
         }
 
@@ -84,11 +85,12 @@ class Simple_Booking_Booking_Webhook {
     public static function process_scheduled_retry( $webhook_url, $payload, $attempt, $max_retries ) {
         $attempt = absint( $attempt );
         $max_retries = absint( $max_retries );
+        $context = self::build_context_label( $payload );
 
         $result = self::send_request( $webhook_url, $payload );
 
         if ( true === $result['success'] ) {
-            self::debug_log( 'Webhook succeeded on scheduled attempt ' . ( $attempt + 1 ) );
+            self::debug_log( 'Webhook [' . $context . '] succeeded on scheduled attempt ' . ( $attempt + 1 ) );
             return;
         }
 
@@ -96,11 +98,11 @@ class Simple_Booking_Booking_Webhook {
             $next_attempt = $attempt + 1;
             $delay = self::get_retry_delay( $result, $next_attempt );
             self::schedule_retry( $webhook_url, $payload, $next_attempt, $max_retries, $delay );
-            self::debug_log( 'Webhook scheduled attempt ' . ( $attempt + 1 ) . ' failed with ' . $result['message'] . '; next retry in ' . $delay . 's' );
+            self::debug_log( 'Webhook [' . $context . '] scheduled attempt ' . ( $attempt + 1 ) . ' failed with ' . $result['message'] . '; next retry in ' . $delay . 's' );
             return;
         }
 
-        self::debug_log( 'Webhook permanently failed after scheduled attempt ' . ( $attempt + 1 ) . ': ' . $result['message'] );
+        self::debug_log( 'Webhook [' . $context . '] permanently failed after scheduled attempt ' . ( $attempt + 1 ) . ': ' . $result['message'] );
     }
 
     /**
@@ -161,11 +163,36 @@ class Simple_Booking_Booking_Webhook {
      * @return void
      */
     private static function schedule_retry( $webhook_url, $payload, $attempt, $max_retries, $delay ) {
-        wp_schedule_single_event(
-            time() + max( 1, absint( $delay ) ),
-            self::RETRY_HOOK,
-            array( $webhook_url, $payload, absint( $attempt ), absint( $max_retries ) )
-        );
+        $args = array( $webhook_url, $payload, absint( $attempt ), absint( $max_retries ) );
+
+        if ( false !== wp_next_scheduled( self::RETRY_HOOK, $args ) ) {
+            return;
+        }
+
+        wp_schedule_single_event( time() + max( 1, absint( $delay ) ), self::RETRY_HOOK, $args );
+    }
+
+    /**
+     * Build short context label for webhook logs.
+     *
+     * @param array $payload
+     * @return string
+     */
+    private static function build_context_label( $payload ) {
+        $data = isset( $payload['data'] ) && is_array( $payload['data'] ) ? $payload['data'] : array();
+
+        if ( ! empty( $data['booking_id'] ) ) {
+            return 'booking_id=' . absint( $data['booking_id'] );
+        }
+
+        $email = isset( $data['email'] ) ? sanitize_email( $data['email'] ) : '';
+        $date  = isset( $data['date'] ) ? sanitize_text_field( $data['date'] ) : '';
+
+        if ( '' !== $email || '' !== $date ) {
+            return 'email=' . $email . ',date=' . $date;
+        }
+
+        return 'unknown';
     }
 
     /**
@@ -229,6 +256,7 @@ class Simple_Booking_Booking_Webhook {
      */
     private static function normalize_payload( $booking_data ) {
         return array(
+            'booking_id'    => isset( $booking_data['booking_id'] ) ? absint( $booking_data['booking_id'] ) : 0,
             'service_name'  => isset( $booking_data['service_name'] ) ? sanitize_text_field( $booking_data['service_name'] ) : '',
             'customer_name' => isset( $booking_data['customer_name'] ) ? sanitize_text_field( $booking_data['customer_name'] ) : '',
             'email'         => isset( $booking_data['customer_email'] ) ? sanitize_email( $booking_data['customer_email'] ) : '',

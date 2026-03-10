@@ -183,7 +183,9 @@ class Simple_Booking_Booking_Creator {
 
         // Send webhook notification (non-blocking, failures won't affect booking)
         if ( class_exists( 'Simple_Booking_Booking_Webhook' ) ) {
-            $webhook_result = Simple_Booking_Booking_Webhook::send_booking_created( $data );
+            $webhook_payload = $data;
+            $webhook_payload['booking_id'] = $booking_id;
+            $webhook_result = Simple_Booking_Booking_Webhook::send_booking_created( $webhook_payload );
             if ( is_wp_error( $webhook_result ) ) {
                 self::debug_log( 'Webhook failed: ' . $webhook_result->get_error_message(), 'BOOKING' );
             }
