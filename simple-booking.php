@@ -86,6 +86,31 @@ class Simple_Booking {
 
         // Init
         add_action( 'init', array( $this, 'init' ) );
+
+        // Mail failure diagnostics
+        add_action( 'wp_mail_failed', array( $this, 'log_mail_failure' ) );
+    }
+
+    /**
+     * Log wp_mail failures when debug mode is enabled.
+     *
+     * @param WP_Error $error
+     * @return void
+     */
+    public function log_mail_failure( $error ) {
+        if ( ! self::get_setting( 'debug_mode', false ) ) {
+            return;
+        }
+
+        if ( ! is_wp_error( $error ) ) {
+            return;
+        }
+
+        $message = $error->get_error_message();
+        $data = $error->get_error_data();
+        $context = is_array( $data ) ? wp_json_encode( $data ) : '';
+
+        error_log( '[SIMPLE_BOOKING_EMAIL] wp_mail_failed: ' . $message . ( $context ? ' data=' . $context : '' ) );
     }
 
     /**

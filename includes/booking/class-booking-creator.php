@@ -45,6 +45,27 @@ class Simple_Booking_Booking_Creator {
     }
 
     /**
+     * Build a domain-aligned sender email for better deliverability.
+     *
+     * @return string
+     */
+    private static function get_default_sender_email() {
+        $host = wp_parse_url( home_url(), PHP_URL_HOST );
+        if ( ! is_string( $host ) || '' === $host ) {
+            return (string) get_option( 'admin_email' );
+        }
+
+        $host = strtolower( preg_replace( '/^www\./', '', $host ) );
+        $sender = 'no-reply@' . $host;
+
+        if ( is_email( $sender ) ) {
+            return $sender;
+        }
+
+        return (string) get_option( 'admin_email' );
+    }
+
+    /**
      * Get active calendar provider instance.
      *
      * @return Simple_Booking_Calendar_Provider_Interface|WP_Error
@@ -727,12 +748,19 @@ class Simple_Booking_Booking_Creator {
             );
         }
 
+        $from_email = self::get_default_sender_email();
+        $reply_to_email = (string) get_option( 'admin_email' );
+
         $headers = array(
             'Content-Type: text/plain; charset=UTF-8',
-            'From: ' . get_bloginfo( 'name' ) . ' <' . get_option( 'admin_email' ) . '>',
+            'From: ' . get_bloginfo( 'name' ) . ' <' . $from_email . '>',
         );
 
-        self::debug_log( 'Attempting confirmation email for booking ' . $booking_id . ' to ' . $to, 'EMAIL' );
+        if ( is_email( $reply_to_email ) ) {
+            $headers[] = 'Reply-To: ' . get_bloginfo( 'name' ) . ' <' . $reply_to_email . '>';
+        }
+
+        self::debug_log( 'Attempting confirmation email for booking ' . $booking_id . ' to ' . $to . ' from=' . $from_email, 'EMAIL' );
 
         $sent = wp_mail( $to, $email_subject, $email_body, $headers );
 
