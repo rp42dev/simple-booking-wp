@@ -26,6 +26,7 @@ class Simple_Booking_Booking_Creator {
     const MANAGEMENT_TOKEN_CONSUMED_ACTION_META = '_booking_management_token_consumed_action';
     const ACTION_CANCEL_EXECUTED_META = '_cancel_action_executed_at';
     const ACTION_RESCHEDULE_EXECUTED_META = '_reschedule_action_executed_at';
+    const CONFIRMATION_EMAIL_SENT_META = '_confirmation_email_sent_at';
     // @todo remove DEBUG_FILE/DEBUG_ENABLED and related logging after issue is resolved
 
     /**
@@ -141,6 +142,10 @@ class Simple_Booking_Booking_Creator {
                 update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_result ) );
             }
         }
+
+        // Send confirmation email from creator to guarantee delivery attempt
+        // for all booking entry points (frontend, webhook, API, reschedule).
+        self::send_confirmation_email( $booking_id );
 
         // Send webhook notification (non-blocking, failures won't affect booking)
         if ( class_exists( 'Simple_Booking_Booking_Webhook' ) ) {
@@ -610,9 +615,21 @@ class Simple_Booking_Booking_Creator {
      * Send confirmation email
      */
     public static function send_confirmation_email( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return false;
+        }
+
+        $already_sent_at = get_post_meta( $booking_id, self::CONFIRMATION_EMAIL_SENT_META, true );
+        if ( ! empty( $already_sent_at ) ) {
+            self::debug_log( 'Confirmation email skipped for booking ' . $booking_id . '; already sent at ' . $already_sent_at, 'EMAIL' );
+            return true;
+        }
+
         $to = get_post_meta( $booking_id, '_customer_email', true );
         if ( empty( $to ) ) {
-            return;
+            self::debug_log( 'Confirmation email skipped for booking ' . $booking_id . '; customer email is empty', 'EMAIL' );
+            return false;
         }
 
         $customer_name   = get_post_meta( $booking_id, '_customer_name', true );
@@ -715,7 +732,27 @@ class Simple_Booking_Booking_Creator {
             'From: ' . get_bloginfo( 'name' ) . ' <' . get_option( 'admin_email' ) . '>',
         );
 
-        wp_mail( $to, $email_subject, $email_body, $headers );
+        self::debug_log( 'Attempting confirmation email for booking ' . $booking_id . ' to ' . $to, 'EMAIL' );
+
+        $sent = wp_mail( $to, $email_subject, $email_body, $headers );
+
+        // Retry once with minimal headers if first attempt fails.
+        if ( ! $sent ) {
+            self::debug_log( 'Primary wp_mail send failed for booking ' . $booking_id . '; retrying with minimal headers', 'EMAIL' );
+            $fallback_headers = array(
+                'Content-Type: text/plain; charset=UTF-8',
+            );
+            $sent = wp_mail( $to, $email_subject, $email_body, $fallback_headers );
+        }
+
+        if ( $sent ) {
+            update_post_meta( $booking_id, self::CONFIRMATION_EMAIL_SENT_META, current_time( 'mysql' ) );
+            self::debug_log( 'Confirmation email sent for booking ' . $booking_id . ' to ' . $to, 'EMAIL' );
+            return true;
+        }
+
+        self::debug_log( 'Confirmation email failed for booking ' . $booking_id . ' to ' . $to, 'EMAIL' );
+        return false;
     }
 
     /**
