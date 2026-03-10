@@ -50,6 +50,81 @@ class Simple_Booking_Staff {
 
         // Register meta fields
         self::register_meta();
+
+        // Register REST endpoints
+        add_action( 'rest_api_init', array( __CLASS__, 'register_rest_routes' ) );
+    }
+
+    /**
+     * Register REST routes
+     */
+    public static function register_rest_routes() {
+        register_rest_route(
+            'simple-booking/v1',
+            'calendars/list',
+            array(
+                'methods'             => 'GET',
+                'callback'            => array( __CLASS__, 'rest_list_calendars' ),
+                'permission_callback' => array( __CLASS__, 'check_admin_permission' ),
+            )
+        );
+    }
+
+    /**
+     * Check if user has permission to manage calendars
+     */
+    public static function check_admin_permission() {
+        return current_user_can( 'manage_options' );
+    }
+
+    /**
+     * REST endpoint to list available calendars
+     */
+    public static function rest_list_calendars() {
+        try {
+            if ( ! class_exists( 'Simple_Booking_Calendar_Provider_Manager' ) ) {
+                return array(
+                    'success' => false,
+                    'message' => __( 'Calendar provider manager not available', 'simple-booking' ),
+                );
+            }
+
+            $manager = new Simple_Booking_Calendar_Provider_Manager();
+            $provider = $manager->get_provider();
+
+            if ( ! $provider || is_wp_error( $provider ) ) {
+                return array(
+                    'success' => false,
+                    'message' => __( 'No calendar provider configured', 'simple-booking' ),
+                );
+            }
+
+            if ( ! $provider->is_connected() ) {
+                return array(
+                    'success' => false,
+                    'message' => __( 'Calendar provider not connected', 'simple-booking' ),
+                );
+            }
+
+            $calendars = $provider->list_calendars();
+
+            if ( is_wp_error( $calendars ) ) {
+                return array(
+                    'success' => false,
+                    'message' => $calendars->get_error_message(),
+                );
+            }
+
+            return array(
+                'success'   => true,
+                'calendars' => $calendars,
+            );
+        } catch ( Exception $e ) {
+            return array(
+                'success' => false,
+                'message' => $e->getMessage(),
+            );
+        }
     }
 
     /**
@@ -122,6 +197,7 @@ class Simple_Booking_Staff {
         }
 
         wp_nonce_field( 'simple_booking_staff_meta', 'simple_booking_staff_nonce' );
+        wp_nonce_field( 'wp_rest', '_wpnonce' );
         ?>
         <table class="form-table">
             <tr>
@@ -139,16 +215,30 @@ class Simple_Booking_Staff {
             </tr>
             <tr>
                 <th scope="row">
-                    <label for="staff_calendar_id"><?php _e( 'Calendar ID', 'simple-booking' ); ?></label>
+                    <label for="staff_calendar_id"><?php _e( 'Calendar', 'simple-booking' ); ?></label>
                 </th>
                 <td>
-                    <input type="text"
-                           id="staff_calendar_id"
-                           name="staff_calendar_id"
-                           value="<?php echo esc_attr( $staff_calendar_id ); ?>"
-                           class="regular-text"
-                           placeholder="Calendar identifier (Google or Outlook)" />
-                    <p class="description"><?php _e( 'Optional: Override calendar for this staff member. Supports Google Calendar ID or Outlook Calendar ID. Leave blank to use the global provider calendar.', 'simple-booking' ); ?></p>
+                    <div style="display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap;">
+                        <select id="staff_calendar_id"
+                                name="staff_calendar_id"
+                                style="flex: 1; min-width: 200px;">
+                            <option value=""><?php _e( '-- Use Global Calendar --', 'simple-booking' ); ?></option>
+                            <option value="" disabled>---</option>
+                            <option value="loading" disabled><?php _e( 'Loading calendars...', 'simple-booking' ); ?></option>
+                        </select>
+                        <button type="button" 
+                                id="reload_calendars_btn" 
+                                class="button button-secondary"
+                                style="white-space: nowrap;">
+                            <?php _e( '↻ Load Calendars', 'simple-booking' ); ?>
+                        </button>
+                    </div>
+                    <p class="description">
+                        <?php _e( 'Optional: Select a specific calendar for this staff member. Click "Load Calendars" to fetch available calendars from your connected provider.', 'simple-booking' ); ?>
+                    </p>
+                    <p style="color: #666; font-size: 12px; margin-top: 8px;">
+                        <span id="calendar_load_status"></span>
+                    </p>
                 </td>
             </tr>
             <tr>
@@ -165,6 +255,88 @@ class Simple_Booking_Staff {
                 </td>
             </tr>
         </table>
+        <script type="text/javascript">
+        (function() {
+            const selectElement = document.getElementById('staff_calendar_id');
+            const reloadBtn = document.getElementById('reload_calendars_btn');
+            const statusSpan = document.getElementById('calendar_load_status');
+            const currentValue = <?php echo json_encode( $staff_calendar_id ); ?>;
+
+            // Load calendars on button click
+            reloadBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                loadCalendars();
+            });
+
+            // Auto-load calendars on page load
+            window.addEventListener('load', function() {
+                loadCalendars();
+            });
+
+            function loadCalendars() {
+                const nonce = document.querySelector('input[name="_wpnonce"]').value;
+                
+                reloadBtn.disabled = true;
+                statusSpan.textContent = '<?php _e( 'Loading...', 'simple-booking' ); ?>';
+                statusSpan.style.color = '#0073aa';
+
+                fetch('/wp-json/simple-booking/v1/calendars/list', {
+                    method: 'GET',
+                    headers: {
+                        'X-WP-Nonce': nonce,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    reloadBtn.disabled = false;
+                    
+                    if (!data.success) {
+                        statusSpan.textContent = '<?php _e( 'Error:', 'simple-booking' ); ?> ' + (data.message || '<?php _e( 'Unknown error', 'simple-booking' ); ?>');
+                        statusSpan.style.color = '#a90000';
+                        console.error('Error loading calendars:', data);
+                        return;
+                    }
+
+                    // Clear existing options (keep the first one)
+                    while (selectElement.options.length > 2) {
+                        selectElement.remove(2);
+                    }
+
+                    if (!data.calendars || data.calendars.length === 0) {
+                        statusSpan.textContent = '<?php _e( 'No calendars found', 'simple-booking' ); ?>';
+                        statusSpan.style.color = '#666';
+                        return;
+                    }
+
+                    // Add calendar options
+                    data.calendars.forEach(calendar => {
+                        const option = document.createElement('option');
+                        option.value = calendar.id;
+                        option.textContent = calendar.name;
+                        if (calendar.isDefault || calendar.primary) {
+                            option.textContent += ' (Primary)';
+                        }
+                        selectElement.appendChild(option);
+                    });
+
+                    // Restore previous selection if it exists
+                    if (currentValue && Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
+                        selectElement.value = currentValue;
+                    }
+
+                    statusSpan.textContent = '<?php _e( 'Calendars loaded successfully', 'simple-booking' ); ?>';
+                    statusSpan.style.color = '#007015';
+                })
+                .catch(error => {
+                    reloadBtn.disabled = false;
+                    statusSpan.textContent = '<?php _e( 'Error:', 'simple-booking' ); ?> ' + error.message;
+                    statusSpan.style.color = '#a90000';
+                    console.error('Error fetching calendars:', error);
+                });
+            }
+        })();
+        </script>
         <?php
     }
 

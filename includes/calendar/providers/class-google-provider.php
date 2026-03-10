@@ -71,4 +71,15 @@ class Simple_Booking_Google_Provider implements Simple_Booking_Calendar_Provider
 
         return $this->google->find_available_staff( $service_id, $start_datetime, $duration_minutes );
     }
+
+    /**
+     * Get list of available calendars.
+     */
+    public function list_calendars() {
+        if ( ! $this->google ) {
+            return new WP_Error( 'google_provider_unavailable', __( 'Google provider unavailable.', 'simple-booking' ) );
+        }
+
+        return $this->google->list_calendars();
+    }
 }

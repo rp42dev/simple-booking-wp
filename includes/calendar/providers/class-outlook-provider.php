@@ -147,6 +147,68 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         $this->debug_log( 'get_availability_calendar_ids found ' . count( $ids ) . ' calendars' );
         return array_values( array_unique( $ids ) );
     }
+
+    /**
+     * Get list of available calendars with names (for dropdown).
+     *
+     * @return array|WP_Error Array of calendars with 'id' and 'name', or WP_Error.
+     */
+    public function list_calendars() {
+        if ( ! $this->is_connected() ) {
+            return new WP_Error( 'not_connected', __( 'Outlook not connected', 'simple-booking' ) );
+        }
+
+        $tokens = get_option( self::TOKEN_OPTION, array() );
+        $access_token = isset( $tokens['access_token'] ) ? $tokens['access_token'] : '';
+
+        if ( empty( $access_token ) ) {
+            return new WP_Error( 'no_token', __( 'No access token available', 'simple-booking' ) );
+        }
+
+        $response = wp_remote_get(
+            self::GRAPH_API_BASE . '/me/calendars?$select=id,name,isDefaultCalendar&$top=50',
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                ),
+                'timeout' => 30,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            $this->debug_log( 'list_calendars error: ' . $response->get_error_code() . ' - ' . $response->get_error_message() );
+            return $response;
+        }
+
+        $status_code = wp_remote_retrieve_response_code( $response );
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+        if ( 200 !== $status_code ) {
+            $error_msg = isset( $body['error']['message'] ) ? $body['error']['message'] : 'Unknown error';
+            $this->debug_log( 'list_calendars non-200 status: ' . $error_msg );
+            return new WP_Error( 'api_error', $error_msg );
+        }
+
+        if ( empty( $body['value'] ) || ! is_array( $body['value'] ) ) {
+            $this->debug_log( 'list_calendars empty or invalid calendar list' );
+            return array();
+        }
+
+        $calendars = array();
+        foreach ( $body['value'] as $calendar ) {
+            if ( empty( $calendar['id'] ) ) {
+                continue;
+            }
+
+            $calendars[] = array(
+                'id'        => (string) $calendar['id'],
+                'name'      => isset( $calendar['name'] ) ? (string) $calendar['name'] : 'Calendar',
+                'isDefault' => isset( $calendar['isDefaultCalendar'] ) ? $calendar['isDefaultCalendar'] : false,
+            );
+        }
+
+        return $calendars;
+    }
     
     /**
      * Get provider slug

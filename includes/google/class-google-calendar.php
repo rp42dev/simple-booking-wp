@@ -340,6 +340,63 @@ class Simple_Booking_Google_Calendar {
     }
 
     /**
+     * Get list of available calendars with names (for dropdown).
+     *
+     * @return array|WP_Error Array of calendars with 'id' and 'summary', or WP_Error.
+     */
+    public function list_calendars() {
+        if ( ! $this->is_connected() ) {
+            return new WP_Error( 'not_connected', __( 'Google Calendar not connected', 'simple-booking' ) );
+        }
+
+        $access_token = $this->get_access_token();
+        if ( empty( $access_token ) ) {
+            return new WP_Error( 'no_token', __( 'No access token available', 'simple-booking' ) );
+        }
+
+        $response = wp_remote_get(
+            'https://www.googleapis.com/calendar/v3/calendarList?maxResults=50',
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                ),
+                'timeout' => 30,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $status_code = wp_remote_retrieve_response_code( $response );
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+        if ( 200 !== $status_code ) {
+            $error_msg = isset( $body['error']['message'] ) ? $body['error']['message'] : 'Unknown error';
+            return new WP_Error( 'api_error', $error_msg );
+        }
+
+        if ( empty( $body['items'] ) || ! is_array( $body['items'] ) ) {
+            return array();
+        }
+
+        $calendars = array();
+        foreach ( $body['items'] as $calendar ) {
+            if ( empty( $calendar['id'] ) ) {
+                continue;
+            }
+
+            $calendars[] = array(
+                'id'      => (string) $calendar['id'],
+                'name'    => isset( $calendar['summary'] ) ? (string) $calendar['summary'] : 'Calendar',
+                'primary' => isset( $calendar['primary'] ) ? $calendar['primary'] : false,
+            );
+        }
+
+        return $calendars;
+    }
+
+    /**
      * Create calendar event
      */
     public function create_event( $booking_data, $calendar_id = null ) {
