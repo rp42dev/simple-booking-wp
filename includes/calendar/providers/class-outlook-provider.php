@@ -391,7 +391,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         $booking_ids = get_posts(
             array(
                 'post_type'      => 'booking',
-                'post_status'    => array( 'publish', 'private', 'pending', 'draft' ),
+                'post_status'    => array( 'publish', 'private' ),
                 'fields'         => 'ids',
                 'posts_per_page' => -1,
                 'meta_query'     => array(
@@ -410,6 +410,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
                 continue;
             }
 
+            // Only treat confirmed (or blank legacy) statuses as blocking.
+            if ( '' !== $booking_status && ! in_array( $booking_status, array( 'confirmed', 'reschedule_requested' ), true ) ) {
+                continue;
+            }
+
             $existing_start_raw = (string) get_post_meta( $booking_id, '_start_datetime', true );
             $existing_end_raw = (string) get_post_meta( $booking_id, '_end_datetime', true );
 
@@ -425,6 +430,12 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             }
 
             if ( $range['start_ts'] < $existing_end_ts && $range['end_ts'] > $existing_start_ts ) {
+                $this->debug_log(
+                    'local overlap detected for service_id=' . $service_id .
+                    ' booking_id=' . $booking_id .
+                    ' booking_status=' . ( '' === $booking_status ? 'legacy-empty' : $booking_status ) .
+                    ' range=' . gmdate( 'c', $range['start_ts'] ) . ' -> ' . gmdate( 'c', $range['end_ts'] )
+                );
                 return true;
             }
         }
