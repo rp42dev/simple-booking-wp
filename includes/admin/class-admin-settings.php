@@ -335,6 +335,14 @@ class Simple_Booking_Admin_Settings {
                 'description' => __( 'Optional endpoint for future booking.created automation.', 'simple-booking' ),
             )
         );
+
+        add_settings_field(
+            'webhook_queue_status',
+            __( 'Webhook Queue Status', 'simple-booking' ),
+            array( $this, 'render_webhook_queue_status' ),
+            self::PAGE_SLUG,
+            'simple_booking_webhook'
+        );
     }
 
     /**
@@ -468,6 +476,101 @@ class Simple_Booking_Admin_Settings {
      */
     public function render_stripe_section() {
         echo '<p>' . __( 'Enter your Stripe API keys. You can find these in your Stripe Dashboard under Developers > API keys.', 'simple-booking' ) . '</p>';
+    }
+
+    /**
+     * Render pending booking webhook retry queue diagnostics.
+     *
+     * @return void
+     */
+    public function render_webhook_queue_status() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            echo '<p class="description">' . esc_html__( 'Insufficient permissions to view webhook queue status.', 'simple-booking' ) . '</p>';
+            return;
+        }
+
+        $hook_name = class_exists( 'Simple_Booking_Booking_Webhook' )
+            ? Simple_Booking_Booking_Webhook::RETRY_HOOK
+            : 'simple_booking_retry_booking_webhook';
+
+        $cron = function_exists( '_get_cron_array' ) ? _get_cron_array() : array();
+        if ( ! is_array( $cron ) || empty( $cron ) ) {
+            echo '<p><strong>' . esc_html__( 'No pending webhook retries.', 'simple-booking' ) . '</strong></p>';
+            echo '<p class="description">' . esc_html__( 'No cron events are currently scheduled.', 'simple-booking' ) . '</p>';
+            return;
+        }
+
+        $events = array();
+
+        foreach ( $cron as $timestamp => $hooks ) {
+            if ( ! isset( $hooks[ $hook_name ] ) || ! is_array( $hooks[ $hook_name ] ) ) {
+                continue;
+            }
+
+            foreach ( $hooks[ $hook_name ] as $event ) {
+                $args = isset( $event['args'] ) && is_array( $event['args'] ) ? $event['args'] : array();
+
+                $payload = isset( $args[1] ) && is_array( $args[1] ) ? $args[1] : array();
+                $data = isset( $payload['data'] ) && is_array( $payload['data'] ) ? $payload['data'] : array();
+
+                $booking_id = isset( $data['booking_id'] ) ? absint( $data['booking_id'] ) : 0;
+                $email = isset( $data['email'] ) ? sanitize_email( $data['email'] ) : '';
+                $attempt = isset( $args[2] ) ? absint( $args[2] ) : 0;
+                $max_retries = isset( $args[3] ) ? absint( $args[3] ) : 0;
+
+                $events[] = array(
+                    'timestamp'   => absint( $timestamp ),
+                    'booking_id'  => $booking_id,
+                    'email'       => $email,
+                    'attempt'     => $attempt + 1,
+                    'max_retries' => $max_retries + 1,
+                );
+            }
+        }
+
+        if ( empty( $events ) ) {
+            echo '<p><strong>' . esc_html__( 'No pending webhook retries.', 'simple-booking' ) . '</strong></p>';
+            echo '<p class="description">' . esc_html__( 'Webhook background queue is currently clear.', 'simple-booking' ) . '</p>';
+            return;
+        }
+
+        usort(
+            $events,
+            function( $a, $b ) {
+                return $a['timestamp'] <=> $b['timestamp'];
+            }
+        );
+
+        echo '<p><strong>' . sprintf( esc_html__( 'Pending webhook retries: %d', 'simple-booking' ), count( $events ) ) . '</strong></p>';
+        echo '<table class="widefat striped" style="max-width: 900px; margin-top: 8px;">';
+        echo '<thead><tr>';
+        echo '<th>' . esc_html__( 'Run At', 'simple-booking' ) . '</th>';
+        echo '<th>' . esc_html__( 'In', 'simple-booking' ) . '</th>';
+        echo '<th>' . esc_html__( 'Booking', 'simple-booking' ) . '</th>';
+        echo '<th>' . esc_html__( 'Attempt', 'simple-booking' ) . '</th>';
+        echo '<th>' . esc_html__( 'Email', 'simple-booking' ) . '</th>';
+        echo '</tr></thead><tbody>';
+
+        foreach ( array_slice( $events, 0, 10 ) as $event ) {
+            $seconds = max( 0, $event['timestamp'] - time() );
+            $human_in = human_time_diff( time(), time() + $seconds );
+            $run_at = wp_date( 'Y-m-d H:i:s', $event['timestamp'], wp_timezone() );
+            $booking_label = $event['booking_id'] > 0 ? '#' . $event['booking_id'] : '—';
+
+            echo '<tr>';
+            echo '<td>' . esc_html( $run_at ) . '</td>';
+            echo '<td>' . esc_html( $human_in ) . '</td>';
+            echo '<td>' . esc_html( $booking_label ) . '</td>';
+            echo '<td>' . esc_html( $event['attempt'] . '/' . $event['max_retries'] ) . '</td>';
+            echo '<td>' . esc_html( $event['email'] ) . '</td>';
+            echo '</tr>';
+        }
+
+        echo '</tbody></table>';
+
+        if ( count( $events ) > 10 ) {
+            echo '<p class="description">' . esc_html__( 'Showing next 10 retries.', 'simple-booking' ) . '</p>';
+        }
     }
 
     /**
