@@ -611,7 +611,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     }
 
     /**
-     * Find available staff (placeholder for multi-staff support)
+     * Find available staff for a requested slot.
+     *
+     * Outlook provider currently validates availability against the connected
+     * Outlook calendar. For services with assigned staff, we still return an
+     * active staff ID to preserve downstream assignment behavior.
      */
     public function find_available_staff( $service_id, $start_datetime, $duration_minutes, $context = array() ) {
         if ( ! $this->is_connected() ) {
@@ -624,6 +628,30 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         }
 
         if ( true !== $available ) {
+            return false;
+        }
+
+        $assigned_staff = get_post_meta( absint( $service_id ), '_assigned_staff', true );
+        $assigned_staff = ! empty( $assigned_staff ) ? json_decode( $assigned_staff, true ) : array();
+
+        if ( is_array( $assigned_staff ) && ! empty( $assigned_staff ) ) {
+            foreach ( $assigned_staff as $staff_id ) {
+                $staff_id = absint( $staff_id );
+                if ( ! $staff_id ) {
+                    continue;
+                }
+
+                $is_active = get_post_meta( $staff_id, '_staff_active', true );
+                if ( '1' !== (string) $is_active ) {
+                    continue;
+                }
+
+                return array(
+                    'staff_id'    => $staff_id,
+                    'calendar_id' => null,
+                );
+            }
+
             return false;
         }
 
