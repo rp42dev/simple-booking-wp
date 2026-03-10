@@ -23,6 +23,29 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
      * Option key for tokens
      */
     const TOKEN_OPTION = 'simple_booking_outlook_tokens';
+
+    /**
+     * Check debug mode setting.
+     *
+     * @return bool
+     */
+    private function is_debug_enabled() {
+        return (bool) simple_booking()->get_setting( 'debug_mode', false );
+    }
+
+    /**
+     * Provider-specific debug logger.
+     *
+     * @param string $message
+     * @return void
+     */
+    private function debug_log( $message ) {
+        if ( ! $this->is_debug_enabled() ) {
+            return;
+        }
+
+        error_log( '[SIMPLE_BOOKING_OUTLOOK] ' . $message );
+    }
     
     /**
      * Get provider slug
@@ -589,12 +612,14 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     public function fetch_busy_windows( $start_datetime, $end_datetime, $context = array() ) {
         $access_token = $this->get_access_token();
         if ( is_wp_error( $access_token ) ) {
+            $this->debug_log( 'fetch_busy_windows token error: ' . $access_token->get_error_code() . ' - ' . $access_token->get_error_message() );
             return $access_token;
         }
 
         $start_ts = strtotime( (string) $start_datetime );
         $end_ts = strtotime( (string) $end_datetime );
         if ( false === $start_ts || false === $end_ts ) {
+            $this->debug_log( 'fetch_busy_windows invalid range: start=' . (string) $start_datetime . ' end=' . (string) $end_datetime );
             return new WP_Error( 'outlook_schedule_invalid_range', __( 'Invalid date range for Outlook schedule lookup.', 'simple-booking' ) );
         }
 
@@ -622,17 +647,23 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         );
 
         if ( is_wp_error( $response ) ) {
+            $this->debug_log( 'calendarView request error: ' . $response->get_error_code() . ' - ' . $response->get_error_message() );
             return $response;
         }
 
         $status_code = wp_remote_retrieve_response_code( $response );
         $response_body = json_decode( wp_remote_retrieve_body( $response ), true );
+        $this->debug_log( 'calendarView status=' . $status_code . ' range=' . $start_iso . ' -> ' . $end_iso );
 
         if ( $status_code !== 200 ) {
+            $this->debug_log( 'calendarView non-200; attempting getSchedule fallback' );
             $fallback = $this->fetch_busy_windows_via_get_schedule( $access_token, $start_iso, $end_iso );
             if ( is_wp_error( $fallback ) ) {
+                $this->debug_log( 'getSchedule fallback error: ' . $fallback->get_error_code() . ' - ' . $fallback->get_error_message() );
                 return new WP_Error( 'outlook_schedule_failed', $response_body['error']['message'] ?? $fallback->get_error_message() );
             }
+
+            $this->debug_log( 'getSchedule fallback busy windows count=' . count( $fallback ) );
             return $fallback;
         }
 
@@ -654,7 +685,37 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             }
         }
 
+        $this->debug_log( 'calendarView busy windows count=' . count( $busy_windows ) );
+
         return $busy_windows;
+    }
+
+    /**
+     * Admin diagnostics helper for probing slot availability.
+     *
+     * @param string $start_datetime
+     * @param int    $duration_minutes
+     * @return array|WP_Error
+     */
+    public function probe_slot( $start_datetime, $duration_minutes = 60 ) {
+        $range = $this->resolve_slot_range( $start_datetime, $duration_minutes );
+        if ( is_wp_error( $range ) ) {
+            return $range;
+        }
+
+        $busy_windows = $this->fetch_busy_windows( $range['start'], $range['end'] );
+        if ( is_wp_error( $busy_windows ) ) {
+            return $busy_windows;
+        }
+
+        return array(
+            'start'        => $range['start'],
+            'end'          => $range['end'],
+            'duration'     => absint( $duration_minutes ),
+            'busy_count'   => count( $busy_windows ),
+            'available'    => empty( $busy_windows ),
+            'busy_windows' => array_slice( $busy_windows, 0, 10 ),
+        );
     }
 
     /**

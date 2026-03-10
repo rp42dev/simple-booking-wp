@@ -64,6 +64,17 @@ class Simple_Booking_Outlook_Calendar {
                 'permission_callback' => array( $this, 'check_admin_permission' ),
             )
         );
+
+        // Probe slot availability/debug
+        register_rest_route(
+            self::REST_NAMESPACE,
+            'outlook/probe',
+            array(
+                'methods'  => 'GET',
+                'callback' => array( $this, 'probe_slot' ),
+                'permission_callback' => array( $this, 'check_admin_permission' ),
+            )
+        );
     }
 
     /**
@@ -146,6 +157,45 @@ class Simple_Booking_Outlook_Calendar {
             'success' => true,
             'message' => __( 'Outlook Calendar disconnected', 'simple-booking' ),
         );
+    }
+
+    /**
+     * Probe Outlook slot availability.
+     *
+     * Query params:
+     * - start_datetime (optional ISO string)
+     * - duration_minutes (optional int)
+     *
+     * @param WP_REST_Request $request
+     * @return array|WP_Error
+     */
+    public function probe_slot( $request ) {
+        $start_datetime = $request->get_param( 'start_datetime' );
+        if ( empty( $start_datetime ) ) {
+            $start_datetime = gmdate( 'c', time() + HOUR_IN_SECONDS );
+        }
+
+        $duration_minutes = absint( $request->get_param( 'duration_minutes' ) );
+        if ( $duration_minutes <= 0 ) {
+            $duration_minutes = 60;
+        }
+
+        if ( ! class_exists( 'Simple_Booking_Calendar_Provider_Manager' ) ) {
+            return new WP_Error( 'outlook_probe_unavailable', __( 'Calendar provider manager not available.', 'simple-booking' ) );
+        }
+
+        $manager = new Simple_Booking_Calendar_Provider_Manager();
+        $provider = $manager->get_provider( 'outlook' );
+
+        if ( is_wp_error( $provider ) ) {
+            return $provider;
+        }
+
+        if ( ! method_exists( $provider, 'probe_slot' ) ) {
+            return new WP_Error( 'outlook_probe_method_missing', __( 'Outlook probe method is not available.', 'simple-booking' ) );
+        }
+
+        return $provider->probe_slot( $start_datetime, $duration_minutes );
     }
 }
 
