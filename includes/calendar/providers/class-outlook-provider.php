@@ -742,8 +742,9 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             return new WP_Error( 'outlook_schedule_invalid_range', __( 'Invalid date range for Outlook schedule lookup.', 'simple-booking' ) );
         }
 
-        $start_iso = gmdate( 'c', $start_ts );
-        $end_iso = gmdate( 'c', $end_ts );
+        // Format as ISO 8601 UTC (with Z suffix, not +00:00 which gets URL-encoded as space)
+        $start_iso = gmdate( 'Y-m-d\TH:i:s\Z', $start_ts );
+        $end_iso = gmdate( 'Y-m-d\TH:i:s\Z', $end_ts );
 
         $this->debug_log( 'fetch_busy_windows: querying /me/calendarView for range ' . $start_iso . ' -> ' . $end_iso );
 
