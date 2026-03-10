@@ -129,23 +129,27 @@ Choose your calendar provider in **Settings > Simple Booking > Calendar Provider
 1. Go to [Azure Portal](https://portal.azure.com/) and sign in
 2. Navigate to **Azure Active Directory > App registrations**
 3. Click **New registration**:
-   - Name: Simple Booking
-   - Supported account types: Accounts in any organizational directory and personal Microsoft accounts
+   - **Display name**: `Simple Booking`
+   - **Supported account types**: `All Microsoft account users` (or the closest equivalent shown in your tenant)
    - Redirect URI: Web - `https://your-site.com/wp-json/simple-booking/v1/outlook/oauth`
-4. After registration, copy the **Application (client) ID**
+4. In the app **Overview**, confirm and copy:
+   - **Application (client) ID** (required in plugin)
+   - **Directory (tenant) ID** (reference only; plugin currently uses `common` OAuth endpoint)
+   - **State** should be `Activated`
 5. Go to **Certificates & secrets** > **New client secret**:
    - Description: Simple Booking Secret
-   - Copy the secret **Value** (not the Secret ID)
+   - Under **Client credentials**, copy the secret **Value** (not the Secret ID)
 6. Go to **API permissions** > **Add a permission**:
    - Select **Microsoft Graph** > **Delegated permissions**
    - Add: `Calendars.ReadWrite`, `offline_access`
    - Click **Grant admin consent** (if required by your organization)
-7. In plugin settings:
+7. In app **Overview** > **Redirect URIs**, confirm there is `1 web` URI and it matches your site callback URL exactly
+8. In plugin settings:
    - **Outlook Client ID**: Paste the Application (client) ID
    - **Outlook Client Secret**: Paste the client secret value
    - **Outlook Redirect URI**: Auto-populated, copy this to Azure if needed
-8. Click **Save Settings**
-9. Click **Connect / Authorize Outlook Calendar** button to complete OAuth authorization
+9. Click **Save Settings**
+10. Click **Connect / Authorize Outlook Calendar** button to complete OAuth authorization
 
 **Note:** The OAuth connection is optional. Without connecting, bookings will be created but won't sync to Outlook Calendar.
 
