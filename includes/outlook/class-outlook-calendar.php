@@ -72,7 +72,7 @@ class Simple_Booking_Outlook_Calendar {
             array(
                 'methods'  => 'GET',
                 'callback' => array( $this, 'probe_slot' ),
-                'permission_callback' => array( $this, 'check_admin_permission' ),
+                'permission_callback' => array( $this, 'check_probe_permission' ),
             )
         );
     }
@@ -82,6 +82,22 @@ class Simple_Booking_Outlook_Calendar {
      */
     public function check_admin_permission() {
         return current_user_can( 'manage_options' );
+    }
+
+    /**
+     * Check probe permission.
+     *
+     * Allows admin users, and allows public access when debug mode is enabled
+     * to simplify diagnostics on environments where REST cookie auth is blocked.
+     *
+     * @return bool
+     */
+    public function check_probe_permission() {
+        if ( current_user_can( 'manage_options' ) ) {
+            return true;
+        }
+
+        return (bool) simple_booking()->get_setting( 'debug_mode', false );
     }
 
     /**
