@@ -1,6 +1,6 @@
 # Simple Booking – Development Roadmap
 
-A lightweight modular WordPress booking engine with Stripe payments and Google Calendar integration.
+A lightweight modular WordPress booking engine with Stripe payments, Google Calendar, and Microsoft Outlook integration.
 
 This roadmap defines future development phases to expand the plugin while keeping the architecture simple, maintainable, and modular.
 

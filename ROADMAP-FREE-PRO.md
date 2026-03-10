@@ -11,6 +11,8 @@
 
 Transform Simple Booking into a freemium product with Free (WordPress.org) and Pro (licensed) versions. Implement licensing in existing codebase first, then distribute as two separate builds.
 
+**Current shipped baseline (v3.0.15):** Google + Outlook calendar support, provider-manager architecture, staff calendar routing, webhook retry queue diagnostics, and admin calendar dropdowns are already live in the unified codebase. Roadmap items below should be read as licensing/free-pro packaging work on top of that baseline.
+
 ---
 
 ## Feature Split
@@ -108,12 +110,18 @@ require 'admin/class-admin-settings.php';
 require 'frontend/class-booking-form.php';
 require 'booking/class-booking-creator.php';
 require 'license/class-license-manager.php';
+require 'calendar/interface-calendar-provider.php';
+require 'calendar/class-calendar-provider-manager.php';
+require 'calendar/providers/class-ics-provider.php';
 
 // PRO FEATURES - Only if licensed
 if ( $this->is_pro_active() ) {
     require 'stripe/class-stripe-handler.php';
     require 'webhook/class-stripe-webhook.php';
     require 'google/class-google-calendar.php';
+   require 'outlook/class-outlook-calendar.php';
+   require 'calendar/providers/class-google-provider.php';
+   require 'calendar/providers/class-outlook-provider.php';
     require 'post-types/class-staff.php';
     require 'webhook/class-booking-webhook.php';
 }
@@ -659,7 +667,7 @@ Metadata: plan=pro_agency, sites=unlimited
 2. Business setup (timezone, work hours)
 3. Services setup (create first service)
 4. Payments setup (Pro: Stripe keys + test)
-5. Calendar setup (Pro: Google connect + test)
+5. Calendar setup (Pro: connect selected provider + test)
 6. Go-live check (preview + test booking)
 
 ---
@@ -672,7 +680,7 @@ Metadata: plan=pro_agency, sites=unlimited
 - Add booking form shortcode to a page
 - Configure email template
 - (Pro) Connect Stripe
-- (Pro) Connect Google Calendar
+- (Pro) Connect calendar provider (Google or Outlook)
 - Run test booking
 
 ---
@@ -687,6 +695,7 @@ Metadata: plan=pro_agency, sites=unlimited
 - 15-minute Pro setup
 - Stripe troubleshooting quick fixes
 - Google Calendar troubleshooting quick fixes
+- Outlook Calendar troubleshooting quick fixes
 
 ---
 
@@ -705,17 +714,17 @@ Metadata: plan=pro_agency, sites=unlimited
 
 #### 5.5 Testing Checklist ✅
 - [ ] New free user can publish booking form in one session
-- [ ] New pro user can complete Stripe + Google setup in one session
+- [ ] New pro user can complete Stripe + calendar-provider setup in one session
 - [ ] Wizard state resumes after refresh/logout
 - [ ] Checklist progress updates automatically from saved config
-- [ ] No regressions in booking, Stripe, or Google flows
+- [ ] No regressions in booking, Stripe, Google, or Outlook flows
 
 ---
 
-## 6️⃣ Calendar Provider Architecture (Google + Outlook + ICS Fallback) - Phase 6 (v3.6.0)
+## 6️⃣ Calendar Provider Architecture (Google + Outlook + ICS Fallback) - Phase 6 (Delivered in v3.0.15 baseline)
 
-**Duration:** 4-6 days  
-**Focus:** Multi-provider calendar sync with OAuth and no-OAuth fallback
+**Status:** Core provider architecture shipped early during v3.0 stabilization  
+**Focus:** Maintain and extend the existing multi-provider calendar sync foundation
 
 ### Deliverables
 
@@ -735,6 +744,8 @@ Metadata: plan=pro_agency, sites=unlimited
 - Booking flow calls provider manager only (not provider-specific classes directly)
 - Provider can be swapped without changing booking core logic
 
+**Current State:** ✅ Shipped
+
 ---
 
 #### 6.2 Google Provider Adapter ✏️
@@ -745,6 +756,8 @@ Metadata: plan=pro_agency, sites=unlimited
 - Wrap existing Google logic behind provider interface
 - Preserve token refresh + retry behavior
 - Preserve current staff routing support
+
+**Current State:** ✅ Shipped, including staff calendar selection and Meet fallback handling
 
 ---
 
@@ -762,6 +775,8 @@ Metadata: plan=pro_agency, sites=unlimited
 - Microsoft App Client Secret
 - Tenant/common settings
 
+**Current State:** ✅ Shipped, including staff calendar CRUD parity and admin calendar dropdown support
+
 ---
 
 #### 6.4 ICS Feed Fallback Provider ✏️
@@ -777,6 +792,8 @@ Metadata: plan=pro_agency, sites=unlimited
 
 **UX Note:**
 - Document that refresh timing depends on calendar client polling interval
+
+**Current State:** ⚠️ Provider selection/gating exists; feed-controller follow-up may still be needed depending on packaging approach
 
 ---
 
@@ -794,14 +811,16 @@ Metadata: plan=pro_agency, sites=unlimited
 - ICS always available as fallback option
 - Pro-gate Google/Outlook, allow ICS in Free
 
+**Current State:** ✅ Shipped in settings UI
+
 ---
 
 #### 6.6 Testing Checklist ✅
-- [ ] Google provider handles create/update/delete/reschedule correctly
-- [ ] Outlook provider handles create/update/delete/reschedule correctly
+- [x] Google provider handles create/update/delete/reschedule correctly
+- [x] Outlook provider handles create/update/delete/reschedule correctly
 - [ ] ICS feed includes new bookings and reflects cancellations
-- [ ] Switching provider does not break existing booking flow
-- [ ] Provider failures gracefully degrade without blocking checkout
+- [x] Switching provider does not break existing booking flow
+- [x] Provider failures gracefully degrade without blocking checkout
 
 ---
 
@@ -874,6 +893,13 @@ Metadata: plan=pro_agency, sites=unlimited
 ```
 simple-booking/
 ├── includes/
+│   ├── calendar/
+│   │   ├── interface-calendar-provider.php   [SHIPPED]
+│   │   ├── class-calendar-provider-manager.php [SHIPPED]
+│   │   └── providers/
+│   │       ├── class-google-provider.php     [PRO ONLY / SHIPPED]
+│   │       ├── class-outlook-provider.php    [PRO ONLY / SHIPPED]
+│   │       └── class-ics-provider.php        [FREE / SHIPPED FOUNDATION]
 │   ├── license/
 │   │   ├── class-license-manager.php      [NEW - v3.1.0]
 │   │   └── class-updater.php              [NEW - v3.4.0]
@@ -881,6 +907,8 @@ simple-booking/
 │   │   └── class-stripe-handler.php
 │   ├── google/                            [PRO ONLY]
 │   │   └── class-google-calendar.php
+│   ├── outlook/                           [PRO ONLY]
+│   │   └── class-outlook-calendar.php
 │   ├── post-types/
 │   │   ├── class-booking-service.php      [MODIFIED]
 │   │   ├── class-booking.php              [FREE]
