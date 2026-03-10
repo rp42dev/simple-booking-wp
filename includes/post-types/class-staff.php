@@ -68,7 +68,7 @@ class Simple_Booking_Staff {
             )
         );
 
-        // Staff Google Calendar ID (optional override)
+        // Staff Calendar ID (optional override)
         register_post_meta(
             self::POST_TYPE,
             '_staff_calendar_id',
@@ -139,7 +139,7 @@ class Simple_Booking_Staff {
             </tr>
             <tr>
                 <th scope="row">
-                    <label for="staff_calendar_id"><?php _e( 'Google Calendar ID', 'simple-booking' ); ?></label>
+                    <label for="staff_calendar_id"><?php _e( 'Calendar ID', 'simple-booking' ); ?></label>
                 </th>
                 <td>
                     <input type="text"
@@ -147,8 +147,8 @@ class Simple_Booking_Staff {
                            name="staff_calendar_id"
                            value="<?php echo esc_attr( $staff_calendar_id ); ?>"
                            class="regular-text"
-                           placeholder="example@group.calendar.google.com" />
-                    <p class="description"><?php _e( 'Optional: Override calendar for this staff member. Leave blank to use global calendar.', 'simple-booking' ); ?></p>
+                           placeholder="Calendar identifier (Google or Outlook)" />
+                    <p class="description"><?php _e( 'Optional: Override calendar for this staff member. Supports Google Calendar ID or Outlook Calendar ID. Leave blank to use the global provider calendar.', 'simple-booking' ); ?></p>
                 </td>
             </tr>
             <tr>
