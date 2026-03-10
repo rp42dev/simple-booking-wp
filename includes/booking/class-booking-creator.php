@@ -574,6 +574,24 @@ class Simple_Booking_Booking_Creator {
             return $deleted;
         }
 
+        if ( 'outlook' === $provider->get_slug() && method_exists( $provider, 'delete_additional_matching_events_by_booking_data' ) ) {
+            $service_id = absint( get_post_meta( $booking_id, '_service_id', true ) );
+            $service = $service_id ? get_post( $service_id ) : null;
+            $cleanup_booking_data = array(
+                'service_name'   => $service ? (string) $service->post_title : '',
+                'customer_name'  => (string) get_post_meta( $booking_id, '_customer_name', true ),
+                'start_datetime' => (string) get_post_meta( $booking_id, '_start_datetime', true ),
+                'end_datetime'   => (string) get_post_meta( $booking_id, '_end_datetime', true ),
+            );
+
+            $extra_deleted = $provider->delete_additional_matching_events_by_booking_data( $cleanup_booking_data );
+            if ( is_wp_error( $extra_deleted ) ) {
+                self::debug_log( 'Outlook post-delete cleanup failed for booking ' . $booking_id . ': ' . $extra_deleted->get_error_message(), 'BOOKING' );
+            } elseif ( absint( $extra_deleted ) > 0 ) {
+                self::debug_log( 'Outlook post-delete cleanup removed ' . absint( $extra_deleted ) . ' additional matching event(s) for booking ' . $booking_id, 'BOOKING' );
+            }
+        }
+
         delete_post_meta( $booking_id, $event_id_meta );
         delete_post_meta( $booking_id, '_meeting_link' );
         self::debug_log( 'Deleted ' . $provider->get_slug() . ' event ' . $event_id . ' for booking ' . $booking_id, 'BOOKING' );

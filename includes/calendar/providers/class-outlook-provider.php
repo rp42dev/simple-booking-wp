@@ -836,6 +836,97 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     }
 
     /**
+     * Remove additional duplicate/orphan events matching the same booking slot+subject.
+     *
+     * @param array $booking_data
+     * @return int|WP_Error Number of deleted events.
+     */
+    public function delete_additional_matching_events_by_booking_data( $booking_data ) {
+        $access_token = $this->get_access_token();
+        if ( is_wp_error( $access_token ) ) {
+            return $access_token;
+        }
+
+        $range = $this->resolve_booking_range( $booking_data );
+        if ( is_wp_error( $range ) ) {
+            return $range;
+        }
+
+        $start_ts = strtotime( (string) $range['start'] );
+        $end_ts = strtotime( (string) $range['end'] );
+        if ( false === $start_ts || false === $end_ts ) {
+            return new WP_Error( 'outlook_cleanup_invalid_range', __( 'Invalid booking range for Outlook cleanup.', 'simple-booking' ) );
+        }
+
+        $start_iso = gmdate( 'Y-m-d\TH:i:s\Z', $start_ts );
+        $end_iso = gmdate( 'Y-m-d\TH:i:s\Z', $end_ts );
+
+        $url = $this->build_calendar_view_url( $start_iso, $end_iso );
+        $response = wp_remote_get(
+            $url,
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                    'Prefer'        => 'outlook.timezone="UTC"',
+                ),
+                'timeout' => 30,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $status_code = wp_remote_retrieve_response_code( $response );
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        if ( 200 !== $status_code || empty( $body['value'] ) || ! is_array( $body['value'] ) ) {
+            return 0;
+        }
+
+        $expected_subject = sprintf(
+            __( 'Booking: %s with %s', 'simple-booking' ),
+            isset( $booking_data['service_name'] ) ? (string) $booking_data['service_name'] : '',
+            isset( $booking_data['customer_name'] ) ? (string) $booking_data['customer_name'] : ''
+        );
+
+        $deleted_count = 0;
+        foreach ( $body['value'] as $item ) {
+            if ( empty( $item['id'] ) || empty( $item['start']['dateTime'] ) || empty( $item['end']['dateTime'] ) ) {
+                continue;
+            }
+
+            $item_start_ts = strtotime( (string) $item['start']['dateTime'] );
+            $item_end_ts = strtotime( (string) $item['end']['dateTime'] );
+            if ( false === $item_start_ts || false === $item_end_ts ) {
+                continue;
+            }
+
+            if ( $item_start_ts !== $start_ts || $item_end_ts !== $end_ts ) {
+                continue;
+            }
+
+            $item_subject = isset( $item['subject'] ) ? (string) $item['subject'] : '';
+            if ( '' !== $expected_subject && $item_subject !== $expected_subject ) {
+                continue;
+            }
+
+            $deleted = $this->delete_event( (string) $item['id'] );
+            if ( is_wp_error( $deleted ) ) {
+                $this->debug_log( 'delete_additional_matching_events_by_booking_data failed for event_id=' . (string) $item['id'] . ' error=' . $deleted->get_error_message() );
+                continue;
+            }
+
+            $deleted_count++;
+        }
+
+        if ( $deleted_count > 0 ) {
+            $this->debug_log( 'delete_additional_matching_events_by_booking_data deleted_count=' . $deleted_count . ' range=' . $start_iso . ' -> ' . $end_iso );
+        }
+
+        return $deleted_count;
+    }
+
+    /**
      * Fetch busy windows for availability checking
      */
     public function fetch_busy_windows( $start_datetime, $end_datetime, $context = array() ) {
