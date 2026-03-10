@@ -434,10 +434,19 @@ class Simple_Booking_Google_Calendar {
                 continue;
             }
 
+            $access_role = isset( $calendar['accessRole'] ) ? (string) $calendar['accessRole'] : '';
+            $is_writable = in_array( $access_role, array( 'owner', 'writer' ), true );
+
+            if ( ! $is_writable ) {
+                continue;
+            }
+
             $calendars[] = array(
-                'id'      => (string) $calendar['id'],
-                'name'    => isset( $calendar['summary'] ) ? (string) $calendar['summary'] : 'Calendar',
-                'primary' => isset( $calendar['primary'] ) ? $calendar['primary'] : false,
+                'id'         => (string) $calendar['id'],
+                'name'       => isset( $calendar['summary'] ) ? (string) $calendar['summary'] : 'Calendar',
+                'primary'    => isset( $calendar['primary'] ) ? $calendar['primary'] : false,
+                'accessRole' => $access_role,
+                'writable'   => true,
             );
         }
 
@@ -615,9 +624,25 @@ class Simple_Booking_Google_Calendar {
                     if ( ! isset( $body['error'] ) && isset( $body['id'] ) ) {
                         $this->debug_log( 'Fallback create_event succeeded without Google Meet', 'EVENT' );
                     } else {
-                        return new WP_Error( 'google_api_error', isset( $body['error']['message'] ) ? $body['error']['message'] : $error_message );
+                        $final_error_message = isset( $body['error']['message'] ) ? $body['error']['message'] : $error_message;
+
+                        if ( in_array( $http_code, array( 403, 404 ), true ) ) {
+                            return new WP_Error(
+                                'google_calendar_not_writable',
+                                __( 'Selected Google calendar is not writable for event creation. Choose a calendar where this Google account can make changes to events.', 'simple-booking' )
+                            );
+                        }
+
+                        return new WP_Error( 'google_api_error', $final_error_message );
                     }
                 } else {
+                    if ( in_array( $http_code, array( 403, 404 ), true ) ) {
+                        return new WP_Error(
+                            'google_calendar_not_writable',
+                            __( 'Selected Google calendar is not writable for event creation. Choose a calendar where this Google account can make changes to events.', 'simple-booking' )
+                        );
+                    }
+
                     return new WP_Error( 'google_api_error', $error_message );
                 }
             }
