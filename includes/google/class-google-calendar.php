@@ -357,7 +357,7 @@ class Simple_Booking_Google_Calendar {
 
         $request = function( $token ) {
             return wp_remote_get(
-                'https://www.googleapis.com/calendar/v3/calendarList?maxResults=50',
+                'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=50',
                 array(
                     'headers' => array(
                         'Authorization' => 'Bearer ' . $token,
