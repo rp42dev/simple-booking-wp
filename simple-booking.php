@@ -204,6 +204,7 @@ class Simple_Booking {
         Simple_Booking_Service::register();
         Simple_Booking_Post::register();
         Simple_Booking_Staff::register();
+        Simple_Booking_Booking_Webhook::register_hooks();
 
         // Ensure default pages exist after plugin upgrades (without requiring reactivation)
         if ( '1' !== get_option( 'simple_booking_pages_initialized', '' ) ) {
