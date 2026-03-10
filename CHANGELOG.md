@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+- (No planned items currently)
+
+## [3.0.15] - 2026-03-10
+
 ### Added
 - Staff calendar selector now auto-loads available provider calendars in admin with one-click refresh.
 - Webhook Queue Status diagnostics panel in admin now shows pending retry jobs with booking context.

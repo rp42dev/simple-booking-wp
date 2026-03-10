@@ -7,15 +7,15 @@ This roadmap defines future development phases to expand the plugin while keepin
 Each version milestone should be implemented incrementally and tested before progressing.
 
 ## Current Version
-v3.0.14.4 (RELEASED) → v3.0 (STABILIZING)
+v3.0.15 (RELEASED) → v3.0 (STABILIZING)
 
 Core booking flow is operational.Refund management and free-reschedule for paid bookings implemented.
 
 **v3.0 Progress:** Admin refund settings added; paid bookings can be rescheduled without re-payment; cancellations now proces refunds; Google/Outlook staff calendar CRUD parity completed; staff calendar dropdown auto-load implemented; webhook retries moved to background queue with admin diagnostics.
 
-**Next Immediate Stage (v3.0.15 candidate):** Release-control sync and operations hardening
-- Sync `README.md` and `CHANGELOG.md` with shipped stabilization work
-- Validate webhook queue tools in admin (`Run due retries now`, clear far-future test cleanup)
+**Next Immediate Stage (v3.0.16 candidate):** Operational reliability follow-up
+- Track webhook retry outcomes over a longer window and tune retry limits if needed
+- Add a compact admin note clarifying WP-Cron dependency for background retries
 - Finalize one concise stabilization test pass (Google + Outlook + email + reschedule/cancel)
 
 ## Release Control (Mandatory Before New Feature Work)

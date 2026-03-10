@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Simple Booking
  * Plugin URI: https://example.com/simple-booking
- * Description: A lightweight, modular booking engine with Stripe and Google Calendar integration
- * Version: 3.0.14.4
+ * Description: A lightweight, modular booking engine with Stripe, Google Calendar, and Outlook integration
+ * Version: 3.0.15
  * Author: Grow Smart Online
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants
-define( 'SIMPLE_BOOKING_VERSION', '3.0.14.4' );
+define( 'SIMPLE_BOOKING_VERSION', '3.0.15' );
 define( 'SIMPLE_BOOKING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SIMPLE_BOOKING_URL', plugin_dir_url( __FILE__ ) );
 define( 'SIMPLE_BOOKING_INCLUDES', SIMPLE_BOOKING_PATH . 'includes/' );
