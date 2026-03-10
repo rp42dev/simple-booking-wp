@@ -151,16 +151,24 @@ class Simple_Booking_Booking_Creator {
         $calendar_event_result = self::create_calendar_event( $data );
 
         if ( ! is_wp_error( $calendar_event_result ) && ! empty( $calendar_event_result ) ) {
+            $event_meta_key = '_google_event_id';
+            $provider_for_event_meta = self::get_active_calendar_provider();
+            if ( ! is_wp_error( $provider_for_event_meta ) && method_exists( $provider_for_event_meta, 'get_slug' ) ) {
+                if ( 'outlook' === $provider_for_event_meta->get_slug() ) {
+                    $event_meta_key = '_outlook_event_id';
+                }
+            }
+
             if ( is_array( $calendar_event_result ) ) {
                 if ( ! empty( $calendar_event_result['event_id'] ) ) {
-                    update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $calendar_event_result['event_id'] ) );
+                    update_post_meta( $booking_id, $event_meta_key, sanitize_text_field( $calendar_event_result['event_id'] ) );
                 }
                 if ( ! empty( $calendar_event_result['meeting_link'] ) ) {
                     update_post_meta( $booking_id, '_meeting_link', esc_url_raw( $calendar_event_result['meeting_link'] ) );
                     update_post_meta( $booking_id, '_meeting_link_source', 'generated' );
                 }
             } else {
-                update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $calendar_event_result ) );
+                update_post_meta( $booking_id, $event_meta_key, sanitize_text_field( $calendar_event_result ) );
             }
         }
 
@@ -514,6 +522,16 @@ class Simple_Booking_Booking_Creator {
         if ( 'outlook' === $provider->get_slug() ) {
             $event_id = get_post_meta( $booking_id, '_outlook_event_id', true );
             $event_id_meta = '_outlook_event_id';
+
+            // Backward compatibility: older Outlook bookings stored event IDs in _google_event_id.
+            if ( empty( $event_id ) ) {
+                $legacy_event_id = get_post_meta( $booking_id, '_google_event_id', true );
+                if ( ! empty( $legacy_event_id ) ) {
+                    $event_id = $legacy_event_id;
+                    $event_id_meta = '_google_event_id';
+                    self::debug_log( 'Using legacy _google_event_id for Outlook booking ' . $booking_id, 'BOOKING' );
+                }
+            }
         } else {
             // Default: Google or other providers
             $event_id = get_post_meta( $booking_id, '_google_event_id', true );
