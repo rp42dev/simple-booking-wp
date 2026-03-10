@@ -197,12 +197,63 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     }
 
     /**
+     * Resolve booking start/end datetimes for provider payloads.
+     *
+     * Supports current payload keys (`start_datetime`, `end_datetime`) and
+     * legacy keys (`booking_datetime`, `duration_minutes`).
+     *
+     * @param array $booking_data Booking payload.
+     * @return array|WP_Error
+     */
+    private function resolve_booking_range( $booking_data ) {
+        $start_raw = '';
+        $end_raw = '';
+
+        if ( ! empty( $booking_data['start_datetime'] ) ) {
+            $start_raw = (string) $booking_data['start_datetime'];
+        } elseif ( ! empty( $booking_data['booking_datetime'] ) ) {
+            $start_raw = (string) $booking_data['booking_datetime'];
+        }
+
+        if ( ! empty( $booking_data['end_datetime'] ) ) {
+            $end_raw = (string) $booking_data['end_datetime'];
+        } elseif ( ! empty( $booking_data['booking_datetime'] ) ) {
+            $duration_minutes = ! empty( $booking_data['duration_minutes'] ) ? absint( $booking_data['duration_minutes'] ) : 60;
+            $start_ts_legacy = strtotime( (string) $booking_data['booking_datetime'] );
+            if ( false !== $start_ts_legacy ) {
+                $end_raw = gmdate( 'c', $start_ts_legacy + ( $duration_minutes * 60 ) );
+            }
+        }
+
+        $start_ts = strtotime( $start_raw );
+        $end_ts = strtotime( $end_raw );
+
+        if ( false === $start_ts || false === $end_ts ) {
+            return new WP_Error( 'outlook_invalid_datetime', __( 'Invalid booking date/time provided for Outlook event.', 'simple-booking' ) );
+        }
+
+        if ( $end_ts <= $start_ts ) {
+            return new WP_Error( 'outlook_invalid_range', __( 'Booking end time must be after start time.', 'simple-booking' ) );
+        }
+
+        return array(
+            'start' => gmdate( 'Y-m-d\TH:i:s', $start_ts ),
+            'end'   => gmdate( 'Y-m-d\TH:i:s', $end_ts ),
+        );
+    }
+
+    /**
      * Create calendar event
      */
     public function create_event( $booking_data ) {
         $access_token = $this->get_access_token();
         if ( is_wp_error( $access_token ) ) {
             return $access_token;
+        }
+
+        $range = $this->resolve_booking_range( $booking_data );
+        if ( is_wp_error( $range ) ) {
+            return $range;
         }
 
         $event = array(
@@ -216,11 +267,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
                 'content'     => $this->build_event_description( $booking_data ),
             ),
             'start' => array(
-                'dateTime' => gmdate( 'Y-m-d\TH:i:s', strtotime( $booking_data['booking_datetime'] ) ),
+                'dateTime' => $range['start'],
                 'timeZone' => 'UTC',
             ),
             'end' => array(
-                'dateTime' => gmdate( 'Y-m-d\TH:i:s', strtotime( $booking_data['booking_datetime'] ) + ( $booking_data['duration_minutes'] * 60 ) ),
+                'dateTime' => $range['end'],
                 'timeZone' => 'UTC',
             ),
         );
@@ -268,6 +319,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             return $access_token;
         }
 
+        $range = $this->resolve_booking_range( $booking_data );
+        if ( is_wp_error( $range ) ) {
+            return $range;
+        }
+
         $event = array(
             'subject' => sprintf(
                 __( 'Booking: %s with %s', 'simple-booking' ),
@@ -279,11 +335,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
                 'content'     => $this->build_event_description( $booking_data ),
             ),
             'start' => array(
-                'dateTime' => gmdate( 'Y-m-d\TH:i:s', strtotime( $booking_data['booking_datetime'] ) ),
+                'dateTime' => $range['start'],
                 'timeZone' => 'UTC',
             ),
             'end' => array(
-                'dateTime' => gmdate( 'Y-m-d\TH:i:s', strtotime( $booking_data['booking_datetime'] ) + ( $booking_data['duration_minutes'] * 60 ) ),
+                'dateTime' => $range['end'],
                 'timeZone' => 'UTC',
             ),
         );
