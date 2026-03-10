@@ -129,9 +129,6 @@ class Simple_Booking_Stripe_Webhook {
             error_log( 'Simple Booking: Failed to create booking - ' . $booking_id->get_error_message() );
             return;
         }
-
-        // Send confirmation email
-        Simple_Booking_Booking_Creator::send_confirmation_email( $booking_id );
     }
 
     /**

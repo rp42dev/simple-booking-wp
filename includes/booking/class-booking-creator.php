@@ -147,20 +147,20 @@ class Simple_Booking_Booking_Creator {
         $initial_meeting_source = ! empty( $data['meeting_link'] ) ? 'static' : 'none';
         update_post_meta( $booking_id, '_meeting_link_source', $initial_meeting_source );
 
-        // Try to create Google Calendar event
-        $google_event_result = self::create_google_event( $data );
+        // Try to create external calendar event via active provider.
+        $calendar_event_result = self::create_calendar_event( $data );
 
-        if ( ! is_wp_error( $google_event_result ) && ! empty( $google_event_result ) ) {
-            if ( is_array( $google_event_result ) ) {
-                if ( ! empty( $google_event_result['event_id'] ) ) {
-                    update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_result['event_id'] ) );
+        if ( ! is_wp_error( $calendar_event_result ) && ! empty( $calendar_event_result ) ) {
+            if ( is_array( $calendar_event_result ) ) {
+                if ( ! empty( $calendar_event_result['event_id'] ) ) {
+                    update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $calendar_event_result['event_id'] ) );
                 }
-                if ( ! empty( $google_event_result['meeting_link'] ) ) {
-                    update_post_meta( $booking_id, '_meeting_link', esc_url_raw( $google_event_result['meeting_link'] ) );
+                if ( ! empty( $calendar_event_result['meeting_link'] ) ) {
+                    update_post_meta( $booking_id, '_meeting_link', esc_url_raw( $calendar_event_result['meeting_link'] ) );
                     update_post_meta( $booking_id, '_meeting_link_source', 'generated' );
                 }
             } else {
-                update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $google_event_result ) );
+                update_post_meta( $booking_id, '_google_event_id', sanitize_text_field( $calendar_event_result ) );
             }
         }
 
@@ -194,7 +194,7 @@ class Simple_Booking_Booking_Creator {
                     self::debug_log( 'Copied stripe_payment_id from booking ' . $from_booking_id . ' to rescheduled booking ' . $booking_id, 'BOOKING' );
                 }
 
-                self::delete_google_event_for_booking( $from_booking_id );
+                self::delete_calendar_event_for_booking( $from_booking_id );
                 update_post_meta( $from_booking_id, '_booking_status', 'rescheduled' );
                 update_post_meta( $from_booking_id, '_rescheduled_to_booking_id', absint( $booking_id ) );
                 update_post_meta( $booking_id, '_rescheduled_from_booking_id', absint( $from_booking_id ) );
@@ -406,11 +406,9 @@ class Simple_Booking_Booking_Creator {
     }
 
     /**
-     * Create Google Calendar event
+     * Create calendar event via active provider.
      */
-    public static function create_google_event( $booking_data ) {
-        self::debug_log( '=== Booking Creator: create_google_event START ===', 'BOOKING' );
-        self::debug_log( 'Booking data: ' . json_encode( $booking_data ), 'BOOKING' );
+    public static function create_calendar_event( $booking_data ) {
 
         // Check if service has Google event creation enabled
         if ( isset( $booking_data['service_id'] ) ) {
@@ -423,8 +421,7 @@ class Simple_Booking_Booking_Creator {
             }
             
             if ( '1' !== $create_google_event ) {
-                self::debug_log( 'Google Calendar event creation disabled for this service - skipping', 'BOOKING' );
-                self::debug_log( '=== Booking Creator: create_google_event END ===', 'BOOKING' );
+                self::debug_log( 'Calendar event creation disabled for this service - skipping', 'BOOKING' );
                 return ''; // Return empty string to indicate event creation was skipped
             }
         }
@@ -432,7 +429,6 @@ class Simple_Booking_Booking_Creator {
         $provider = self::get_active_calendar_provider();
         if ( is_wp_error( $provider ) ) {
             self::debug_log( 'Calendar provider manager error: ' . $provider->get_error_message(), 'BOOKING' );
-            self::debug_log( '=== Booking Creator: create_google_event END ===', 'BOOKING' );
             return '';
         }
 
@@ -460,9 +456,16 @@ class Simple_Booking_Booking_Creator {
         } else {
             self::debug_log( 'SUCCESS: Calendar event ID: ' . $result, 'BOOKING' );
         }
-
-        self::debug_log( '=== Booking Creator: create_google_event END ===', 'BOOKING' );
         return $result;
+    }
+
+    /**
+     * Backward-compatible alias.
+     *
+     * @deprecated Use create_calendar_event().
+     */
+    public static function create_google_event( $booking_data ) {
+        return self::create_calendar_event( $booking_data );
     }
 
     /**
@@ -487,12 +490,12 @@ class Simple_Booking_Booking_Creator {
     }
 
     /**
-     * Delete Google event associated with a booking.
+     * Delete provider event associated with a booking.
      *
      * @param int $booking_id
      * @return true|WP_Error
      */
-    public static function delete_google_event_for_booking( $booking_id ) {
+    public static function delete_calendar_event_for_booking( $booking_id ) {
         $booking_id = absint( $booking_id );
         if ( ! $booking_id ) {
             return new WP_Error( 'invalid_booking', __( 'Invalid booking ID', 'simple-booking' ) );
@@ -535,6 +538,15 @@ class Simple_Booking_Booking_Creator {
         self::debug_log( 'Deleted ' . $provider->get_slug() . ' event ' . $event_id . ' for booking ' . $booking_id, 'BOOKING' );
 
         return true;
+    }
+
+    /**
+     * Backward-compatible alias.
+     *
+     * @deprecated Use delete_calendar_event_for_booking().
+     */
+    public static function delete_google_event_for_booking( $booking_id ) {
+        return self::delete_calendar_event_for_booking( $booking_id );
     }
 
     /**
@@ -622,7 +634,7 @@ class Simple_Booking_Booking_Creator {
             }
         }
 
-        self::delete_google_event_for_booking( $booking_id );
+        self::delete_calendar_event_for_booking( $booking_id );
         update_post_meta( $booking_id, '_booking_status', 'cancelled' );
         update_post_meta( $booking_id, '_booking_cancelled_at', current_time( 'mysql' ) );
         self::mark_cancel_action_executed( $booking_id );

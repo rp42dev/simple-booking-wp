@@ -714,8 +714,6 @@ class Simple_Booking_Form {
                 wp_send_json_error( array( 'message' => $booking_id->get_error_message() ) );
             }
 
-            Simple_Booking_Booking_Creator::send_confirmation_email( $booking_id );
-
             $redirect_url = $this->get_success_redirect_url();
             if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
                 $redirect_url = add_query_arg( 'booking', 'success', $this->get_success_redirect_url() );
