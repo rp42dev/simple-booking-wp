@@ -262,6 +262,69 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     }
 
     /**
+     * Check overlap against existing local booking posts for this service.
+     *
+     * @param int    $service_id
+     * @param string $start_datetime
+     * @param int    $duration_minutes
+     * @return bool True when overlap exists.
+     */
+    private function has_local_booking_overlap( $service_id, $start_datetime, $duration_minutes ) {
+        $service_id = absint( $service_id );
+        if ( ! $service_id ) {
+            return false;
+        }
+
+        $range = $this->resolve_slot_range( $start_datetime, $duration_minutes );
+        if ( is_wp_error( $range ) ) {
+            return false;
+        }
+
+        $booking_ids = get_posts(
+            array(
+                'post_type'      => 'booking',
+                'post_status'    => array( 'publish', 'private', 'pending', 'draft' ),
+                'fields'         => 'ids',
+                'posts_per_page' => -1,
+                'meta_query'     => array(
+                    array(
+                        'key'     => '_service_id',
+                        'value'   => $service_id,
+                        'compare' => '=',
+                    ),
+                ),
+            )
+        );
+
+        foreach ( $booking_ids as $booking_id ) {
+            $booking_status = (string) get_post_meta( $booking_id, '_booking_status', true );
+            if ( in_array( $booking_status, array( 'cancelled', 'rescheduled' ), true ) ) {
+                continue;
+            }
+
+            $existing_start_raw = (string) get_post_meta( $booking_id, '_start_datetime', true );
+            $existing_end_raw = (string) get_post_meta( $booking_id, '_end_datetime', true );
+
+            $existing_start_ts = strtotime( $existing_start_raw );
+            $existing_end_ts = strtotime( $existing_end_raw );
+
+            if ( false === $existing_start_ts ) {
+                continue;
+            }
+
+            if ( false === $existing_end_ts ) {
+                $existing_end_ts = $existing_start_ts + ( max( 1, absint( $duration_minutes ) ) * 60 );
+            }
+
+            if ( $range['start_ts'] < $existing_end_ts && $range['end_ts'] > $existing_start_ts ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Fallback busy window lookup via getSchedule.
      *
      * @param string $access_token
@@ -619,6 +682,10 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
      */
     public function find_available_staff( $service_id, $start_datetime, $duration_minutes, $context = array() ) {
         if ( ! $this->is_connected() ) {
+            return false;
+        }
+
+        if ( $this->has_local_booking_overlap( $service_id, $start_datetime, $duration_minutes ) ) {
             return false;
         }
 
