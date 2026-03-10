@@ -520,16 +520,20 @@ class Simple_Booking_Google_Calendar {
         $this->debug_log( 'API URL: ' . $url, 'EVENT' );
         $this->debug_log( 'Authorization header: Bearer ' . substr( $access_token, 0, 20 ) . '...', 'EVENT' );
 
-        $response = wp_remote_post(
-            $url,
-            array(
-                'headers' => array(
-                    'Authorization' => 'Bearer ' . $access_token,
-                    'Content-Type'  => 'application/json',
-                ),
-                'body'    => json_encode( $event ),
-            )
-        );
+        $send_create_request = function( $request_url, $request_event, $token ) {
+            return wp_remote_post(
+                $request_url,
+                array(
+                    'headers' => array(
+                        'Authorization' => 'Bearer ' . $token,
+                        'Content-Type'  => 'application/json',
+                    ),
+                    'body'    => json_encode( $request_event ),
+                )
+            );
+        };
+
+        $response = $send_create_request( $url, $event, $access_token );
 
         // Log response details
         if ( is_wp_error( $response ) ) {
@@ -556,16 +560,7 @@ class Simple_Booking_Google_Calendar {
                     $access_token = $this->get_access_token();
                     
                     // Retry the API call with fresh token
-                    $response = wp_remote_post(
-                        $url,
-                        array(
-                            'headers' => array(
-                                'Authorization' => 'Bearer ' . $access_token,
-                                'Content-Type'  => 'application/json',
-                            ),
-                            'body'    => json_encode( $event ),
-                        )
-                    );
+                    $response = $send_create_request( $url, $event, $access_token );
                     
                     if ( is_wp_error( $response ) ) {
                         $this->debug_log( 'Retry WP_Error: ' . $response->get_error_message(), 'EVENT' );
@@ -591,7 +586,40 @@ class Simple_Booking_Google_Calendar {
                 }
             } else {
                 // Non-auth error, return immediately
-                return new WP_Error( 'google_api_error', $body['error']['message'] );
+                $error_message = isset( $body['error']['message'] ) ? $body['error']['message'] : __( 'Google Calendar API error', 'simple-booking' );
+
+                if ( $auto_google_meet_enabled && 404 === $http_code ) {
+                    $this->debug_log( 'Create event returned 404 with Google Meet enabled, retrying without conferenceData', 'EVENT' );
+
+                    $fallback_event = $event;
+                    unset( $fallback_event['conferenceData'] );
+
+                    $fallback_url = sprintf(
+                        'https://www.googleapis.com/calendar/v3/calendars/%s/events',
+                        urlencode( $calendar_id )
+                    );
+
+                    $response = $send_create_request( $fallback_url, $fallback_event, $access_token );
+
+                    if ( is_wp_error( $response ) ) {
+                        $this->debug_log( 'Fallback WP_Error: ' . $response->get_error_message(), 'EVENT' );
+                        return $response;
+                    }
+
+                    $http_code = wp_remote_retrieve_response_code( $response );
+                    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+                    $this->debug_log( 'Fallback HTTP Status: ' . $http_code, 'EVENT' );
+                    $this->debug_log( 'Fallback Response body: ' . json_encode( $body ), 'EVENT' );
+
+                    if ( ! isset( $body['error'] ) && isset( $body['id'] ) ) {
+                        $this->debug_log( 'Fallback create_event succeeded without Google Meet', 'EVENT' );
+                    } else {
+                        return new WP_Error( 'google_api_error', isset( $body['error']['message'] ) ? $body['error']['message'] : $error_message );
+                    }
+                } else {
+                    return new WP_Error( 'google_api_error', $error_message );
+                }
             }
         }
 
