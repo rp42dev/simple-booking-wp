@@ -225,3 +225,15 @@ Webhook delivery note:
 - Confirm Google/Outlook credentials persist after provider switching in settings
 - Run one paid cancel flow and confirm only one refund is attempted (repeat cancel should be blocked)
 - Confirm no PHP fatal errors in `debug.log` after booking create/reschedule/cancel smoke test
+
+## Stabilization Smoke Checklist (v3.0.15 candidate)
+
+Run this quick validation pass after deploys touching booking, calendar, email, or webhook logic.
+
+- Google path: create, reschedule, cancel; verify calendar event CRUD and confirmation email
+- Outlook path: create, reschedule, cancel; verify calendar event CRUD and confirmation email
+- Staff calendar routing: verify selected staff calendar is used for create and delete flows
+- Google Meet behavior: verify Meet link is generated when supported and event still creates when fallback is needed
+- Webhook queue behavior: force endpoint 429 and verify booking remains fast while retry is deferred
+- Admin queue controls: run due retries now; clear far-future retries in test context; verify queue table updates
+- Booking data integrity: ensure assigned staff and calendar metadata persist across reschedule/cancel lifecycle
