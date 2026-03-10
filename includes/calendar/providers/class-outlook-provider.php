@@ -479,28 +479,31 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             return $access_token;
         }
 
-        $body = array(
-            'schedules' => array( 'me' ),
-            'startTime' => array(
-                'dateTime' => gmdate( 'Y-m-d\TH:i:s', strtotime( $start_datetime ) ),
-                'timeZone' => 'UTC',
+        $start_ts = strtotime( (string) $start_datetime );
+        $end_ts = strtotime( (string) $end_datetime );
+        if ( false === $start_ts || false === $end_ts ) {
+            return new WP_Error( 'outlook_schedule_invalid_range', __( 'Invalid date range for Outlook schedule lookup.', 'simple-booking' ) );
+        }
+
+        $start_iso = gmdate( 'c', $start_ts );
+        $end_iso = gmdate( 'c', $end_ts );
+
+        $url = add_query_arg(
+            array(
+                'startDateTime' => $start_iso,
+                'endDateTime'   => $end_iso,
+                '$top'          => 100,
             ),
-            'endTime' => array(
-                'dateTime' => gmdate( 'Y-m-d\TH:i:s', strtotime( $end_datetime ) ),
-                'timeZone' => 'UTC',
-            ),
-            'availabilityViewInterval' => 30,
+            self::GRAPH_API_BASE . '/me/calendarView'
         );
 
-        $response = wp_remote_post(
-            self::GRAPH_API_BASE . '/me/calendar/getSchedule',
+        $response = wp_remote_get(
+            $url,
             array(
                 'headers' => array(
                     'Authorization' => 'Bearer ' . $access_token,
-                    'Content-Type'  => 'application/json',
                     'Prefer'        => 'outlook.timezone="UTC"',
                 ),
-                'body'    => wp_json_encode( $body ),
                 'timeout' => 30,
             )
         );
@@ -517,10 +520,15 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         }
 
         $busy_windows = array();
-        
-        if ( isset( $response_body['value'][0]['scheduleItems'] ) ) {
-            foreach ( $response_body['value'][0]['scheduleItems'] as $item ) {
-                if ( in_array( $item['status'], array( 'busy', 'tentative', 'oof', 'workingElsewhere' ), true ) ) {
+
+        if ( isset( $response_body['value'] ) && is_array( $response_body['value'] ) ) {
+            foreach ( $response_body['value'] as $item ) {
+                $show_as = isset( $item['showAs'] ) ? strtolower( (string) $item['showAs'] ) : '';
+                if ( in_array( $show_as, array( 'free', 'unknown' ), true ) ) {
+                    continue;
+                }
+
+                if ( ! empty( $item['start']['dateTime'] ) && ! empty( $item['end']['dateTime'] ) ) {
                     $busy_windows[] = array(
                         'start' => $item['start']['dateTime'],
                         'end'   => $item['end']['dateTime'],
