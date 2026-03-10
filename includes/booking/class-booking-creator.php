@@ -62,6 +62,21 @@ class Simple_Booking_Booking_Creator {
      */
     public static function create_booking( $data ) {
         self::debug_log( 'create_booking called with data: ' . json_encode( $data ), 'BOOKING' );
+
+        if ( ! empty( $data['reschedule_from_booking_id'] ) ) {
+            $source_booking_id = absint( $data['reschedule_from_booking_id'] );
+            $new_start_raw = isset( $data['start_datetime'] ) ? (string) $data['start_datetime'] : '';
+            $source_start_raw = get_post_meta( $source_booking_id, '_start_datetime', true );
+
+            $new_start_ts = strtotime( $new_start_raw );
+            $source_start_ts = strtotime( (string) $source_start_raw );
+
+            if ( false !== $new_start_ts && false !== $source_start_ts && $new_start_ts === $source_start_ts ) {
+                self::debug_log( 'Reschedule blocked: requested time matches original booking start time for booking ' . $source_booking_id, 'BOOKING' );
+                return new WP_Error( 'reschedule_same_slot', __( 'Please choose a different time when rescheduling.', 'simple-booking' ) );
+            }
+        }
+
         // before we persist anything check for double-booking
         if ( isset( $data['service_id'], $data['start_datetime'] ) ) {
             $service_id = absint( $data['service_id'] );

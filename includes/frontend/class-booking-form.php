@@ -607,6 +607,20 @@ class Simple_Booking_Form {
             wp_send_json_error( array( 'message' => __( 'Selected service is not available', 'simple-booking' ) ) );
         }
 
+        if ( $reschedule_booking_id && ! empty( $reschedule_token ) && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
+            if ( ! Simple_Booking_Booking_Creator::verify_booking_management_token( $reschedule_booking_id, $reschedule_token ) ) {
+                wp_send_json_error( array( 'message' => __( 'Reschedule link is invalid or already used', 'simple-booking' ) ) );
+            }
+
+            $original_start_datetime = get_post_meta( $reschedule_booking_id, '_start_datetime', true );
+            $requested_ts = strtotime( (string) $booking_datetime );
+            $original_ts  = strtotime( (string) $original_start_datetime );
+
+            if ( false !== $requested_ts && false !== $original_ts && $requested_ts === $original_ts ) {
+                wp_send_json_error( array( 'message' => __( 'Please choose a different time when rescheduling.', 'simple-booking' ) ) );
+            }
+        }
+
         // server-side slot availability re-check
         if ( $booking_datetime ) {
             try {
