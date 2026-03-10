@@ -807,13 +807,29 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
                 }
 
                 if ( ! empty( $item['start']['dateTime'] ) && ! empty( $item['end']['dateTime'] ) ) {
-                    $busy_windows[] = array(
+                    $window = array(
                         'start'   => $item['start']['dateTime'],
                         'end'     => $item['end']['dateTime'],
                         'subject' => $item['subject'] ?? 'Unknown',
                         'showAs'  => $show_as,
                     );
-                    $this->debug_log( 'Found busy event: ' . ( $item['subject'] ?? 'N/A' ) . ' (' . $show_as . ') ' . $item['start']['dateTime'] . ' -> ' . $item['end']['dateTime'] );
+                    
+                    // Deduplicate: skip if we already have identical start/end times with same subject
+                    $is_duplicate = false;
+                    foreach ( $busy_windows as $existing ) {
+                        if ( $existing['start'] === $window['start'] && 
+                             $existing['end'] === $window['end'] && 
+                             $existing['subject'] === $window['subject'] ) {
+                            $is_duplicate = true;
+                            $this->debug_log( 'Skipping duplicate event: ' . $window['subject'] );
+                            break;
+                        }
+                    }
+                    
+                    if ( ! $is_duplicate ) {
+                        $busy_windows[] = $window;
+                        $this->debug_log( 'Found busy event: ' . ( $item['subject'] ?? 'N/A' ) . ' (' . $show_as . ') ' . $item['start']['dateTime'] . ' -> ' . $item['end']['dateTime'] );
+                    }
                 }
             }
         }
