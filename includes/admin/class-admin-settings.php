@@ -489,9 +489,31 @@ class Simple_Booking_Admin_Settings {
             return;
         }
 
+        $run_due_result = $this->maybe_run_due_webhook_retries();
+
+        if ( is_array( $run_due_result ) ) {
+            $message = sprintf(
+                /* translators: %d is number of webhook retries executed now. */
+                __( 'Executed %d due webhook retry job(s).', 'simple-booking' ),
+                absint( $run_due_result['executed'] )
+            );
+            echo '<p><strong>' . esc_html( $message ) . '</strong></p>';
+        }
+
         $hook_name = class_exists( 'Simple_Booking_Booking_Webhook' )
             ? Simple_Booking_Booking_Webhook::RETRY_HOOK
             : 'simple_booking_retry_booking_webhook';
+
+        $run_due_url = add_query_arg(
+            array(
+                'page'            => self::PAGE_SLUG,
+                'webhook_run_due' => '1',
+                '_wpnonce'        => wp_create_nonce( 'simple_booking_run_due_webhook_retries_' . get_current_user_id() ),
+            ),
+            admin_url( 'options-general.php' )
+        );
+
+        echo '<p><a class="button button-secondary" href="' . esc_url( $run_due_url ) . '">' . esc_html__( 'Run due retries now', 'simple-booking' ) . '</a></p>';
 
         $cron = function_exists( '_get_cron_array' ) ? _get_cron_array() : array();
         if ( ! is_array( $cron ) || empty( $cron ) ) {
@@ -571,6 +593,62 @@ class Simple_Booking_Admin_Settings {
         if ( count( $events ) > 10 ) {
             echo '<p class="description">' . esc_html__( 'Showing next 10 retries.', 'simple-booking' ) . '</p>';
         }
+    }
+
+    /**
+     * Run due webhook retry jobs now when manually requested from settings.
+     *
+     * @return array|null
+     */
+    private function maybe_run_due_webhook_retries() {
+        if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== sanitize_text_field( wp_unslash( $_GET['page'] ) ) ) {
+            return null;
+        }
+
+        if ( empty( $_GET['webhook_run_due'] ) ) {
+            return null;
+        }
+
+        if ( empty( $_GET['_wpnonce'] ) ) {
+            return null;
+        }
+
+        $nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) );
+        if ( ! wp_verify_nonce( $nonce, 'simple_booking_run_due_webhook_retries_' . get_current_user_id() ) ) {
+            return null;
+        }
+
+        $hook_name = class_exists( 'Simple_Booking_Booking_Webhook' )
+            ? Simple_Booking_Booking_Webhook::RETRY_HOOK
+            : 'simple_booking_retry_booking_webhook';
+
+        $cron = function_exists( '_get_cron_array' ) ? _get_cron_array() : array();
+        if ( ! is_array( $cron ) || empty( $cron ) ) {
+            return array( 'executed' => 0 );
+        }
+
+        $now = time();
+        $executed = 0;
+
+        foreach ( $cron as $timestamp => $hooks ) {
+            if ( absint( $timestamp ) > $now ) {
+                continue;
+            }
+
+            if ( ! isset( $hooks[ $hook_name ] ) || ! is_array( $hooks[ $hook_name ] ) ) {
+                continue;
+            }
+
+            foreach ( $hooks[ $hook_name ] as $event ) {
+                $args = isset( $event['args'] ) && is_array( $event['args'] ) ? $event['args'] : array();
+
+                wp_unschedule_event( absint( $timestamp ), $hook_name, $args );
+                do_action_ref_array( $hook_name, $args );
+                $executed++;
+            }
+        }
+
+        return array( 'executed' => $executed );
     }
 
     /**
