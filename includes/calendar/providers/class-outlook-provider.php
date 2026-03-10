@@ -355,13 +355,13 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
      * @param int    $duration_minutes
      * @return bool|WP_Error True when slot is available.
      */
-    private function is_slot_available( $start_datetime, $duration_minutes ) {
+    private function is_slot_available( $start_datetime, $duration_minutes, $context = array() ) {
         $range = $this->resolve_slot_range( $start_datetime, $duration_minutes );
         if ( is_wp_error( $range ) ) {
             return $range;
         }
 
-        $busy_windows = $this->fetch_busy_windows( $range['start'], $range['end'] );
+        $busy_windows = $this->fetch_busy_windows( $range['start'], $range['end'], $context );
         if ( is_wp_error( $busy_windows ) ) {
             return $busy_windows;
         }
@@ -598,9 +598,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         }
 
         $configured_calendar_id = $this->get_configured_calendar_id();
+        $context_calendar_id = isset( $booking_data['calendar_id'] ) ? trim( (string) $booking_data['calendar_id'] ) : '';
+        $target_calendar_id = '' !== $context_calendar_id ? $context_calendar_id : $configured_calendar_id;
         $create_endpoint = self::GRAPH_API_BASE . '/me/events';
-        if ( '' !== $configured_calendar_id ) {
-            $create_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $configured_calendar_id ) . '/events';
+        if ( '' !== $target_calendar_id ) {
+            $create_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $target_calendar_id ) . '/events';
         }
 
         $response = wp_remote_post(
@@ -664,9 +666,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         );
 
         $configured_calendar_id = $this->get_configured_calendar_id();
+        $context_calendar_id = isset( $booking_data['calendar_id'] ) ? trim( (string) $booking_data['calendar_id'] ) : '';
+        $target_calendar_id = '' !== $context_calendar_id ? $context_calendar_id : $configured_calendar_id;
         $update_endpoint = self::GRAPH_API_BASE . '/me/events/' . rawurlencode( $event_id );
-        if ( '' !== $configured_calendar_id ) {
-            $update_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $configured_calendar_id ) . '/events/' . rawurlencode( $event_id );
+        if ( '' !== $target_calendar_id ) {
+            $update_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $target_calendar_id ) . '/events/' . rawurlencode( $event_id );
         }
 
         $response = wp_remote_request(
@@ -706,9 +710,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         }
 
         $configured_calendar_id = $this->get_configured_calendar_id();
+        $context_calendar_id = isset( $context['calendar_id'] ) ? trim( (string) $context['calendar_id'] ) : '';
+        $target_calendar_id = '' !== $context_calendar_id ? $context_calendar_id : $configured_calendar_id;
         $delete_endpoint = self::GRAPH_API_BASE . '/me/events/' . rawurlencode( $event_id );
-        if ( '' !== $configured_calendar_id ) {
-            $delete_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $configured_calendar_id ) . '/events/' . rawurlencode( $event_id );
+        if ( '' !== $target_calendar_id ) {
+            $delete_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $target_calendar_id ) . '/events/' . rawurlencode( $event_id );
         }
 
         $response = wp_remote_request(
@@ -947,10 +953,21 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         $start_iso = gmdate( 'Y-m-d\TH:i:s\Z', $start_ts );
         $end_iso = gmdate( 'Y-m-d\TH:i:s\Z', $end_ts );
 
-        $this->debug_log( 'fetch_busy_windows: querying /me/calendarView for range ' . $start_iso . ' -> ' . $end_iso );
+        $context_calendar_id = isset( $context['calendar_id'] ) ? trim( (string) $context['calendar_id'] ) : '';
 
-        // Query primary calendar via /me/calendarView (most reliable endpoint)
-        $url = $this->build_calendar_view_url( $start_iso, $end_iso );
+        if ( '' !== $context_calendar_id ) {
+            $this->debug_log( 'fetch_busy_windows: querying /me/calendars/{id}/events calendar_id=' . $context_calendar_id . ' range ' . $start_iso . ' -> ' . $end_iso );
+            $url = add_query_arg(
+                array(
+                    '$filter' => "start/dateTime lt '" . $end_iso . "' and end/dateTime gt '" . $start_iso . "'",
+                    '$top'    => 100,
+                ),
+                self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $context_calendar_id ) . '/events'
+            );
+        } else {
+            $this->debug_log( 'fetch_busy_windows: querying /me/calendarView for range ' . $start_iso . ' -> ' . $end_iso );
+            $url = $this->build_calendar_view_url( $start_iso, $end_iso );
+        }
         $response = wp_remote_get(
             $url,
             array(
@@ -1089,19 +1106,6 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             return false;
         }
 
-        if ( $this->has_local_booking_overlap( $service_id, $start_datetime, $duration_minutes ) ) {
-            return false;
-        }
-
-        $available = $this->is_slot_available( $start_datetime, $duration_minutes );
-        if ( is_wp_error( $available ) ) {
-            return $available;
-        }
-
-        if ( true !== $available ) {
-            return false;
-        }
-
         $assigned_staff = get_post_meta( absint( $service_id ), '_assigned_staff', true );
         $assigned_staff = ! empty( $assigned_staff ) ? json_decode( $assigned_staff, true ) : array();
 
@@ -1117,18 +1121,54 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
                     continue;
                 }
 
+                $staff_calendar_id = (string) get_post_meta( $staff_id, '_staff_calendar_id', true );
+                if ( '' === $staff_calendar_id ) {
+                    $staff_calendar_id = $this->get_configured_calendar_id();
+                }
+
+                if ( $this->has_local_booking_overlap( $service_id, $start_datetime, $duration_minutes ) ) {
+                    return false;
+                }
+
+                $available = $this->is_slot_available(
+                    $start_datetime,
+                    $duration_minutes,
+                    array( 'calendar_id' => $staff_calendar_id )
+                );
+
+                if ( is_wp_error( $available ) ) {
+                    return $available;
+                }
+
+                if ( true !== $available ) {
+                    continue;
+                }
+
                 return array(
                     'staff_id'    => $staff_id,
-                    'calendar_id' => null,
+                    'calendar_id' => $staff_calendar_id,
                 );
             }
 
             return false;
         }
 
+        if ( $this->has_local_booking_overlap( $service_id, $start_datetime, $duration_minutes ) ) {
+            return false;
+        }
+
+        $available = $this->is_slot_available( $start_datetime, $duration_minutes );
+        if ( is_wp_error( $available ) ) {
+            return $available;
+        }
+
+        if ( true !== $available ) {
+            return false;
+        }
+
         return array(
             'staff_id'    => null,
-            'calendar_id' => null,
+            'calendar_id' => $this->get_configured_calendar_id(),
         );
     }
 

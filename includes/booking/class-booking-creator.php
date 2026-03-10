@@ -143,6 +143,11 @@ class Simple_Booking_Booking_Creator {
             update_post_meta( $booking_id, '_assigned_staff_id', absint( $data['assigned_staff_id'] ) );
         }
 
+        // Persist selected calendar ID (staff calendar or provider fallback) for later update/delete operations.
+        if ( isset( $data['calendar_id'] ) && '' !== (string) $data['calendar_id'] ) {
+            update_post_meta( $booking_id, '_calendar_id', sanitize_text_field( (string) $data['calendar_id'] ) );
+        }
+
         // Record initial meeting link source from payload
         $initial_meeting_source = ! empty( $data['meeting_link'] ) ? 'static' : 'none';
         update_post_meta( $booking_id, '_meeting_link_source', $initial_meeting_source );
@@ -484,7 +489,20 @@ class Simple_Booking_Booking_Creator {
      */
     private static function get_booking_calendar_id( $booking_id ) {
         $booking_id = absint( $booking_id );
-        $calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+
+        $calendar_id = (string) get_post_meta( $booking_id, '_calendar_id', true );
+
+        if ( '' === $calendar_id ) {
+            $provider = self::get_active_calendar_provider();
+            if ( ! is_wp_error( $provider ) && method_exists( $provider, 'get_slug' ) ) {
+                $provider_slug = (string) $provider->get_slug();
+                if ( 'outlook' === $provider_slug ) {
+                    $calendar_id = (string) simple_booking()->get_setting( 'outlook_calendar_id', '' );
+                } elseif ( 'google' === $provider_slug ) {
+                    $calendar_id = (string) simple_booking()->get_setting( 'google_calendar_id', '' );
+                }
+            }
+        }
 
         $assigned_staff_id = absint( get_post_meta( $booking_id, '_assigned_staff_id', true ) );
         if ( $assigned_staff_id ) {
