@@ -39,10 +39,19 @@ simple-booking/
 │   │   └── class-admin-settings.php
 │   ├── booking/
 │   │   └── class-booking-creator.php
+│   ├── calendar/
+│   │   ├── class-calendar-provider-manager.php
+│   │   ├── interface-calendar-provider.php
+│   │   └── providers/
+│   │       ├── class-google-provider.php
+│   │       ├── class-ics-provider.php
+│   │       └── class-outlook-provider.php
 │   ├── frontend/
 │   │   └── class-booking-form.php
 │   ├── google/
 │   │   └── class-google-calendar.php
+│   ├── outlook/
+│   │   └── class-outlook-calendar.php
 │   ├── post-types/
 │   │   ├── class-booking-service.php
 │   │   ├── class-booking.php
