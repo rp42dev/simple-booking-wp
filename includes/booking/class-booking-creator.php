@@ -472,14 +472,27 @@ class Simple_Booking_Booking_Creator {
             return new WP_Error( 'invalid_booking', __( 'Invalid booking ID', 'simple-booking' ) );
         }
 
-        $event_id = get_post_meta( $booking_id, '_google_event_id', true );
-        if ( empty( $event_id ) ) {
-            return true;
-        }
-
         $provider = self::get_active_calendar_provider();
         if ( is_wp_error( $provider ) ) {
             self::debug_log( 'Calendar provider manager error on delete: ' . $provider->get_error_message(), 'BOOKING' );
+            return true;
+        }
+
+        // Try to get event ID based on active provider
+        $event_id = null;
+        $event_id_meta = null;
+
+        if ( 'outlook' === $provider->get_slug() ) {
+            $event_id = get_post_meta( $booking_id, '_outlook_event_id', true );
+            $event_id_meta = '_outlook_event_id';
+        } else {
+            // Default: Google or other providers
+            $event_id = get_post_meta( $booking_id, '_google_event_id', true );
+            $event_id_meta = '_google_event_id';
+        }
+
+        if ( empty( $event_id ) ) {
+            self::debug_log( 'No calendar event ID found for booking ' . $booking_id . ' (provider: ' . $provider->get_slug() . ')', 'BOOKING' );
             return true;
         }
 
@@ -491,8 +504,9 @@ class Simple_Booking_Booking_Creator {
             return $deleted;
         }
 
-        delete_post_meta( $booking_id, '_google_event_id' );
+        delete_post_meta( $booking_id, $event_id_meta );
         delete_post_meta( $booking_id, '_meeting_link' );
+        self::debug_log( 'Deleted ' . $provider->get_slug() . ' event ' . $event_id . ' for booking ' . $booking_id, 'BOOKING' );
 
         return true;
     }
