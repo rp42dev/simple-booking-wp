@@ -96,6 +96,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     private function get_availability_calendar_ids( $access_token ) {
         $configured_calendar_id = $this->get_configured_calendar_id();
         if ( '' !== $configured_calendar_id ) {
+            $this->debug_log( 'Using configured calendar ID: ' . $configured_calendar_id );
             return array( $configured_calendar_id );
         }
 
@@ -115,10 +116,18 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         }
 
         $status_code = wp_remote_retrieve_response_code( $response );
-        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        $response_body = wp_remote_retrieve_body( $response );
+        $body = json_decode( $response_body, true );
 
-        if ( 200 !== $status_code || empty( $body['value'] ) || ! is_array( $body['value'] ) ) {
-            $this->debug_log( 'get_availability_calendar_ids non-200 or empty list, status=' . $status_code );
+        $this->debug_log( 'get_availability_calendar_ids status=' . $status_code . ' response_body_length=' . strlen( $response_body ) );
+
+        if ( 200 !== $status_code ) {
+            $this->debug_log( 'get_availability_calendar_ids non-200 status, error=' . ( isset( $body['error']['message'] ) ? $body['error']['message'] : 'unknown' ) );
+            return array( '' );
+        }
+
+        if ( empty( $body['value'] ) || ! is_array( $body['value'] ) ) {
+            $this->debug_log( 'get_availability_calendar_ids empty or invalid calendar list' );
             return array( '' );
         }
 
@@ -129,12 +138,15 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             }
 
             $ids[] = (string) $calendar['id'];
+            $this->debug_log( 'Found calendar: id=' . (string) $calendar['id'] . ' name=' . ( $calendar['name'] ?? 'N/A' ) . ' isDefault=' . ( $calendar['isDefaultCalendar'] ? 'true' : 'false' ) );
         }
 
         if ( empty( $ids ) ) {
+            $this->debug_log( 'get_availability_calendar_ids found no valid calendar IDs' );
             return array( '' );
         }
 
+        $this->debug_log( 'get_availability_calendar_ids found ' . count( $ids ) . ' calendars' );
         return array_values( array_unique( $ids ) );
     }
     
@@ -814,6 +826,14 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             return $range;
         }
 
+        $access_token = $this->get_access_token();
+        if ( is_wp_error( $access_token ) ) {
+            return $access_token;
+        }
+
+        // Get calendar IDs for diagnostics
+        $calendar_ids = $this->get_availability_calendar_ids( $access_token );
+        
         $busy_windows = $this->fetch_busy_windows( $range['start'], $range['end'] );
         if ( is_wp_error( $busy_windows ) ) {
             return $busy_windows;
@@ -826,6 +846,8 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             'busy_count'   => count( $busy_windows ),
             'available'    => empty( $busy_windows ),
             'busy_windows' => array_slice( $busy_windows, 0, 10 ),
+            'calendar_ids' => $calendar_ids,  // For diagnostics
+            'calendars_count' => count( $calendar_ids ),  // For diagnostics
         );
     }
 
