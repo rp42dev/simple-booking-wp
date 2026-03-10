@@ -737,6 +737,105 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     }
 
     /**
+     * Fallback delete for Outlook events when event_id metadata is missing.
+     *
+     * Attempts to find an event in the exact booking window and delete the
+     * best match (subject + timeslot) using calendarView.
+     *
+     * @param array $booking_data
+     * @return true|WP_Error
+     */
+    public function delete_event_by_booking_data( $booking_data ) {
+        $access_token = $this->get_access_token();
+        if ( is_wp_error( $access_token ) ) {
+            return $access_token;
+        }
+
+        $range = $this->resolve_booking_range( $booking_data );
+        if ( is_wp_error( $range ) ) {
+            return $range;
+        }
+
+        $start_ts = strtotime( (string) $range['start'] );
+        $end_ts = strtotime( (string) $range['end'] );
+        if ( false === $start_ts || false === $end_ts ) {
+            return new WP_Error( 'outlook_delete_lookup_invalid_range', __( 'Invalid booking range for Outlook lookup.', 'simple-booking' ) );
+        }
+
+        $start_iso = gmdate( 'Y-m-d\TH:i:s\Z', $start_ts );
+        $end_iso = gmdate( 'Y-m-d\TH:i:s\Z', $end_ts );
+
+        $url = $this->build_calendar_view_url( $start_iso, $end_iso );
+        $response = wp_remote_get(
+            $url,
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                    'Prefer'        => 'outlook.timezone="UTC"',
+                ),
+                'timeout' => 30,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $status_code = wp_remote_retrieve_response_code( $response );
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        if ( 200 !== $status_code || empty( $body['value'] ) || ! is_array( $body['value'] ) ) {
+            return new WP_Error( 'outlook_delete_lookup_failed', __( 'Unable to find matching Outlook event for deletion.', 'simple-booking' ) );
+        }
+
+        $expected_subject = sprintf(
+            __( 'Booking: %s with %s', 'simple-booking' ),
+            isset( $booking_data['service_name'] ) ? (string) $booking_data['service_name'] : '',
+            isset( $booking_data['customer_name'] ) ? (string) $booking_data['customer_name'] : ''
+        );
+
+        $candidate_event_id = '';
+        foreach ( $body['value'] as $item ) {
+            if ( empty( $item['id'] ) || empty( $item['start']['dateTime'] ) || empty( $item['end']['dateTime'] ) ) {
+                continue;
+            }
+
+            $item_start_ts = strtotime( (string) $item['start']['dateTime'] );
+            $item_end_ts = strtotime( (string) $item['end']['dateTime'] );
+            if ( false === $item_start_ts || false === $item_end_ts ) {
+                continue;
+            }
+
+            // Match exact timeslot first.
+            if ( $item_start_ts !== $start_ts || $item_end_ts !== $end_ts ) {
+                continue;
+            }
+
+            $item_subject = isset( $item['subject'] ) ? (string) $item['subject'] : '';
+            if ( $item_subject === $expected_subject ) {
+                $candidate_event_id = (string) $item['id'];
+                break;
+            }
+
+            // Keep timeslot match as fallback if exact subject differs.
+            if ( '' === $candidate_event_id ) {
+                $candidate_event_id = (string) $item['id'];
+            }
+        }
+
+        if ( '' === $candidate_event_id ) {
+            return new WP_Error( 'outlook_delete_lookup_not_found', __( 'No matching Outlook event found for booking slot.', 'simple-booking' ) );
+        }
+
+        $deleted = $this->delete_event( $candidate_event_id );
+        if ( is_wp_error( $deleted ) ) {
+            return $deleted;
+        }
+
+        $this->debug_log( 'Fallback delete_event_by_booking_data removed event_id=' . $candidate_event_id . ' range=' . $start_iso . ' -> ' . $end_iso );
+        return true;
+    }
+
+    /**
      * Fetch busy windows for availability checking
      */
     public function fetch_busy_windows( $start_datetime, $end_datetime, $context = array() ) {

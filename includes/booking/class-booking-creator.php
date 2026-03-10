@@ -539,6 +539,29 @@ class Simple_Booking_Booking_Creator {
         }
 
         if ( empty( $event_id ) ) {
+            if ( 'outlook' === $provider->get_slug() && method_exists( $provider, 'delete_event_by_booking_data' ) ) {
+                $service_id = absint( get_post_meta( $booking_id, '_service_id', true ) );
+                $service = $service_id ? get_post( $service_id ) : null;
+
+                $fallback_booking_data = array(
+                    'service_name'   => $service ? (string) $service->post_title : '',
+                    'customer_name'  => (string) get_post_meta( $booking_id, '_customer_name', true ),
+                    'start_datetime' => (string) get_post_meta( $booking_id, '_start_datetime', true ),
+                    'end_datetime'   => (string) get_post_meta( $booking_id, '_end_datetime', true ),
+                );
+
+                $fallback_deleted = $provider->delete_event_by_booking_data( $fallback_booking_data );
+                if ( ! is_wp_error( $fallback_deleted ) ) {
+                    delete_post_meta( $booking_id, '_outlook_event_id' );
+                    delete_post_meta( $booking_id, '_google_event_id' );
+                    delete_post_meta( $booking_id, '_meeting_link' );
+                    self::debug_log( 'Deleted Outlook event via fallback slot lookup for booking ' . $booking_id, 'BOOKING' );
+                    return true;
+                }
+
+                self::debug_log( 'Fallback Outlook delete failed for booking ' . $booking_id . ': ' . $fallback_deleted->get_error_message(), 'BOOKING' );
+            }
+
             self::debug_log( 'No calendar event ID found for booking ' . $booking_id . ' (provider: ' . $provider->get_slug() . ')', 'BOOKING' );
             return true;
         }
