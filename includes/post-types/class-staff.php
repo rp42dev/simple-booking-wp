@@ -197,8 +197,8 @@ class Simple_Booking_Staff {
         }
 
         wp_nonce_field( 'simple_booking_staff_meta', 'simple_booking_staff_nonce' );
-        wp_nonce_field( 'wp_rest', '_wpnonce' );
         ?>
+        <div style="display: none;" data-rest-nonce="<?php echo wp_create_nonce( 'wp_rest' ); ?>"></div>
         <table class="form-table">
             <tr>
                 <th scope="row">
@@ -261,6 +261,10 @@ class Simple_Booking_Staff {
             const reloadBtn = document.getElementById('reload_calendars_btn');
             const statusSpan = document.getElementById('calendar_load_status');
             const currentValue = <?php echo json_encode( $staff_calendar_id ); ?>;
+            
+            // Get nonce from data attribute
+            const nonceElement = document.querySelector('[data-rest-nonce]');
+            const nonce = nonceElement ? nonceElement.getAttribute('data-rest-nonce') : '';
 
             // Load calendars on button click
             reloadBtn.addEventListener('click', function(e) {
@@ -270,11 +274,18 @@ class Simple_Booking_Staff {
 
             // Auto-load calendars on page load
             window.addEventListener('load', function() {
-                loadCalendars();
+                // Small delay to ensure DOM is fully ready
+                setTimeout(loadCalendars, 100);
             });
 
             function loadCalendars() {
-                const nonce = document.querySelector('input[name="_wpnonce"]').value;
+                if (!nonce) {
+                    statusSpan.textContent = '<?php _e( 'Error: Security token missing', 'simple-booking' ); ?>';
+                    statusSpan.style.color = '#a90000';
+                    console.error('Nonce not found');
+                    reloadBtn.disabled = false;
+                    return;
+                }
                 
                 reloadBtn.disabled = true;
                 statusSpan.textContent = '<?php _e( 'Loading...', 'simple-booking' ); ?>';
@@ -287,14 +298,19 @@ class Simple_Booking_Staff {
                         'Content-Type': 'application/json',
                     },
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     reloadBtn.disabled = false;
                     
                     if (!data.success) {
                         statusSpan.textContent = '<?php _e( 'Error:', 'simple-booking' ); ?> ' + (data.message || '<?php _e( 'Unknown error', 'simple-booking' ); ?>');
                         statusSpan.style.color = '#a90000';
-                        console.error('Error loading calendars:', data);
+                        console.error('API error:', data);
                         return;
                     }
 
