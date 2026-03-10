@@ -1,8 +1,8 @@
 # Simple Booking
 
-A lightweight, modular WordPress booking engine with Stripe and Google Calendar integration.
+A lightweight, modular WordPress booking engine with Stripe, Google Calendar, and Microsoft Outlook integration.
 
-Current release: v3.0.14 (stable)
+Current release: v3.0.14.4 (stable)
 
 ## Features
 
@@ -12,8 +12,10 @@ Current release: v3.0.14 (stable)
 - **Microsoft Outlook Calendar**: Automatic event creation with Microsoft Graph API integration
 - **Auto Google Meet**: Optional per-service Google Meet link generation on event creation
 - **Staff Assignment UI**: Assign active staff to services directly in Service editor
+- **Staff Calendar Dropdown**: Auto-load available Google/Outlook calendars for each staff member
 - **Frontend Form**: Simple shortcode `[simple_booking_form]`
 - **Webhook Processing**: Real-time booking creation after payment
+- **Webhook Retry Queue**: Background retry scheduling with admin diagnostics and manual controls
 - **Booking Management UX**: Dedicated manage page and cleaner cancel/reschedule customer messaging
 - **Free Booking Support**: Services without Stripe Price ID book instantly
 - **Service-Specific Forms**: Scope form to one service via shortcode attributes
@@ -43,10 +45,12 @@ simple-booking/
 │   │   └── class-google-calendar.php
 │   ├── post-types/
 │   │   ├── class-booking-service.php
-│   │   └── class-booking.php
+│   │   ├── class-booking.php
+│   │   └── class-staff.php
 │   ├── stripe/
 │   │   └── class-stripe-handler.php
 │   └── webhook/
+│       ├── class-booking-webhook.php
 │       └── class-stripe-webhook.php
 ├── composer.json
 └── simple-booking.php
@@ -200,8 +204,12 @@ Single-service form examples:
    - Homepage fallback with `session_id` if success page is missing
 8. Plugin creates:
    - Booking post in WordPress
-   - Google Calendar event (if configured)
+   - Calendar event in configured provider (Google/Outlook/ICS fallback behavior)
    - Confirmation email to customer
+
+Webhook delivery note:
+- `booking.created` webhooks use background retries on rate-limit/server errors so booking creation stays responsive
+- Admin diagnostics and controls are available in **Settings > Simple Booking > Webhook Settings**
 
 ## Security
 
