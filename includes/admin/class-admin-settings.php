@@ -490,12 +490,22 @@ class Simple_Booking_Admin_Settings {
         }
 
         $run_due_result = $this->maybe_run_due_webhook_retries();
+        $clear_far_future_result = $this->maybe_clear_far_future_webhook_retries();
 
         if ( is_array( $run_due_result ) ) {
             $message = sprintf(
                 /* translators: %d is number of webhook retries executed now. */
                 __( 'Executed %d due webhook retry job(s).', 'simple-booking' ),
                 absint( $run_due_result['executed'] )
+            );
+            echo '<p><strong>' . esc_html( $message ) . '</strong></p>';
+        }
+
+        if ( is_array( $clear_far_future_result ) ) {
+            $message = sprintf(
+                /* translators: %d is number of far-future webhook retries removed. */
+                __( 'Cleared %d far-future webhook retry job(s).', 'simple-booking' ),
+                absint( $clear_far_future_result['cleared'] )
             );
             echo '<p><strong>' . esc_html( $message ) . '</strong></p>';
         }
@@ -513,7 +523,19 @@ class Simple_Booking_Admin_Settings {
             admin_url( 'options-general.php' )
         );
 
-        echo '<p><a class="button button-secondary" href="' . esc_url( $run_due_url ) . '">' . esc_html__( 'Run due retries now', 'simple-booking' ) . '</a></p>';
+        $clear_far_future_url = add_query_arg(
+            array(
+                'page'                      => self::PAGE_SLUG,
+                'webhook_clear_far_future'  => '1',
+                '_wpnonce'                  => wp_create_nonce( 'simple_booking_clear_far_future_webhook_retries_' . get_current_user_id() ),
+            ),
+            admin_url( 'options-general.php' )
+        );
+
+        echo '<p style="display:flex; gap:8px; flex-wrap:wrap;">';
+        echo '<a class="button button-secondary" href="' . esc_url( $run_due_url ) . '">' . esc_html__( 'Run due retries now', 'simple-booking' ) . '</a>';
+        echo '<a class="button" href="' . esc_url( $clear_far_future_url ) . '" onclick="return confirm(\'' . esc_js( __( 'Clear far-future retries scheduled more than 15 minutes ahead?', 'simple-booking' ) ) . '\');">' . esc_html__( 'Clear far-future retries', 'simple-booking' ) . '</a>';
+        echo '</p>';
 
         $cron = function_exists( '_get_cron_array' ) ? _get_cron_array() : array();
         if ( ! is_array( $cron ) || empty( $cron ) ) {
@@ -649,6 +671,60 @@ class Simple_Booking_Admin_Settings {
         }
 
         return array( 'executed' => $executed );
+    }
+
+    /**
+     * Clear webhook retry jobs scheduled far in the future (test cleanup helper).
+     *
+     * @return array|null
+     */
+    private function maybe_clear_far_future_webhook_retries() {
+        if ( ! isset( $_GET['page'] ) || self::PAGE_SLUG !== sanitize_text_field( wp_unslash( $_GET['page'] ) ) ) {
+            return null;
+        }
+
+        if ( empty( $_GET['webhook_clear_far_future'] ) ) {
+            return null;
+        }
+
+        if ( empty( $_GET['_wpnonce'] ) ) {
+            return null;
+        }
+
+        $nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) );
+        if ( ! wp_verify_nonce( $nonce, 'simple_booking_clear_far_future_webhook_retries_' . get_current_user_id() ) ) {
+            return null;
+        }
+
+        $hook_name = class_exists( 'Simple_Booking_Booking_Webhook' )
+            ? Simple_Booking_Booking_Webhook::RETRY_HOOK
+            : 'simple_booking_retry_booking_webhook';
+
+        $cron = function_exists( '_get_cron_array' ) ? _get_cron_array() : array();
+        if ( ! is_array( $cron ) || empty( $cron ) ) {
+            return array( 'cleared' => 0 );
+        }
+
+        $threshold = time() + 15 * MINUTE_IN_SECONDS;
+        $cleared = 0;
+
+        foreach ( $cron as $timestamp => $hooks ) {
+            if ( absint( $timestamp ) <= $threshold ) {
+                continue;
+            }
+
+            if ( ! isset( $hooks[ $hook_name ] ) || ! is_array( $hooks[ $hook_name ] ) ) {
+                continue;
+            }
+
+            foreach ( $hooks[ $hook_name ] as $event ) {
+                $args = isset( $event['args'] ) && is_array( $event['args'] ) ? $event['args'] : array();
+                wp_unschedule_event( absint( $timestamp ), $hook_name, $args );
+                $cleared++;
+            }
+        }
+
+        return array( 'cleared' => $cleared );
     }
 
     /**

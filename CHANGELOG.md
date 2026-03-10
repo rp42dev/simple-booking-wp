@@ -7,8 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- (No planned items currently)
+### Added
+- Staff calendar selector now auto-loads available provider calendars in admin with one-click refresh.
+- Webhook Queue Status diagnostics panel in admin now shows pending retry jobs with booking context.
+- Manual admin action to run due webhook retry jobs immediately.
+- Manual admin action to clear far-future webhook retries for test cleanup.
+
+### Changed
+- Outlook and Google staff calendar routing now supports end-to-end CRUD parity in booking lifecycle flows.
+- Google calendar dropdown now lists writable calendars only to avoid selecting read-only calendars.
+
+### Fixed
+- Google calendar list endpoint corrected for staff dropdown population.
+- Google event creation now retries without conference data when Meet insertion is unsupported on target calendar.
+- Webhook retries moved to deferred background scheduling to avoid slowing booking requests during rate limiting.
+- Webhook retry logs now include booking context and avoid duplicate scheduling for identical retry args.
 
 ## [3.0.14.4] - 2026-03-10
 
