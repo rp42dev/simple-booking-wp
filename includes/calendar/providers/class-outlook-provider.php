@@ -242,23 +242,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             return $busy_windows;
         }
 
-        foreach ( $busy_windows as $window ) {
-            if ( empty( $window['start'] ) || empty( $window['end'] ) ) {
-                continue;
-            }
-
-            $busy_start_ts = strtotime( (string) $window['start'] );
-            $busy_end_ts = strtotime( (string) $window['end'] );
-            if ( false === $busy_start_ts || false === $busy_end_ts ) {
-                continue;
-            }
-
-            if ( $range['start_ts'] < $busy_end_ts && $range['end_ts'] > $busy_start_ts ) {
-                return false;
-            }
-        }
-
-        return true;
+        return empty( $busy_windows );
     }
 
     /**
