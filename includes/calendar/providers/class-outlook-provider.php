@@ -262,6 +262,72 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     }
 
     /**
+     * Fallback busy window lookup via getSchedule.
+     *
+     * @param string $access_token
+     * @param string $start_iso
+     * @param string $end_iso
+     * @return array|WP_Error
+     */
+    private function fetch_busy_windows_via_get_schedule( $access_token, $start_iso, $end_iso ) {
+        $body = array(
+            'schedules' => array( 'me' ),
+            'startTime' => array(
+                'dateTime' => gmdate( 'Y-m-d\TH:i:s', strtotime( $start_iso ) ),
+                'timeZone' => 'UTC',
+            ),
+            'endTime' => array(
+                'dateTime' => gmdate( 'Y-m-d\TH:i:s', strtotime( $end_iso ) ),
+                'timeZone' => 'UTC',
+            ),
+            'availabilityViewInterval' => 30,
+        );
+
+        $response = wp_remote_post(
+            self::GRAPH_API_BASE . '/me/calendar/getSchedule',
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                    'Content-Type'  => 'application/json',
+                    'Prefer'        => 'outlook.timezone="UTC"',
+                ),
+                'body'    => wp_json_encode( $body ),
+                'timeout' => 30,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $status_code = wp_remote_retrieve_response_code( $response );
+        $response_body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+        if ( 200 !== $status_code ) {
+            return new WP_Error( 'outlook_schedule_fallback_failed', $response_body['error']['message'] ?? __( 'Schedule fetch failed', 'simple-booking' ) );
+        }
+
+        $busy_windows = array();
+        if ( isset( $response_body['value'][0]['scheduleItems'] ) && is_array( $response_body['value'][0]['scheduleItems'] ) ) {
+            foreach ( $response_body['value'][0]['scheduleItems'] as $item ) {
+                $status = isset( $item['status'] ) ? strtolower( (string) $item['status'] ) : '';
+                if ( in_array( $status, array( 'free', 'unknown' ), true ) ) {
+                    continue;
+                }
+
+                if ( ! empty( $item['start']['dateTime'] ) && ! empty( $item['end']['dateTime'] ) ) {
+                    $busy_windows[] = array(
+                        'start' => $item['start']['dateTime'],
+                        'end'   => $item['end']['dateTime'],
+                    );
+                }
+            }
+        }
+
+        return $busy_windows;
+    }
+
+    /**
      * Resolve booking start/end datetimes for provider payloads.
      *
      * Supports current payload keys (`start_datetime`, `end_datetime`) and
@@ -516,7 +582,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         $response_body = json_decode( wp_remote_retrieve_body( $response ), true );
 
         if ( $status_code !== 200 ) {
-            return new WP_Error( 'outlook_schedule_failed', $response_body['error']['message'] ?? __( 'Schedule fetch failed', 'simple-booking' ) );
+            $fallback = $this->fetch_busy_windows_via_get_schedule( $access_token, $start_iso, $end_iso );
+            if ( is_wp_error( $fallback ) ) {
+                return new WP_Error( 'outlook_schedule_failed', $response_body['error']['message'] ?? $fallback->get_error_message() );
+            }
+            return $fallback;
         }
 
         $busy_windows = array();
@@ -550,7 +620,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
 
         $available = $this->is_slot_available( $start_datetime, $duration_minutes );
         if ( is_wp_error( $available ) ) {
-            return false;
+            return $available;
         }
 
         if ( true !== $available ) {

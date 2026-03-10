@@ -977,11 +977,18 @@ class Simple_Booking_Form {
             } else {
                 if ( $provider ) {
                     $staff_availability = $provider->find_available_staff( $service_id, $slotStart->format( DateTime::ATOM ), $duration );
-                    $available_flag = is_array( $staff_availability );
+                    if ( is_wp_error( $staff_availability ) ) {
+                        $available_flag = false;
+                        $reason = 'provider_error';
+                        $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' unavailable due to provider error: ' . $staff_availability->get_error_code() . ' - ' . $staff_availability->get_error_message();
+                    } else {
+                        $available_flag = is_array( $staff_availability );
+                    }
+
                     if ( $available_flag ) {
                         $assigned_staff_id = isset( $staff_availability['staff_id'] ) ? $staff_availability['staff_id'] : 'none';
                         $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' is available via provider ' . $provider->get_slug() . ' (staff_id=' . $assigned_staff_id . ')';
-                    } else {
+                    } elseif ( 'provider_error' !== $reason ) {
                         $reason = 'booked';
                         $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' unavailable (no staff available)';
                     }
