@@ -27,6 +27,7 @@ class Simple_Booking_Google_Calendar {
      */
     const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
     const TOKEN_URL = 'https://oauth2.googleapis.com/token';
+    const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar';
 
     /**
      * Debug file path - TEMPORARY FOR TESTING ONLY
@@ -141,7 +142,7 @@ class Simple_Booking_Google_Calendar {
             'client_id'     => $client_id,
             'redirect_uri'  => $redirect_uri,
             'response_type' => 'code',
-            'scope'         => 'https://www.googleapis.com/auth/calendar.events',
+            'scope'         => self::CALENDAR_SCOPE,
             'access_type'   => 'offline',
             'prompt'        => 'consent',
             'state'         => $state,
@@ -354,26 +355,73 @@ class Simple_Booking_Google_Calendar {
             return new WP_Error( 'no_token', __( 'No access token available', 'simple-booking' ) );
         }
 
-        $response = wp_remote_get(
-            'https://www.googleapis.com/calendar/v3/calendarList?maxResults=50',
-            array(
-                'headers' => array(
-                    'Authorization' => 'Bearer ' . $access_token,
-                ),
-                'timeout' => 30,
-            )
-        );
+        $request = function( $token ) {
+            return wp_remote_get(
+                'https://www.googleapis.com/calendar/v3/calendarList?maxResults=50',
+                array(
+                    'headers' => array(
+                        'Authorization' => 'Bearer ' . $token,
+                    ),
+                    'timeout' => 30,
+                )
+            );
+        };
+
+        $response = $request( $access_token );
 
         if ( is_wp_error( $response ) ) {
             return $response;
         }
 
         $status_code = wp_remote_retrieve_response_code( $response );
-        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        $response_body = wp_remote_retrieve_body( $response );
+        $body = json_decode( $response_body, true );
+
+        if ( 401 === $status_code ) {
+            $refreshed = $this->refresh_token();
+
+            if ( ! is_wp_error( $refreshed ) ) {
+                $access_token = $this->get_access_token();
+                $response = $request( $access_token );
+
+                if ( is_wp_error( $response ) ) {
+                    return $response;
+                }
+
+                $status_code = wp_remote_retrieve_response_code( $response );
+                $response_body = wp_remote_retrieve_body( $response );
+                $body = json_decode( $response_body, true );
+            }
+        }
 
         if ( 200 !== $status_code ) {
-            $error_msg = isset( $body['error']['message'] ) ? $body['error']['message'] : 'Unknown error';
-            return new WP_Error( 'api_error', $error_msg );
+            $error_message = '';
+            $error_reason  = '';
+
+            if ( isset( $body['error']['message'] ) && is_string( $body['error']['message'] ) ) {
+                $error_message = $body['error']['message'];
+            }
+
+            if ( isset( $body['error']['errors'][0]['reason'] ) && is_string( $body['error']['errors'][0]['reason'] ) ) {
+                $error_reason = $body['error']['errors'][0]['reason'];
+            }
+
+            if ( in_array( $error_reason, array( 'insufficientPermissions', 'forbidden' ), true ) || false !== stripos( $error_message, 'scope' ) || false !== stripos( $error_message, 'permission' ) ) {
+                return new WP_Error(
+                    'google_insufficient_scope',
+                    __( 'Google needs to be reconnected with expanded calendar permission before calendars can be listed.', 'simple-booking' )
+                );
+            }
+
+            if ( '' === $error_message ) {
+                $error_message = sprintf(
+                    /* translators: %d is the HTTP status code returned by Google. */
+                    __( 'Google Calendar API request failed with status %d.', 'simple-booking' ),
+                    absint( $status_code )
+                );
+            }
+
+            return new WP_Error( 'api_error', $error_message );
         }
 
         if ( empty( $body['items'] ) || ! is_array( $body['items'] ) ) {
