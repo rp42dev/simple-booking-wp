@@ -25,6 +25,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
     const TOKEN_OPTION = 'simple_booking_outlook_tokens';
 
     /**
+     * Optional setting key for target Outlook calendar ID.
+     */
+    const CALENDAR_ID_OPTION = 'outlook_calendar_id';
+
+    /**
      * Check debug mode setting.
      *
      * @return bool
@@ -45,6 +50,92 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         }
 
         error_log( '[SIMPLE_BOOKING_OUTLOOK] ' . $message );
+    }
+
+    /**
+     * Get configured Outlook calendar ID from settings.
+     *
+     * @return string
+     */
+    private function get_configured_calendar_id() {
+        $calendar_id = simple_booking()->get_setting( self::CALENDAR_ID_OPTION, '' );
+        return is_string( $calendar_id ) ? trim( $calendar_id ) : '';
+    }
+
+    /**
+     * Build calendarView URL for default or specific calendar.
+     *
+     * @param string $start_iso
+     * @param string $end_iso
+     * @param string $calendar_id
+     * @return string
+     */
+    private function build_calendar_view_url( $start_iso, $end_iso, $calendar_id = '' ) {
+        $base = self::GRAPH_API_BASE . '/me/calendarView';
+
+        if ( '' !== $calendar_id ) {
+            $base = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $calendar_id ) . '/calendarView';
+        }
+
+        return add_query_arg(
+            array(
+                'startDateTime' => $start_iso,
+                'endDateTime'   => $end_iso,
+                '$top'          => 100,
+            ),
+            $base
+        );
+    }
+
+    /**
+     * Resolve calendars used for availability checks.
+     *
+     * @param string $access_token
+     * @return array
+     */
+    private function get_availability_calendar_ids( $access_token ) {
+        $configured_calendar_id = $this->get_configured_calendar_id();
+        if ( '' !== $configured_calendar_id ) {
+            return array( $configured_calendar_id );
+        }
+
+        $response = wp_remote_get(
+            self::GRAPH_API_BASE . '/me/calendars?$select=id,name,isDefaultCalendar&$top=50',
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $access_token,
+                ),
+                'timeout' => 30,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            $this->debug_log( 'get_availability_calendar_ids error: ' . $response->get_error_code() . ' - ' . $response->get_error_message() );
+            return array( '' );
+        }
+
+        $status_code = wp_remote_retrieve_response_code( $response );
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+        if ( 200 !== $status_code || empty( $body['value'] ) || ! is_array( $body['value'] ) ) {
+            $this->debug_log( 'get_availability_calendar_ids non-200 or empty list, status=' . $status_code );
+            return array( '' );
+        }
+
+        $ids = array();
+        foreach ( $body['value'] as $calendar ) {
+            if ( empty( $calendar['id'] ) ) {
+                continue;
+            }
+
+            $ids[] = (string) $calendar['id'];
+        }
+
+        if ( empty( $ids ) ) {
+            return array( '' );
+        }
+
+        return array_values( array_unique( $ids ) );
     }
     
     /**
@@ -485,8 +576,14 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             $event['onlineMeetingUrl'] = $booking_data['meeting_link'];
         }
 
+        $configured_calendar_id = $this->get_configured_calendar_id();
+        $create_endpoint = self::GRAPH_API_BASE . '/me/events';
+        if ( '' !== $configured_calendar_id ) {
+            $create_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $configured_calendar_id ) . '/events';
+        }
+
         $response = wp_remote_post(
-            self::GRAPH_API_BASE . '/me/events',
+            $create_endpoint,
             array(
                 'headers' => array(
                     'Authorization' => 'Bearer ' . $access_token,
@@ -545,8 +642,14 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             ),
         );
 
+        $configured_calendar_id = $this->get_configured_calendar_id();
+        $update_endpoint = self::GRAPH_API_BASE . '/me/events/' . rawurlencode( $event_id );
+        if ( '' !== $configured_calendar_id ) {
+            $update_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $configured_calendar_id ) . '/events/' . rawurlencode( $event_id );
+        }
+
         $response = wp_remote_request(
-            self::GRAPH_API_BASE . '/me/events/' . $event_id,
+            $update_endpoint,
             array(
                 'method'  => 'PATCH',
                 'headers' => array(
@@ -581,8 +684,14 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             return $access_token;
         }
 
+        $configured_calendar_id = $this->get_configured_calendar_id();
+        $delete_endpoint = self::GRAPH_API_BASE . '/me/events/' . rawurlencode( $event_id );
+        if ( '' !== $configured_calendar_id ) {
+            $delete_endpoint = self::GRAPH_API_BASE . '/me/calendars/' . rawurlencode( $configured_calendar_id ) . '/events/' . rawurlencode( $event_id );
+        }
+
         $response = wp_remote_request(
-            self::GRAPH_API_BASE . '/me/events/' . $event_id,
+            $delete_endpoint,
             array(
                 'method'  => 'DELETE',
                 'headers' => array(
@@ -626,63 +735,65 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         $start_iso = gmdate( 'c', $start_ts );
         $end_iso = gmdate( 'c', $end_ts );
 
-        $url = add_query_arg(
-            array(
-                'startDateTime' => $start_iso,
-                'endDateTime'   => $end_iso,
-                '$top'          => 100,
-            ),
-            self::GRAPH_API_BASE . '/me/calendarView'
-        );
+        $busy_windows = array();
+        $calendar_ids = $this->get_availability_calendar_ids( $access_token );
+        $successful_calls = 0;
 
-        $response = wp_remote_get(
-            $url,
-            array(
-                'headers' => array(
-                    'Authorization' => 'Bearer ' . $access_token,
-                    'Prefer'        => 'outlook.timezone="UTC"',
-                ),
-                'timeout' => 30,
-            )
-        );
+        foreach ( $calendar_ids as $calendar_id ) {
+            $url = $this->build_calendar_view_url( $start_iso, $end_iso, $calendar_id );
+            $response = wp_remote_get(
+                $url,
+                array(
+                    'headers' => array(
+                        'Authorization' => 'Bearer ' . $access_token,
+                        'Prefer'        => 'outlook.timezone="UTC"',
+                    ),
+                    'timeout' => 30,
+                )
+            );
 
-        if ( is_wp_error( $response ) ) {
-            $this->debug_log( 'calendarView request error: ' . $response->get_error_code() . ' - ' . $response->get_error_message() );
-            return $response;
+            if ( is_wp_error( $response ) ) {
+                $this->debug_log( 'calendarView request error: ' . $response->get_error_code() . ' - ' . $response->get_error_message() . ' calendar_id=' . ( '' === $calendar_id ? 'default' : $calendar_id ) );
+                continue;
+            }
+
+            $status_code = wp_remote_retrieve_response_code( $response );
+            $response_body = json_decode( wp_remote_retrieve_body( $response ), true );
+            $this->debug_log( 'calendarView status=' . $status_code . ' range=' . $start_iso . ' -> ' . $end_iso . ' calendar_id=' . ( '' === $calendar_id ? 'default' : $calendar_id ) );
+
+            if ( 200 !== $status_code ) {
+                continue;
+            }
+
+            $successful_calls++;
+
+            if ( isset( $response_body['value'] ) && is_array( $response_body['value'] ) ) {
+                foreach ( $response_body['value'] as $item ) {
+                    $show_as = isset( $item['showAs'] ) ? strtolower( (string) $item['showAs'] ) : '';
+                    if ( 'free' === $show_as ) {
+                        continue;
+                    }
+
+                    if ( ! empty( $item['start']['dateTime'] ) && ! empty( $item['end']['dateTime'] ) ) {
+                        $busy_windows[] = array(
+                            'start' => $item['start']['dateTime'],
+                            'end'   => $item['end']['dateTime'],
+                        );
+                    }
+                }
+            }
         }
 
-        $status_code = wp_remote_retrieve_response_code( $response );
-        $response_body = json_decode( wp_remote_retrieve_body( $response ), true );
-        $this->debug_log( 'calendarView status=' . $status_code . ' range=' . $start_iso . ' -> ' . $end_iso );
-
-        if ( $status_code !== 200 ) {
-            $this->debug_log( 'calendarView non-200; attempting getSchedule fallback' );
+        if ( 0 === $successful_calls ) {
+            $this->debug_log( 'calendarView calls failed for all calendars; attempting getSchedule fallback' );
             $fallback = $this->fetch_busy_windows_via_get_schedule( $access_token, $start_iso, $end_iso );
             if ( is_wp_error( $fallback ) ) {
                 $this->debug_log( 'getSchedule fallback error: ' . $fallback->get_error_code() . ' - ' . $fallback->get_error_message() );
-                return new WP_Error( 'outlook_schedule_failed', $response_body['error']['message'] ?? $fallback->get_error_message() );
+                return $fallback;
             }
 
             $this->debug_log( 'getSchedule fallback busy windows count=' . count( $fallback ) );
             return $fallback;
-        }
-
-        $busy_windows = array();
-
-        if ( isset( $response_body['value'] ) && is_array( $response_body['value'] ) ) {
-            foreach ( $response_body['value'] as $item ) {
-                $show_as = isset( $item['showAs'] ) ? strtolower( (string) $item['showAs'] ) : '';
-                if ( 'free' === $show_as ) {
-                    continue;
-                }
-
-                if ( ! empty( $item['start']['dateTime'] ) && ! empty( $item['end']['dateTime'] ) ) {
-                    $busy_windows[] = array(
-                        'start' => $item['start']['dateTime'],
-                        'end'   => $item['end']['dateTime'],
-                    );
-                }
-            }
         }
 
         $this->debug_log( 'calendarView busy windows count=' . count( $busy_windows ) );
