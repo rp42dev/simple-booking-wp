@@ -26,54 +26,64 @@ define( 'SIMPLE_BOOKING_VENDOR', SIMPLE_BOOKING_PATH . 'vendor/' );
  */
 class Simple_Booking {
 
+    /** Singleton instance. */
+    private static $instance = null;
+
+    /** @var Simple_Booking_License_Manager */
+    private $license_manager = null;
+
     /**
-     * Constructor
+     * Private constructor — use simple_booking().
      */
-    public function __construct() {
+    private function __construct() {
         $this->load_dependencies();
         $this->init_hooks();
     }
 
     /**
-     * Load required files
+     * Return (and lazily create) the singleton instance.
+     *
+     * @return self
+     */
+    public static function instance() {
+        if ( null === self::$instance ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Load required files.
+     *
+     * FREE CORE is always loaded.
+     * PRO files are only required when a valid license is active.
      */
     private function load_dependencies() {
-        // Post Types
+        // --- FREE CORE (always loaded) ---
         require_once SIMPLE_BOOKING_INCLUDES . 'post-types/class-booking-service.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'post-types/class-booking.php';
-        require_once SIMPLE_BOOKING_INCLUDES . 'post-types/class-staff.php';
-
-        // Admin
         require_once SIMPLE_BOOKING_INCLUDES . 'admin/class-admin-settings.php';
-
-        // Frontend
         require_once SIMPLE_BOOKING_INCLUDES . 'frontend/class-booking-form.php';
-
-        // Stripe
-        require_once SIMPLE_BOOKING_INCLUDES . 'stripe/class-stripe-handler.php';
-
-        // Webhook
-        require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-booking-webhook.php';
-
-        // Calendar Provider Architecture (Phase 6 scaffolding)
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/interface-calendar-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/class-calendar-provider-manager.php';
-        require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php';
-        require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php';
-
-        // License
-        require_once SIMPLE_BOOKING_INCLUDES . 'license/class-license-manager.php';
-
-        // Google Calendar
-        require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
-
-        // Outlook Calendar
-        require_once SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php';
-
-        // Booking Creator
         require_once SIMPLE_BOOKING_INCLUDES . 'booking/class-booking-creator.php';
+
+        // License Manager (needed before Pro gate check)
+        require_once SIMPLE_BOOKING_INCLUDES . 'license/class-license-manager.php';
+        $this->license_manager = new Simple_Booking_License_Manager();
+
+        // --- PRO (only when licensed) ---
+        if ( $this->license_manager->is_pro_active() ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'post-types/class-staff.php';
+            require_once SIMPLE_BOOKING_INCLUDES . 'stripe/class-stripe-handler.php';
+            require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php';
+            require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
+            require_once SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php';
+            require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php';
+            require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
+        }
     }
 
     /**
@@ -197,13 +207,34 @@ class Simple_Booking {
     }
 
     /**
+     * Return the license manager instance.
+     *
+     * @return Simple_Booking_License_Manager
+     */
+    public function get_license_manager() {
+        return $this->license_manager;
+    }
+
+    /**
+     * Return true when a valid Pro license is active.
+     *
+     * @return bool
+     */
+    public function is_pro_active() {
+        return $this->license_manager instanceof Simple_Booking_License_Manager
+            && $this->license_manager->is_pro_active();
+    }
+
+    /**
      * Initialize plugin
      */
     public function init() {
         // Register custom post types
         Simple_Booking_Service::register();
         Simple_Booking_Post::register();
-        Simple_Booking_Staff::register();
+        if ( class_exists( 'Simple_Booking_Staff' ) ) {
+            Simple_Booking_Staff::register();
+        }
         Simple_Booking_Booking_Webhook::register_hooks();
 
         // Ensure default pages exist after plugin upgrades (without requiring reactivation)
@@ -225,10 +256,10 @@ class Simple_Booking {
     }
 }
 
-// Initialize plugin
+// Global accessor — always returns the same instance.
 function simple_booking() {
-    return new Simple_Booking();
+    return Simple_Booking::instance();
 }
 
-// Start the plugin
+// Boot.
 simple_booking();

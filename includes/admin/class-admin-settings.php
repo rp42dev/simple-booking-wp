@@ -22,6 +22,8 @@ class Simple_Booking_Admin_Settings {
     public function __construct() {
         add_action( 'admin_menu', array( $this, 'add_menu_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
+        add_action( 'wp_ajax_simple_booking_activate_license', array( $this, 'ajax_activate_license' ) );
+        add_action( 'wp_ajax_simple_booking_deactivate_license', array( $this, 'ajax_deactivate_license' ) );
     }
 
     /**
@@ -45,6 +47,22 @@ class Simple_Booking_Admin_Settings {
             'simple_booking_settings',
             'simple_booking_settings',
             array( $this, 'sanitize_settings' )
+        );
+
+        // License
+        add_settings_section(
+            'simple_booking_license',
+            __( 'License', 'simple-booking' ),
+            array( $this, 'render_license_section' ),
+            self::PAGE_SLUG
+        );
+
+        add_settings_field(
+            'license_panel',
+            __( 'Pro License', 'simple-booking' ),
+            array( $this, 'render_license_panel' ),
+            self::PAGE_SLUG,
+            'simple_booking_license'
         );
 
         // Stripe Settings
@@ -469,6 +487,130 @@ class Simple_Booking_Admin_Settings {
             </form>
         </div>
         <?php
+    }
+
+    /**
+     * Render License section header.
+     */
+    public function render_license_section() {
+        echo '<p>' . esc_html__( 'Activate a Pro license to unlock Stripe payments, Google/Outlook calendar sync, multi-staff management, and more.', 'simple-booking' ) . '</p>';
+    }
+
+    /**
+     * Render the license key input, status, and activate/deactivate buttons.
+     */
+    public function render_license_panel() {
+        $lm     = simple_booking()->get_license_manager();
+        $status = $lm->check_license_status();
+        $key    = $lm->get_license_key();
+        $is_pro = $lm->is_pro_active();
+        $nonce  = wp_create_nonce( 'simple_booking_license_nonce' );
+
+        // Status badge.
+        if ( $is_pro ) {
+            $badge_class = 'active' === $status['status'] ? 'updated' : 'notice-warning';
+            $badge_text  = 'active' === $status['status']
+                ? esc_html__( '✓ Pro Active', 'simple-booking' )
+                : sprintf( esc_html__( '⚠ Grace Period — %d days remaining', 'simple-booking' ), $lm->get_grace_period_remaining() );
+        } else {
+            $badge_class = 'error';
+            $badge_text  = empty( $key )
+                ? esc_html__( 'No license — Free plan', 'simple-booking' )
+                : esc_html__( '✕ License inactive', 'simple-booking' );
+        }
+
+        echo '<div id="sb-license-panel">';
+
+        // Status badge.
+        echo '<p><span class="notice inline ' . esc_attr( $badge_class ) . '" style="padding:4px 10px;display:inline-block;">' . $badge_text . '</span>';
+        if ( $is_pro && ! empty( $status['plan'] ) && 'free' !== $status['plan'] ) {
+            echo ' &nbsp;<strong>' . esc_html( ucwords( str_replace( '_', ' ', $status['plan'] ) ) ) . '</strong>';
+        }
+        if ( $is_pro && ! empty( $status['expires'] ) ) {
+            echo ' &nbsp;' . sprintf( esc_html__( 'Expires: %s', 'simple-booking' ), esc_html( $status['expires'] ) );
+        }
+        echo '</p>';
+
+        // Key input + activate button (shown when not active).
+        if ( ! $is_pro ) {
+            echo '<p>';
+            echo '<input type="password" id="sb-license-key" style="width:320px;" placeholder="XXXX-XXXX-XXXX-XXXX" value="' . esc_attr( $key ) . '" autocomplete="off" />';
+            echo ' &nbsp;';
+            echo '<button type="button" class="button button-primary" id="sb-license-activate"
+                    data-nonce="' . esc_attr( $nonce ) . '">' . esc_html__( 'Activate License', 'simple-booking' ) . '</button>';
+            echo ' &nbsp;<a href="https://yourdomain.com/pricing" target="_blank" rel="noopener">' . esc_html__( 'Get Pro →', 'simple-booking' ) . '</a>';
+            echo '</p>';
+        }
+
+        // Deactivate button (shown when active).
+        if ( ! empty( $key ) ) {
+            echo '<p>';
+            echo '<button type="button" class="button button-secondary" id="sb-license-deactivate"
+                    data-nonce="' . esc_attr( $nonce ) . '">' . esc_html__( 'Deactivate License', 'simple-booking' ) . '</button>';
+            echo '</p>';
+        }
+
+        echo '<p id="sb-license-message" style="display:none;"></p>';
+        echo '</div>';
+
+        // Inline JS for AJAX actions.
+        ?>
+        <script>
+        (function($){
+            $('#sb-license-activate').on('click', function(){
+                var key = $('#sb-license-key').val().trim();
+                if ( ! key ) { alert('<?php echo esc_js( __( 'Please enter a license key.', 'simple-booking' ) ); ?>'); return; }
+                $('#sb-license-activate').prop('disabled', true).text('<?php echo esc_js( __( 'Activating…', 'simple-booking' ) ); ?>');
+                $.post(ajaxurl, { action: 'simple_booking_activate_license', nonce: $(this).data('nonce'), key: key }, function(r){
+                    var $msg = $('#sb-license-message').show();
+                    if ( r.success ) { $msg.css('color','green').text(r.data.message); location.reload(); }
+                    else             { $msg.css('color','red').text(r.data.message); $('#sb-license-activate').prop('disabled', false).text('<?php echo esc_js( __( 'Activate License', 'simple-booking' ) ); ?>'); }
+                });
+            });
+            $('#sb-license-deactivate').on('click', function(){
+                if ( ! confirm('<?php echo esc_js( __( 'Deactivate this license on the current site?', 'simple-booking' ) ); ?>') ) return;
+                $('#sb-license-deactivate').prop('disabled', true).text('<?php echo esc_js( __( 'Deactivating…', 'simple-booking' ) ); ?>');
+                $.post(ajaxurl, { action: 'simple_booking_deactivate_license', nonce: $(this).data('nonce') }, function(r){
+                    var $msg = $('#sb-license-message').show();
+                    if ( r.success ) { $msg.css('color','green').text(r.data.message); location.reload(); }
+                    else             { $msg.css('color','red').text(r.data.message); $('#sb-license-deactivate').prop('disabled', false).text('<?php echo esc_js( __( 'Deactivate License', 'simple-booking' ) ); ?>'); }
+                });
+            });
+        })(jQuery);
+        </script>
+        <?php
+    }
+
+    /**
+     * AJAX: activate a license key.
+     */
+    public function ajax_activate_license() {
+        check_ajax_referer( 'simple_booking_license_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'simple-booking' ) ) );
+        }
+
+        $key    = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
+        $result = simple_booking()->get_license_manager()->activate_license( $key );
+
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        }
+
+        wp_send_json_success( array( 'message' => __( 'License activated successfully! Pro features are now enabled.', 'simple-booking' ) ) );
+    }
+
+    /**
+     * AJAX: deactivate the current license.
+     */
+    public function ajax_deactivate_license() {
+        check_ajax_referer( 'simple_booking_license_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'simple-booking' ) ) );
+        }
+
+        simple_booking()->get_license_manager()->deactivate_license();
+        wp_send_json_success( array( 'message' => __( 'License deactivated. Pro features are now disabled.', 'simple-booking' ) ) );
     }
 
     /**

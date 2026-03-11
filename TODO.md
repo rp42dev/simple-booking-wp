@@ -18,13 +18,17 @@ Shipped: WP-Cron notice, Outlook stale calendar ID fallback, webhook meeting_lin
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for full phase breakdown.
 
 ### Phase 1 -- License Foundation
-- [ ] 1.1 License key schema and activation endpoint
-- [ ] 1.2 Feature gate helper (`simple_booking_is_pro()`)
-- [ ] 1.3 Pro feature classes wrapped behind gate
-- [ ] 1.4 Free-only build script (strips Pro files)
-- [ ] 1.5 Admin license settings panel (activate / deactivate / status)
+- [x] 1.1 License manager — full implementation (activate, deactivate, status check, cache, grace period)
+- [x] 1.2 Feature gate helper (`is_pro_active()`, `is_feature_available()`)
+- [x] 1.3 Pro file conditional loading in main plugin
+- [x] 1.4 Singleton fix for main plugin class
+- [x] 1.5 Admin license settings panel (activate / deactivate / status / AJAX)
+- [ ] 1.6 License API server — set up endpoint (Lemon Squeezy or custom)
+- [ ] 1.7 Smoke test: Free mode loads correctly, no Pro files included
+- [ ] 1.8 Smoke test: SIMPLE_BOOKING_FORCE_PRO=true loads all Pro files
+- [ ] 1.9 Release control: v3.1.0, CHANGELOG, tag, push
 
-Start Phase 1 only after v3.0.16 is tagged.
+Next: choose license server platform and point `SIMPLE_BOOKING_LICENSE_API_URL` at it.
 
 ---
 

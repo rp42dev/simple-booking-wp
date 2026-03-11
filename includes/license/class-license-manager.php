@@ -1,17 +1,366 @@
 <?php
 /**
  * License Manager
- * 
+ *
  * Handles Pro license activation, validation, and feature gating.
- * 
+ *
  * @package Simple_Booking
- * @subpackage License
  * @since 3.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+class Simple_Booking_License_Manager {
+
+    /** WordPress option key storing persisted license data. */
+    const LICENSE_OPTION = 'simple_booking_license';
+
+    /** Transient key for the 24-hour remote-check cache. */
+    const CACHE_KEY = 'simple_booking_license_cache';
+
+    /** How long to cache a remote status response (seconds). */
+    const CACHE_DURATION = DAY_IN_SECONDS;
+
+    /** Days Pro stays active after expiry before being shut off. */
+    const GRACE_PERIOD_DAYS = 30;
+
+    /** License server base URL — set via constant or filter. */
+    const API_URL = 'https://yourdomain.com/api/v1/licenses';
+
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+
+    public function __construct() {
+        add_action( 'admin_notices', array( $this, 'show_admin_notices' ) );
+    }
+
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return the stored license key.
+     *
+     * @return string
+     */
+    public function get_license_key() {
+        $license = get_option( self::LICENSE_OPTION, array() );
+        return isset( $license['key'] ) ? (string) $license['key'] : '';
+    }
+
+    /**
+     * Persist a license key without activating it.
+     *
+     * @param string $key
+     * @return bool
+     */
+    public function set_license_key( $key ) {
+        $license        = get_option( self::LICENSE_OPTION, array() );
+        $license['key'] = sanitize_text_field( $key );
+        return update_option( self::LICENSE_OPTION, $license, false );
+    }
+
+    /**
+     * Activate a license key against the remote API.
+     *
+     * @param string $key
+     * @return true|WP_Error
+     */
+    public function activate_license( $key ) {
+        $key = sanitize_text_field( $key );
+        if ( empty( $key ) ) {
+            return new WP_Error( 'empty_key', __( 'Please enter a license key.', 'simple-booking' ) );
+        }
+
+        $api_url = $this->get_api_url();
+
+        $response = wp_remote_post(
+            $api_url . '/activate',
+            array(
+                'body'    => array(
+                    'license_key' => $key,
+                    'site_url'    => home_url(),
+                    'product'     => 'simple-booking',
+                ),
+                'timeout' => 15,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return new WP_Error( 'api_unreachable', __( 'Could not reach the license server. Please try again.', 'simple-booking' ) );
+        }
+
+        $status_code = wp_remote_retrieve_response_code( $response );
+        $body        = json_decode( wp_remote_retrieve_body( $response ), true );
+
+        if ( 200 !== (int) $status_code || empty( $body['success'] ) ) {
+            $message = isset( $body['message'] ) ? sanitize_text_field( $body['message'] ) : __( 'Activation failed.', 'simple-booking' );
+            return new WP_Error( 'activation_failed', $message );
+        }
+
+        $lic = isset( $body['license'] ) && is_array( $body['license'] ) ? $body['license'] : array();
+
+        $license = array(
+            'key'          => $key,
+            'status'       => isset( $lic['status'] ) ? sanitize_text_field( $lic['status'] ) : 'active',
+            'plan'         => isset( $lic['plan'] ) ? sanitize_text_field( $lic['plan'] ) : 'pro',
+            'expires'      => isset( $lic['expires'] ) ? sanitize_text_field( $lic['expires'] ) : null,
+            'activated_at' => current_time( 'mysql' ),
+            'last_check'   => time(),
+        );
+
+        update_option( self::LICENSE_OPTION, $license, false );
+        delete_transient( self::CACHE_KEY );
+
+        return true;
+    }
+
+    /**
+     * Deactivate the current license against the remote API and clear local data.
+     *
+     * @return true|WP_Error
+     */
+    public function deactivate_license() {
+        $key = $this->get_license_key();
+
+        if ( ! empty( $key ) ) {
+            $api_url = $this->get_api_url();
+            wp_remote_post(
+                $api_url . '/deactivate',
+                array(
+                    'body'    => array(
+                        'license_key' => $key,
+                        'site_url'    => home_url(),
+                    ),
+                    'timeout' => 15,
+                )
+            );
+            // Proceed even if the remote call fails — still clear local state.
+        }
+
+        delete_option( self::LICENSE_OPTION );
+        delete_transient( self::CACHE_KEY );
+
+        return true;
+    }
+
+    /**
+     * Return current license status, using a 24-hour transient cache.
+     *
+     * @return array { valid: bool, status: string, plan: string, expires: string|null }
+     */
+    public function check_license_status() {
+        // Hard override for local/test environments.
+        if ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && true === SIMPLE_BOOKING_FORCE_PRO ) {
+            return array( 'valid' => true, 'status' => 'active', 'plan' => 'pro', 'expires' => null );
+        }
+
+        // Allow test suites / staging to inject a status without a real API.
+        $override = apply_filters( 'simple_booking_license_status_override', null );
+        if ( is_array( $override ) ) {
+            return wp_parse_args( $override, array( 'valid' => false, 'status' => 'free', 'plan' => 'free', 'expires' => null ) );
+        }
+
+        // Cache hit.
+        $cached = get_transient( self::CACHE_KEY );
+        if ( false !== $cached && is_array( $cached ) ) {
+            return $cached;
+        }
+
+        $key = $this->get_license_key();
+        if ( empty( $key ) ) {
+            return array( 'valid' => false, 'status' => 'free', 'plan' => 'free', 'expires' => null );
+        }
+
+        // Remote check.
+        $api_url  = $this->get_api_url();
+        $response = wp_remote_get(
+            add_query_arg(
+                array(
+                    'license_key' => $key,
+                    'site_url'    => rawurlencode( home_url() ),
+                ),
+                $api_url . '/check'
+            ),
+            array( 'timeout' => 10 )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            // API down — fall back to local data so the site keeps running.
+            $status = $this->get_local_status( get_option( self::LICENSE_OPTION, array() ) );
+            set_transient( self::CACHE_KEY, $status, HOUR_IN_SECONDS ); // short cache on failure
+            return $status;
+        }
+
+        $body   = json_decode( wp_remote_retrieve_body( $response ), true );
+        $status = array(
+            'valid'   => ! empty( $body['valid'] ),
+            'status'  => isset( $body['status'] ) ? sanitize_text_field( $body['status'] ) : 'unknown',
+            'plan'    => isset( $body['plan'] ) ? sanitize_text_field( $body['plan'] ) : 'free',
+            'expires' => isset( $body['expires'] ) ? sanitize_text_field( $body['expires'] ) : null,
+        );
+
+        // Persist remote result into local option so offline fallback stays fresh.
+        $local = get_option( self::LICENSE_OPTION, array() );
+        $local = array_merge( $local, array(
+            'status'     => $status['status'],
+            'plan'       => $status['plan'],
+            'expires'    => $status['expires'],
+            'last_check' => time(),
+        ) );
+        update_option( self::LICENSE_OPTION, $local, false );
+
+        set_transient( self::CACHE_KEY, $status, self::CACHE_DURATION );
+
+        return $status;
+    }
+
+    /**
+     * Return true when a valid Pro license (or active grace period) is present.
+     *
+     * @return bool
+     */
+    public function is_pro_active() {
+        $status = $this->check_license_status();
+
+        if ( ! empty( $status['valid'] ) && 'active' === $status['status'] ) {
+            return true;
+        }
+
+        if ( 'expired' === $status['status'] && $this->get_grace_period_remaining() > 0 ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Return true when a specific feature is available on the current plan.
+     *
+     * @param string $feature  stripe | google | outlook | staff | refunds | webhooks | advanced_scheduling
+     * @return bool
+     */
+    public function is_feature_available( $feature ) {
+        static $pro_features = array(
+            'stripe', 'google', 'outlook', 'staff',
+            'refunds', 'reschedule_tokens', 'webhooks', 'advanced_scheduling',
+        );
+
+        if ( in_array( $feature, $pro_features, true ) ) {
+            return $this->is_pro_active();
+        }
+
+        return true; // Free features always available.
+    }
+
+    /**
+     * Return days remaining in the grace period (0 when not applicable).
+     *
+     * @return int
+     */
+    public function get_grace_period_remaining() {
+        $license = get_option( self::LICENSE_OPTION, array() );
+
+        if ( empty( $license['expires'] ) || 'expired' !== ( $license['status'] ?? '' ) ) {
+            return 0;
+        }
+
+        $grace_end = strtotime( $license['expires'] ) + ( self::GRACE_PERIOD_DAYS * DAY_IN_SECONDS );
+        $remaining = $grace_end - time();
+
+        return $remaining > 0 ? (int) ceil( $remaining / DAY_IN_SECONDS ) : 0;
+    }
+
+    /**
+     * Force-clear the remote-check cache (e.g. after activate/deactivate).
+     *
+     * @return void
+     */
+    public function clear_cache() {
+        delete_transient( self::CACHE_KEY );
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin notices
+    // -------------------------------------------------------------------------
+
+    /**
+     * Show relevant license notices in wp-admin.
+     *
+     * @return void
+     */
+    public function show_admin_notices() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $status = $this->check_license_status();
+
+        // Grace period warning (≤7 days left).
+        if ( 'expired' === $status['status'] ) {
+            $days = $this->get_grace_period_remaining();
+            if ( $days > 0 && $days <= 7 ) {
+                echo '<div class="notice notice-warning"><p>';
+                printf(
+                    /* translators: %d days remaining in grace period */
+                    esc_html__( 'Simple Booking Pro: Your license has expired. Pro features will stop working in %d day(s). Please renew to avoid interruption.', 'simple-booking' ),
+                    (int) $days
+                );
+                echo '</p></div>';
+            } elseif ( 0 === $days ) {
+                echo '<div class="notice notice-error"><p>';
+                esc_html_e( 'Simple Booking Pro: Your license has expired and the grace period has ended. Pro features are disabled. Please renew your license.', 'simple-booking' );
+                echo '</p></div>';
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Derive status from locally-stored license data (used when API is unreachable).
+     *
+     * @param array $license
+     * @return array
+     */
+    private function get_local_status( $license ) {
+        if ( empty( $license ) || empty( $license['key'] ) ) {
+            return array( 'valid' => false, 'status' => 'free', 'plan' => 'free', 'expires' => null );
+        }
+
+        $status  = isset( $license['status'] ) ? $license['status'] : 'active';
+        $expires = isset( $license['expires'] ) ? $license['expires'] : null;
+
+        if ( $expires && time() >= strtotime( $expires ) ) {
+            $status = 'expired';
+        }
+
+        return array(
+            'valid'   => ( 'active' === $status ),
+            'status'  => $status,
+            'plan'    => isset( $license['plan'] ) ? $license['plan'] : 'pro',
+            'expires' => $expires,
+        );
+    }
+
+    /**
+     * Return the API base URL, allowing override via constant or filter.
+     *
+     * @return string
+     */
+    private function get_api_url() {
+        if ( defined( 'SIMPLE_BOOKING_LICENSE_API_URL' ) ) {
+            return rtrim( SIMPLE_BOOKING_LICENSE_API_URL, '/' );
+        }
+        return apply_filters( 'simple_booking_license_api_url', rtrim( self::API_URL, '/' ) );
+    }
+}
+
 
 /**
  * Class Simple_Booking_License_Manager
