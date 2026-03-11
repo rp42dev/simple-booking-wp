@@ -1045,10 +1045,17 @@ class Simple_Booking_Admin_Settings {
 
         echo '<p>' . __( 'Enter your Microsoft Azure app credentials. You need to register an application in Azure Portal and configure Microsoft Graph API permissions.', 'simple-booking' ) . '</p>';
 
-        // Check if connected (access token exists)
-        $access_token = get_option( 'simple_booking_outlook_tokens', array() );
+        // Check if connected (token is present and structurally valid).
+        $is_outlook_connected = false;
+        if ( class_exists( 'Simple_Booking_Calendar_Provider_Manager' ) ) {
+            $manager = new Simple_Booking_Calendar_Provider_Manager();
+            $provider = $manager->get_provider( 'outlook' );
+            if ( ! is_wp_error( $provider ) && method_exists( $provider, 'is_connected' ) ) {
+                $is_outlook_connected = (bool) $provider->is_connected();
+            }
+        }
 
-        if ( ! empty( $access_token ) && isset( $access_token['access_token'] ) ) {
+        if ( $is_outlook_connected ) {
             // Connected - show status and disconnect button
             echo '<p style="color: #2ecc71; font-weight: bold; font-size: 16px; margin-bottom: 15px;">' . __( 'Connected ✅', 'simple-booking' ) . '</p>';
 
