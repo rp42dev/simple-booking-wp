@@ -17,14 +17,22 @@ Shipped: WP-Cron notice, Outlook stale calendar ID fallback, webhook meeting_lin
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for full phase breakdown.
 
-### Phase 1 -- License Foundation
-- [ ] 1.1 License key schema and activation endpoint
-- [ ] 1.2 Feature gate helper (`simple_booking_is_pro()`)
-- [ ] 1.3 Pro feature classes wrapped behind gate
-- [ ] 1.4 Free-only build script (strips Pro files)
-- [ ] 1.5 Admin license settings panel (activate / deactivate / status)
+### Fork Plan (from stable `v3.0.16`)
+- [x] F0. Baseline branch created from stable tag (`refocus/stable-v3.0.16`)
+- [ ] F1. Branch A: `feat/license-core` (license manager only, no calendar/provider load changes)
+- [ ] F2. Branch B: `feat/license-ui` (admin panel + activate/deactivate UX)
+- [ ] F3. Branch C: `feat/provider-compat` (provider loading compatibility layer, OAuth callback safety)
+- [ ] F4. Branch D: `feat/free-build` (script to produce Free ZIP and Pro ZIP deterministically)
+- [ ] F5. Run mandatory matrix tests (Google/Outlook/ICS + create/reschedule/cancel + staff calendar load)
+- [ ] F6. Merge order: A -> B -> C -> D only if previous branch passes matrix
+- [ ] F7. Release control: CHANGELOG + tag `v3.1.0` + push
 
-Start Phase 1 only after v3.0.16 is tagged.
+### Guardrails (must not regress)
+- [ ] G1. OAuth callback routes always available (`/wp-json/simple-booking/v1/google/oauth`, `/wp-json/simple-booking/v1/outlook/oauth`)
+- [ ] G2. Selecting Google/Outlook in settings must never produce provider hard-failure in slot AJAX
+- [ ] G3. Staff menu must remain visible when Pro is active
+- [ ] G4. Staff "Load Calendars" must return user-friendly errors, never HTTP 500
+- [ ] G5. `SIMPLE_BOOKING_FORCE_PRO` is test-only and never required in production
 
 ---
 
