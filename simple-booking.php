@@ -72,6 +72,12 @@ class Simple_Booking {
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/interface-calendar-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/class-calendar-provider-manager.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php';
+        if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php' ) ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php';
+        }
+        if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php' ) ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
+        }
         require_once SIMPLE_BOOKING_INCLUDES . 'booking/class-booking-creator.php';
 
         // OAuth callback handlers must always be loaded so REST routes exist
@@ -97,8 +103,6 @@ class Simple_Booking {
         if ( $this->license_manager->is_pro_active() ) {
             require_once SIMPLE_BOOKING_INCLUDES . 'stripe/class-stripe-handler.php';
             require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php';
-            require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php';
-            require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
         }
     }
 
