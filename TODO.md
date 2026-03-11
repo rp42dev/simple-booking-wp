@@ -1,6 +1,6 @@
 # Simple Booking — Active Tasks
 
-Current version: **v3.0.16 (RELEASED)**
+Current version: **v3.0.17 (RELEASED)**
 
 Workflow rules and release control: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 Full phase breakdown: see [`docs/ROADMAP.md`](docs/ROADMAP.md).
@@ -10,6 +10,10 @@ Full phase breakdown: see [`docs/ROADMAP.md`](docs/ROADMAP.md).
 ## ~~v3.0.16 (Stabilization Close-out)~~ ✅ RELEASED 2026-03-11
 
 Shipped: WP-Cron notice, Outlook stale calendar ID fallback, webhook meeting_link fix. All smoke passes green.
+
+## ~~v3.0.17 (Module-Aware Gating + Staff Lock)~~ ✅ RELEASED 2026-03-11
+
+Shipped: Module manager registry, module-aware settings gating, service editor availability messaging, and non-Pro Staff CRUD lock while keeping Staff menu visible.
 
 ---
 

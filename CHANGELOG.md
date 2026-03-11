@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+- (No planned items currently)
+
+## [3.0.17] - 2026-03-11
+
 ### Added
 - Module registry and availability checks (`Simple_Booking_Module_Manager`) to support plug-and-play feature modules.
 - Admin "Modules Status" diagnostics panel in settings with install/license availability breakdown.
