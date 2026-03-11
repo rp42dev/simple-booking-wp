@@ -74,6 +74,15 @@ class Simple_Booking {
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'booking/class-booking-creator.php';
 
+        // OAuth callback handlers must always be loaded so REST routes exist
+        // during connect/reconnect flows.
+        if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php' ) ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
+        }
+        if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php' ) ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php';
+        }
+
         // Load Staff class definition when present; actual CPT registration is
         // gated in init() by license status.
         if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'post-types/class-staff.php' ) ) {
@@ -88,8 +97,6 @@ class Simple_Booking {
         if ( $this->license_manager->is_pro_active() ) {
             require_once SIMPLE_BOOKING_INCLUDES . 'stripe/class-stripe-handler.php';
             require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php';
-            require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
-            require_once SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php';
             require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php';
             require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
         }
