@@ -1,6 +1,6 @@
 # Simple Booking — Active Tasks
 
-Current version: **v3.0.17 (RELEASED)**
+Current version: **v3.1.0 (IN PROGRESS)**
 
 Workflow rules and release control: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 Full phase breakdown: see [`docs/ROADMAP.md`](docs/ROADMAP.md).
@@ -27,9 +27,9 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for full phase breakdown.
 - [x] 1.3 Pro file conditional loading in main plugin
 - [x] 1.4 Singleton fix for main plugin class
 - [x] 1.5 Admin license settings panel (activate / deactivate / status / AJAX)
-- [ ] 1.6 License API server — set up endpoint (Lemon Squeezy or custom)
-- [ ] 1.7 Smoke test: Free mode loads correctly, no Pro files included
-- [ ] 1.8 Smoke test: SIMPLE_BOOKING_FORCE_PRO=true loads all Pro files
+- [x] 1.6 License API server — Lemon Squeezy integration (validate, activate, deactivate)
+- [x] 1.7 Smoke test: Free mode loads correctly, module gating works
+- [x] 1.8 Smoke test: SIMPLE_BOOKING_FORCE_PRO=true loads all Pro files, Pro features enabled
 - [ ] 1.9 Release control: v3.1.0, CHANGELOG, tag, push
 
 Next: choose license server platform and point `SIMPLE_BOOKING_LICENSE_API_URL` at it.

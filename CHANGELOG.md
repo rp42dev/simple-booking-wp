@@ -7,20 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### In Progress
-- v3.1.0: License Foundation
-
-## [3.1.0-dev] - 2026-03-11
+## [3.1.0] - 2026-03-11
 
 ### Added
-- `Simple_Booking_License_Manager` class — full implementation of `activate_license()`, `deactivate_license()`, `check_license_status()` (24 hr cache, offline fallback), `is_pro_active()` (grace period support), `is_feature_available()`, `get_grace_period_remaining()`.
+- `Simple_Booking_License_API_Client` class — Lemon Squeezy integration with `validate_license()`, `activate_license()`, `deactivate_license()` methods.
+- Full implementation of `Simple_Booking_License_Manager` — `activate_license()`, `deactivate_license()`, `check_license_status()` (24 hr cache, offline grace period fallback).
 - Pro-conditional file loading in main plugin — Stripe, Google, Outlook, Staff CPT only load when license is active.
 - Singleton pattern for main `Simple_Booking` class (fixes multiple-instantiation bug in `simple_booking()` helper).
-- `is_pro_active()` and `get_license_manager()` accessors on main plugin instance.
 - License panel in admin settings — activate/deactivate via AJAX, status badge, plan + expiry display, grace period countdown.
 - Admin notice for expiring (≤7 days) and expired licenses.
 - `SIMPLE_BOOKING_FORCE_PRO` constant and `simple_booking_license_status_override` filter for test/staging overrides.
-- `SIMPLE_BOOKING_LICENSE_API_URL` constant and `simple_booking_license_api_url` filter for custom API endpoints.
+- `SIMPLE_BOOKING_LICENSE_PROVIDER` and `SIMPLE_BOOKING_LICENSE_INSTANCE_NAME` config constants for multi-site deployments.
 
 ## [3.0.17] - 2026-03-11
 

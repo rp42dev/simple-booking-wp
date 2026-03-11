@@ -13,6 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// Load the API client
+require_once dirname( __FILE__ ) . '/class-license-api-client.php';
+
 /**
  * Class Simple_Booking_License_Manager
  * 
@@ -106,46 +109,40 @@ class Simple_Booking_License_Manager {
      * @return true|WP_Error
      */
     public function activate_license( $key ) {
-        // TODO: Implement API call
-        
-        // Example API request structure:
-        /*
-        $response = wp_remote_post( self::API_URL . '/activate', array(
-            'body' => array(
-                'license_key' => $key,
-                'site_url'    => home_url(),
-                'product'     => 'simple-booking',
-            ),
-            'timeout' => 15,
-        ) );
+        $key = sanitize_text_field( $key );
 
-        if ( is_wp_error( $response ) ) {
-            return $response;
+        if ( empty( $key ) ) {
+            return new WP_Error( 'empty_key', 'License key is required.' );
         }
 
-        $body = json_decode( wp_remote_retrieve_body( $response ), true );
-        
-        if ( ! isset( $body['success'] ) || ! $body['success'] ) {
-            return new WP_Error( 'activation_failed', $body['message'] ?? 'Activation failed' );
+        // Call Lemon Squeezy API to activate
+        $result = Simple_Booking_License_API_Client::activate_license( $key );
+
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        // Validate the license after activation
+        $validation = Simple_Booking_License_API_Client::validate_license( $key );
+
+        if ( is_wp_error( $validation ) ) {
+            return $validation;
         }
 
         // Store license data
         $license = array(
-            'key'          => $key,
-            'status'       => $body['license']['status'],
-            'plan'         => $body['license']['plan'],
-            'expires'      => $body['license']['expires'],
-            'activated_at' => current_time( 'mysql' ),
-            'last_check'   => current_time( 'timestamp' ),
+            'key'           => $key,
+            'status'        => $validation['valid'] ? 'active' : 'invalid',
+            'expires_at'    => $validation['expires_at'],
+            'expires_soon'  => $validation['expires_soon'],
+            'activated_at'  => current_time( 'mysql' ),
+            'last_validated' => current_time( 'mysql' ),
         );
 
-        update_option( self::LICENSE_OPTION, $license );
+        $updated = update_option( self::LICENSE_OPTION, $license );
         delete_transient( self::CACHE_KEY );
 
-        return true;
-        */
-
-        return new WP_Error( 'not_implemented', 'License activation not yet implemented' );
+        return $updated ? true : new WP_Error( 'storage_failed', 'Could not store license data.' );
     }
 
     /**
@@ -154,26 +151,27 @@ class Simple_Booking_License_Manager {
      * @return true|WP_Error
      */
     public function deactivate_license() {
-        // TODO: Implement API call
-        
-        /*
         $key = $this->get_license_key();
-        
-        $response = wp_remote_post( self::API_URL . '/deactivate', array(
-            'body' => array(
-                'license_key' => $key,
-                'site_url'    => home_url(),
-            ),
-            'timeout' => 15,
-        ) );
 
+        if ( empty( $key ) ) {
+            return new WP_Error( 'no_license', 'No license key to deactivate.' );
+        }
+
+        // Call Lemon Squeezy API to deactivate
+        $result = Simple_Booking_License_API_Client::deactivate_license( $key );
+
+        if ( is_wp_error( $result ) ) {
+            // Still clear local license even if API fails
+            delete_option( self::LICENSE_OPTION );
+            delete_transient( self::CACHE_KEY );
+            return $result;
+        }
+
+        // Clear local license data
         delete_option( self::LICENSE_OPTION );
         delete_transient( self::CACHE_KEY );
 
         return true;
-        */
-
-        return new WP_Error( 'not_implemented', 'License deactivation not yet implemented' );
     }
 
     /**
@@ -182,8 +180,6 @@ class Simple_Booking_License_Manager {
      * @return array Status data
      */
     public function check_license_status() {
-        // TODO: Implement with caching
-
         // Dev/test override for local environments.
         $constants = array(
             'SIMPLE_BOOKING_FORCE_PRO',
@@ -233,43 +229,53 @@ class Simple_Booking_License_Manager {
             );
         }
 
-        /*
-        // API check
-        $response = wp_remote_get( self::API_URL . '/check', array(
-            'body' => array(
-                'license_key' => $key,
-                'site_url'    => home_url(),
-            ),
-            'timeout' => 10,
-        ) );
+        // API validation
+        $validation = Simple_Booking_License_API_Client::validate_license( $key );
 
-        if ( is_wp_error( $response ) ) {
-            // On API failure, use local data
+        if ( is_wp_error( $validation ) ) {
+            // API failed; check grace period on stored license
             $license = get_option( self::LICENSE_OPTION, array() );
-            $status = $this->get_local_status( $license );
-        } else {
-            $body = json_decode( wp_remote_retrieve_body( $response ), true );
-            $status = array(
-                'valid'   => $body['valid'] ?? false,
-                'status'  => $body['status'] ?? 'unknown',
-                'plan'    => $body['plan'] ?? 'free',
-                'expires' => $body['expires'] ?? null,
+            $expires_at = isset( $license['expires_at'] ) ? $license['expires_at'] : null;
+
+            if ( $expires_at ) {
+                $grace_start = strtotime( $expires_at );
+                $grace_end   = $grace_start + ( self::GRACE_PERIOD_DAYS * DAY_IN_SECONDS );
+
+                if ( time() <= $grace_end ) {
+                    // Within grace period
+                    $status = array(
+                        'valid'   => false,
+                        'status'  => 'grace_period',
+                        'plan'    => 'pro',
+                        'expires' => $expires_at,
+                    );
+
+                    set_transient( self::CACHE_KEY, $status, HOUR_IN_SECONDS );
+                    return $status;
+                }
+            }
+
+            // API error and no grace period = free
+            return array(
+                'valid'   => false,
+                'status'  => 'unknown',
+                'plan'    => 'free',
+                'expires' => null,
             );
         }
+
+        // Build status from Lemon Squeezy response
+        $status = array(
+            'valid'   => $validation['valid'],
+            'status'  => $validation['valid'] ? 'active' : 'expired',
+            'plan'    => $validation['valid'] ? 'pro' : 'free',
+            'expires' => $validation['expires_at'],
+        );
 
         // Cache for 24 hours
         set_transient( self::CACHE_KEY, $status, self::CACHE_DURATION );
         
         return $status;
-        */
-
-        // Temporary: Return free status
-        return array(
-            'valid'   => false,
-            'status'  => 'free',
-            'plan'    => 'free',
-            'expires' => null,
-        );
     }
 
     /**
