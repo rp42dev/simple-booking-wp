@@ -58,6 +58,27 @@ class Simple_Booking_Admin_Settings {
         );
 
         add_settings_field(
+            'license_provider',
+            __( 'License Provider', 'simple-booking' ),
+            array( $this, 'render_license_provider_select' ),
+            self::PAGE_SLUG,
+            'simple_booking_license'
+        );
+
+        add_settings_field(
+            'license_instance_name',
+            __( 'License Instance Label', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_license',
+            array(
+                'name'        => 'license_instance_name',
+                'placeholder' => 'my-production-site',
+                'description' => __( 'Used by Lemon Squeezy as instance_name. Leave empty to use current domain.', 'simple-booking' ),
+            )
+        );
+
+        add_settings_field(
             'license_panel',
             __( 'Pro License', 'simple-booking' ),
             array( $this, 'render_license_panel' ),
@@ -378,6 +399,17 @@ class Simple_Booking_Admin_Settings {
         $sanitized['stripe_webhook_secret'] = isset( $input['stripe_webhook_secret'] ) ?
             sanitize_text_field( $input['stripe_webhook_secret'] ) : '';
 
+        // License
+        $allowed_license_providers = array( 'lemonsqueezy', 'custom' );
+        $license_provider = isset( $input['license_provider'] ) ? strtolower( sanitize_text_field( $input['license_provider'] ) ) : 'lemonsqueezy';
+        if ( ! in_array( $license_provider, $allowed_license_providers, true ) ) {
+            $license_provider = 'lemonsqueezy';
+        }
+        $sanitized['license_provider'] = $license_provider;
+        $sanitized['license_instance_name'] = isset( $input['license_instance_name'] )
+            ? sanitize_text_field( $input['license_instance_name'] )
+            : ( isset( $existing['license_instance_name'] ) ? $existing['license_instance_name'] : '' );
+
         // Google
         $sanitized['google_client_id'] = isset( $input['google_client_id'] ) ?
             sanitize_text_field( $input['google_client_id'] ) : ( isset( $existing['google_client_id'] ) ? $existing['google_client_id'] : '' );
@@ -494,6 +526,20 @@ class Simple_Booking_Admin_Settings {
      */
     public function render_license_section() {
         echo '<p>' . esc_html__( 'Activate a Pro license to unlock Stripe payments, Google/Outlook calendar sync, multi-staff management, and more.', 'simple-booking' ) . '</p>';
+    }
+
+    /**
+     * Render license provider select.
+     */
+    public function render_license_provider_select() {
+        $settings = get_option( 'simple_booking_settings', array() );
+        $provider = isset( $settings['license_provider'] ) ? $settings['license_provider'] : 'lemonsqueezy';
+
+        echo '<select name="simple_booking_settings[license_provider]">';
+        echo '<option value="lemonsqueezy"' . selected( $provider, 'lemonsqueezy', false ) . '>' . esc_html__( 'Lemon Squeezy', 'simple-booking' ) . '</option>';
+        echo '<option value="custom"' . selected( $provider, 'custom', false ) . '>' . esc_html__( 'Custom API Adapter', 'simple-booking' ) . '</option>';
+        echo '</select>';
+        echo '<p class="description">' . esc_html__( 'Choose Lemon Squeezy for managed licensing now, or Custom API Adapter if you run your own /activate, /check, /deactivate endpoints.', 'simple-booking' ) . '</p>';
     }
 
     /**

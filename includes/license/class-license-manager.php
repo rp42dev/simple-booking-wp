@@ -523,7 +523,8 @@ class Simple_Booking_License_Manager {
         if ( defined( 'SIMPLE_BOOKING_LICENSE_PROVIDER' ) ) {
             $provider = strtolower( trim( (string) SIMPLE_BOOKING_LICENSE_PROVIDER ) );
         } else {
-            $provider = 'custom';
+            $settings = get_option( 'simple_booking_settings', array() );
+            $provider = isset( $settings['license_provider'] ) ? strtolower( trim( (string) $settings['license_provider'] ) ) : 'lemonsqueezy';
         }
 
         $provider = apply_filters( 'simple_booking_license_provider', $provider );
@@ -551,6 +552,11 @@ class Simple_Booking_License_Manager {
     private function get_instance_name() {
         if ( defined( 'SIMPLE_BOOKING_LICENSE_INSTANCE_NAME' ) && '' !== SIMPLE_BOOKING_LICENSE_INSTANCE_NAME ) {
             return sanitize_text_field( SIMPLE_BOOKING_LICENSE_INSTANCE_NAME );
+        }
+
+        $settings = get_option( 'simple_booking_settings', array() );
+        if ( ! empty( $settings['license_instance_name'] ) ) {
+            return sanitize_text_field( $settings['license_instance_name'] );
         }
 
         $host = wp_parse_url( home_url(), PHP_URL_HOST );

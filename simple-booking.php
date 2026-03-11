@@ -21,12 +21,9 @@ define( 'SIMPLE_BOOKING_URL', plugin_dir_url( __FILE__ ) );
 define( 'SIMPLE_BOOKING_INCLUDES', SIMPLE_BOOKING_PATH . 'includes/' );
 define( 'SIMPLE_BOOKING_VENDOR', SIMPLE_BOOKING_PATH . 'vendor/' );
 
-// Licensing provider defaults to Lemon Squeezy for v3.1 rollout.
-// Override in wp-config.php if needed:
-// define( 'SIMPLE_BOOKING_LICENSE_PROVIDER', 'custom' );
-if ( ! defined( 'SIMPLE_BOOKING_LICENSE_PROVIDER' ) ) {
-    define( 'SIMPLE_BOOKING_LICENSE_PROVIDER', 'lemonsqueezy' );
-}
+// Optional wp-config.php overrides:
+// define( 'SIMPLE_BOOKING_LICENSE_PROVIDER', 'lemonsqueezy' ); // or 'custom'
+// define( 'SIMPLE_BOOKING_LICENSE_INSTANCE_NAME', 'my-site-label' );
 
 /**
  * Main plugin class
