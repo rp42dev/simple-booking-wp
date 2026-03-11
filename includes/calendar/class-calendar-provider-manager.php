@@ -38,6 +38,14 @@ class Simple_Booking_Calendar_Provider_Manager {
             return 'ics';
         }
 
+        // If selected provider class is not loaded in this request (e.g. Pro
+        // provider selected while current runtime is Free), gracefully fall
+        // back to ICS instead of returning hard errors to frontend slot checks.
+        $selected_class = $this->provider_classes[ $slug ];
+        if ( ! class_exists( $selected_class ) ) {
+            return 'ics';
+        }
+
         return $slug;
     }
 
@@ -60,7 +68,12 @@ class Simple_Booking_Calendar_Provider_Manager {
 
         $class_name = $this->provider_classes[ $slug ];
         if ( ! class_exists( $class_name ) ) {
-            return new WP_Error( 'calendar_provider_missing', __( 'Calendar provider is not available.', 'simple-booking' ) );
+            // Final safety: retry with ICS before returning an error.
+            if ( 'ics' !== $slug && isset( $this->provider_classes['ics'] ) && class_exists( $this->provider_classes['ics'] ) ) {
+                $class_name = $this->provider_classes['ics'];
+            } else {
+                return new WP_Error( 'calendar_provider_missing', __( 'Calendar provider is not available.', 'simple-booking' ) );
+            }
         }
 
         $provider = new $class_name();
