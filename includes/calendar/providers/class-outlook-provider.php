@@ -174,6 +174,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             $this->debug_log( 'list_calendars detected malformed access token; trying refresh.' );
             $refreshed = $this->refresh_token();
             if ( is_wp_error( $refreshed ) || empty( $refreshed ) || substr_count( (string) $refreshed, '.' ) < 2 ) {
+                delete_option( self::TOKEN_OPTION );
                 return new WP_Error( 'outlook_token_malformed', __( 'Outlook token is invalid. Please disconnect and reconnect Outlook Calendar.', 'simple-booking' ) );
             }
             $access_token = $refreshed;
@@ -202,6 +203,7 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             $this->debug_log( 'list_calendars non-200 status: ' . $error_msg );
 
             if ( false !== stripos( $error_msg, 'JWT is not well formed' ) ) {
+                delete_option( self::TOKEN_OPTION );
                 return new WP_Error( 'outlook_token_malformed', __( 'Outlook token is invalid. Please disconnect and reconnect Outlook Calendar.', 'simple-booking' ) );
             }
 
@@ -248,7 +250,26 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
      */
     public function is_connected() {
         $tokens = get_option( self::TOKEN_OPTION, array() );
-        return ! empty( $tokens['access_token'] );
+        if ( empty( $tokens['access_token'] ) ) {
+            return false;
+        }
+
+        $token = (string) $tokens['access_token'];
+        if ( 0 === strpos( $token, 'Bearer ' ) ) {
+            $token = trim( substr( $token, 7 ) );
+        }
+
+        return $this->is_jwt_like( $token );
+    }
+
+    /**
+     * Quick structural check for JWT-like token format.
+     *
+     * @param string $token
+     * @return bool
+     */
+    private function is_jwt_like( $token ) {
+        return is_string( $token ) && substr_count( trim( $token ), '.' ) >= 2;
     }
 
     /**
