@@ -74,13 +74,18 @@ class Simple_Booking {
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'booking/class-booking-creator.php';
 
+        // Load Staff class definition when present; actual CPT registration is
+        // gated in init() by license status.
+        if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'post-types/class-staff.php' ) ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'post-types/class-staff.php';
+        }
+
         // License Manager (needed before Pro gate check)
         require_once SIMPLE_BOOKING_INCLUDES . 'license/class-license-manager.php';
         $this->license_manager = new Simple_Booking_License_Manager();
 
         // --- PRO (only when licensed) ---
         if ( $this->license_manager->is_pro_active() ) {
-            require_once SIMPLE_BOOKING_INCLUDES . 'post-types/class-staff.php';
             require_once SIMPLE_BOOKING_INCLUDES . 'stripe/class-stripe-handler.php';
             require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php';
             require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
@@ -236,7 +241,7 @@ class Simple_Booking {
         // Register custom post types
         Simple_Booking_Service::register();
         Simple_Booking_Post::register();
-        if ( class_exists( 'Simple_Booking_Staff' ) ) {
+        if ( class_exists( 'Simple_Booking_Staff' ) && $this->is_pro_active() ) {
             Simple_Booking_Staff::register();
         }
         Simple_Booking_Booking_Webhook::register_hooks();

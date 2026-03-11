@@ -503,7 +503,12 @@ class Simple_Booking_Service {
         if ( ! is_array( $assigned_staff ) ) {
             $assigned_staff = array();
         }
-        $active_staff = class_exists( 'Simple_Booking_Staff' ) ? Simple_Booking_Staff::get_active_staff() : array();
+        $is_pro_active = function_exists( 'simple_booking' ) && method_exists( simple_booking(), 'is_pro_active' )
+            ? simple_booking()->is_pro_active()
+            : false;
+        $active_staff = ( $is_pro_active && class_exists( 'Simple_Booking_Staff' ) )
+            ? Simple_Booking_Staff::get_active_staff()
+            : array();
         $global_schedule_for_preview = self::get_global_schedule_for_preview();
 
         // Default values
@@ -636,7 +641,9 @@ class Simple_Booking_Service {
                     <label><?php _e( 'Assigned Staff', 'simple-booking' ); ?></label>
                 </th>
                 <td>
-                    <?php if ( ! empty( $active_staff ) ) : ?>
+                    <?php if ( ! $is_pro_active ) : ?>
+                        <p class="description"><?php _e( 'Staff assignment is a Pro feature. Activate a Pro license to assign staff per service.', 'simple-booking' ); ?></p>
+                    <?php elseif ( ! empty( $active_staff ) ) : ?>
                         <fieldset>
                             <?php foreach ( $active_staff as $staff ) : ?>
                                 <label style="display: block; margin-bottom: 6px;">
