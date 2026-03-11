@@ -158,11 +158,25 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
             return new WP_Error( 'not_connected', __( 'Outlook not connected', 'simple-booking' ) );
         }
 
-        $tokens = get_option( self::TOKEN_OPTION, array() );
-        $access_token = isset( $tokens['access_token'] ) ? $tokens['access_token'] : '';
+        // Always go through token validation/refresh path.
+        $access_token = $this->get_access_token();
+        if ( is_wp_error( $access_token ) || empty( $access_token ) ) {
+            return new WP_Error( 'outlook_token_invalid', __( 'Outlook token is missing or expired. Please reconnect Outlook Calendar.', 'simple-booking' ) );
+        }
 
-        if ( empty( $access_token ) ) {
-            return new WP_Error( 'no_token', __( 'No access token available', 'simple-booking' ) );
+        // Normalize accidental "Bearer ..." token storage.
+        if ( 0 === strpos( $access_token, 'Bearer ' ) ) {
+            $access_token = trim( substr( $access_token, 7 ) );
+        }
+
+        // Guard against malformed tokens seen in some stale/corrupt option states.
+        if ( substr_count( (string) $access_token, '.' ) < 2 ) {
+            $this->debug_log( 'list_calendars detected malformed access token; trying refresh.' );
+            $refreshed = $this->refresh_token();
+            if ( is_wp_error( $refreshed ) || empty( $refreshed ) || substr_count( (string) $refreshed, '.' ) < 2 ) {
+                return new WP_Error( 'outlook_token_malformed', __( 'Outlook token is invalid. Please disconnect and reconnect Outlook Calendar.', 'simple-booking' ) );
+            }
+            $access_token = $refreshed;
         }
 
         $response = wp_remote_get(
@@ -186,6 +200,11 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         if ( 200 !== $status_code ) {
             $error_msg = isset( $body['error']['message'] ) ? $body['error']['message'] : 'Unknown error';
             $this->debug_log( 'list_calendars non-200 status: ' . $error_msg );
+
+            if ( false !== stripos( $error_msg, 'JWT is not well formed' ) ) {
+                return new WP_Error( 'outlook_token_malformed', __( 'Outlook token is invalid. Please disconnect and reconnect Outlook Calendar.', 'simple-booking' ) );
+            }
+
             return new WP_Error( 'api_error', $error_msg );
         }
 
