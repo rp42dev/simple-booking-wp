@@ -241,7 +241,7 @@ class Simple_Booking {
         // Register custom post types
         Simple_Booking_Service::register();
         Simple_Booking_Post::register();
-        if ( class_exists( 'Simple_Booking_Staff' ) && $this->is_pro_active() ) {
+        if ( class_exists( 'Simple_Booking_Staff' ) ) {
             Simple_Booking_Staff::register();
         }
         Simple_Booking_Booking_Webhook::register_hooks();
