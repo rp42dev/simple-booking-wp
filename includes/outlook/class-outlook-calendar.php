@@ -125,15 +125,25 @@ class Simple_Booking_Outlook_Calendar {
         if ( class_exists( 'Simple_Booking_Calendar_Provider_Manager' ) ) {
             $manager = new Simple_Booking_Calendar_Provider_Manager();
             $provider = $manager->get_provider( 'outlook' );
-            
-            if ( ! is_wp_error( $provider ) && method_exists( $provider, 'exchange_code' ) ) {
-                $result = $provider->exchange_code( $code );
-                
-                if ( is_wp_error( $result ) ) {
-                    wp_redirect( admin_url( 'options-general.php?page=simple-booking-settings&outlook=error&message=' . urlencode( $result->get_error_message() ) ) );
-                    exit;
-                }
+
+            if ( is_wp_error( $provider ) ) {
+                wp_redirect( admin_url( 'options-general.php?page=simple-booking-settings&outlook=error&message=' . urlencode( $provider->get_error_message() ) ) );
+                exit;
             }
+
+            if ( ! method_exists( $provider, 'exchange_code' ) ) {
+                wp_redirect( admin_url( 'options-general.php?page=simple-booking-settings&outlook=error&message=' . urlencode( __( 'Outlook provider is not fully loaded for OAuth exchange.', 'simple-booking' ) ) ) );
+                exit;
+            }
+
+            $result = $provider->exchange_code( $code );
+            if ( is_wp_error( $result ) ) {
+                wp_redirect( admin_url( 'options-general.php?page=simple-booking-settings&outlook=error&message=' . urlencode( $result->get_error_message() ) ) );
+                exit;
+            }
+        } else {
+            wp_redirect( admin_url( 'options-general.php?page=simple-booking-settings&outlook=error&message=' . urlencode( __( 'Calendar provider manager not available.', 'simple-booking' ) ) ) );
+            exit;
         }
 
         // Clean up state

@@ -58,6 +58,8 @@ class Simple_Booking_Calendar_Provider_Manager {
      * @return Simple_Booking_Calendar_Provider_Interface|WP_Error
      */
     public function get_provider( $slug = null ) {
+        $is_implicit_request = ( null === $slug );
+
         if ( null === $slug ) {
             $slug = $this->get_active_provider_slug();
         }
@@ -72,8 +74,8 @@ class Simple_Booking_Calendar_Provider_Manager {
 
         $class_name = $this->provider_classes[ $slug ];
         if ( ! class_exists( $class_name ) ) {
-            // Final safety: retry with ICS before returning an error.
-            if ( 'ics' !== $slug && isset( $this->provider_classes['ics'] ) && class_exists( $this->provider_classes['ics'] ) ) {
+            // Final safety fallback to ICS only for implicit active-provider requests.
+            if ( $is_implicit_request && 'ics' !== $slug && isset( $this->provider_classes['ics'] ) && class_exists( $this->provider_classes['ics'] ) ) {
                 $class_name = $this->provider_classes['ics'];
             } else {
                 return new WP_Error( 'calendar_provider_missing', __( 'Calendar provider is not available.', 'simple-booking' ) );
