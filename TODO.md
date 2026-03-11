@@ -34,6 +34,12 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md) for full phase breakdown.
 - [ ] G4. Staff "Load Calendars" must return user-friendly errors, never HTTP 500
 - [ ] G5. `SIMPLE_BOOKING_FORCE_PRO` is test-only and never required in production
 
+### Progress Snapshot (in current code)
+- [x] Added module registry + availability checks (`Simple_Booking_Module_Manager`)
+- [x] Calendar provider select now disables unavailable options and shows reasons
+- [x] Added admin Modules Status panel (installed / requires Pro / available / reason)
+- [x] Staff menu remains visible; non-Pro mode blocks Staff CRUD with Pro-only notice
+
 ---
 
 ## Backlog (Unscheduled -- Do Not Touch Mid-Phase)

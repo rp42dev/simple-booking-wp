@@ -18,6 +18,19 @@ class Simple_Booking_Service {
     const POST_TYPE = 'booking_service';
 
     /**
+     * Return module manager instance when available.
+     *
+     * @return Simple_Booking_Module_Manager|null
+     */
+    private static function get_module_manager() {
+        if ( class_exists( 'Simple_Booking_Module_Manager' ) ) {
+            return new Simple_Booking_Module_Manager();
+        }
+
+        return null;
+    }
+
+    /**
      * Register custom post type
      */
     public static function register() {
@@ -496,6 +509,38 @@ class Simple_Booking_Service {
             ? sanitize_key( simple_booking()->get_setting( 'calendar_provider', 'ics' ) )
             : 'ics';
         $is_google_provider_active = ( 'google' === $active_calendar_provider );
+        $module_manager = self::get_module_manager();
+        $is_google_module_available = true;
+        $is_staff_module_available = class_exists( 'Simple_Booking_Staff' );
+        $google_unavailable_reason = '';
+        $staff_unavailable_reason = '';
+
+        if ( $module_manager instanceof Simple_Booking_Module_Manager ) {
+            $is_google_module_available = $module_manager->is_module_available( 'calendar_google' );
+            $is_staff_module_available = $module_manager->is_module_available( 'staff_management' );
+        }
+
+        if ( ! $is_google_module_available ) {
+            $google_unavailable_reason = ( $module_manager instanceof Simple_Booking_Module_Manager )
+                ? $module_manager->get_unavailable_reason( 'calendar_google' )
+                : __( 'Google module unavailable.', 'simple-booking' );
+        } elseif ( ! $is_google_provider_active ) {
+            $google_unavailable_reason = __( 'Active Calendar Provider is not Google.', 'simple-booking' );
+        }
+
+        if ( ! $is_staff_module_available ) {
+            $staff_unavailable_reason = ( $module_manager instanceof Simple_Booking_Module_Manager )
+                ? $module_manager->get_unavailable_reason( 'staff_management' )
+                : __( 'Staff module unavailable.', 'simple-booking' );
+        }
+
+        $google_controls_disabled = ( '' !== $google_unavailable_reason );
+        $staff_controls_disabled = ( '' !== $staff_unavailable_reason );
+        $google_disabled_attr = $google_controls_disabled ? 'disabled="disabled"' : '';
+        $staff_disabled_attr = $staff_controls_disabled ? 'disabled="disabled"' : '';
+        $google_section_style = $google_controls_disabled ? 'opacity:0.6;' : '';
+        $staff_section_style = $staff_controls_disabled ? 'opacity:0.6;' : '';
+
         $service_schedule_json = get_post_meta( $post->ID, '_service_schedule', true );
         $service_schedule = $service_schedule_json ? json_decode( $service_schedule_json, true ) : null;
         $assigned_staff_json = get_post_meta( $post->ID, '_assigned_staff', true );
@@ -595,62 +640,67 @@ class Simple_Booking_Service {
                     <label for="service_active"><?php _e( 'Service is available for booking', 'simple-booking' ); ?></label>
                 </td>
             </tr>
-            <?php if ( $is_google_provider_active ) : ?>
-                <tr>
-                    <th scope="row">
-                        <label for="create_google_event"><?php _e( 'Create Google Calendar Event', 'simple-booking' ); ?></label>
-                    </th>
-                    <td>
-                        <input type="checkbox"
-                               id="create_google_event"
-                               name="create_google_event"
-                               value="1"
-                               <?php checked( $create_google_event, '1' ); ?> />
-                        <label for="create_google_event"><?php _e( 'Automatically create Google Calendar event for bookings', 'simple-booking' ); ?></label>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="auto_google_meet"><?php _e( 'Auto-Create Google Meet Link', 'simple-booking' ); ?></label>
-                    </th>
-                    <td>
-                        <input type="checkbox"
-                               id="auto_google_meet"
-                               name="auto_google_meet"
-                               value="1"
-                               <?php checked( $auto_google_meet, '1' ); ?> />
-                        <label for="auto_google_meet"><?php _e( 'Generate Google Meet link when creating Google Calendar events', 'simple-booking' ); ?></label>
-                        <p class="description"><?php _e( 'Requires "Create Google Calendar Event" enabled and connected Google Calendar account.', 'simple-booking' ); ?></p>
-                    </td>
-                </tr>
-            <?php else : ?>
-                <tr>
-                    <th scope="row"><?php _e( 'Google Event Options', 'simple-booking' ); ?></th>
-                    <td>
-                        <p class="description"><?php _e( 'Google-specific options are hidden because active Calendar Provider is not Google.', 'simple-booking' ); ?></p>
-                    </td>
-                </tr>
-            <?php endif; ?>
+            <tr style="<?php echo esc_attr( $google_section_style ); ?>">
+                <th scope="row">
+                    <label for="create_google_event"><?php _e( 'Create Google Calendar Event', 'simple-booking' ); ?></label>
+                </th>
+                <td>
+                    <input type="checkbox"
+                           id="create_google_event"
+                           name="create_google_event"
+                           value="1"
+                           <?php checked( $create_google_event, '1' ); ?>
+                           <?php echo $google_disabled_attr; ?> />
+                    <label for="create_google_event"><?php _e( 'Automatically create Google Calendar event for bookings', 'simple-booking' ); ?></label>
+                    <?php if ( $google_controls_disabled ) : ?>
+                        <p class="description"><?php echo esc_html( $google_unavailable_reason ); ?></p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <tr style="<?php echo esc_attr( $google_section_style ); ?>">
+                <th scope="row">
+                    <label for="auto_google_meet"><?php _e( 'Auto-Create Google Meet Link', 'simple-booking' ); ?></label>
+                </th>
+                <td>
+                    <input type="checkbox"
+                           id="auto_google_meet"
+                           name="auto_google_meet"
+                           value="1"
+                           <?php checked( $auto_google_meet, '1' ); ?>
+                           <?php echo $google_disabled_attr; ?> />
+                    <label for="auto_google_meet"><?php _e( 'Generate Google Meet link when creating Google Calendar events', 'simple-booking' ); ?></label>
+                    <p class="description"><?php _e( 'Requires "Create Google Calendar Event" enabled and connected Google Calendar account.', 'simple-booking' ); ?></p>
+                </td>
+            </tr>
             <tr>
                 <th scope="row">
                     <label><?php _e( 'Assigned Staff', 'simple-booking' ); ?></label>
                 </th>
                 <td>
+                    <input type="hidden" name="assigned_staff_present" value="1" />
                     <?php if ( ! empty( $active_staff ) ) : ?>
-                        <fieldset>
+                        <fieldset style="<?php echo esc_attr( $staff_section_style ); ?>">
                             <?php foreach ( $active_staff as $staff ) : ?>
                                 <label style="display: block; margin-bottom: 6px;">
                                     <input type="checkbox"
                                            name="assigned_staff[]"
                                            value="<?php echo esc_attr( $staff->ID ); ?>"
-                                           <?php checked( in_array( $staff->ID, $assigned_staff, true ) ); ?> />
+                                           <?php checked( in_array( $staff->ID, $assigned_staff, true ) ); ?>
+                                           <?php echo $staff_disabled_attr; ?> />
                                     <?php echo esc_html( $staff->post_title ); ?>
                                 </label>
                             <?php endforeach; ?>
                         </fieldset>
                         <p class="description"><?php _e( 'Bookings for this service will be routed to the first available assigned staff member.', 'simple-booking' ); ?></p>
+                        <?php if ( $staff_controls_disabled ) : ?>
+                            <p class="description"><?php echo esc_html( $staff_unavailable_reason ); ?></p>
+                        <?php endif; ?>
                     <?php else : ?>
-                        <p class="description"><?php _e( 'No active staff found. Add staff under Booking Staff to enable staff assignment.', 'simple-booking' ); ?></p>
+                        <?php if ( $staff_controls_disabled ) : ?>
+                            <p class="description"><?php echo esc_html( $staff_unavailable_reason ); ?></p>
+                        <?php else : ?>
+                            <p class="description"><?php _e( 'No active staff found. Add staff under Booking Staff to enable staff assignment.', 'simple-booking' ); ?></p>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -850,11 +900,14 @@ class Simple_Booking_Service {
             update_post_meta( $post_id, '_auto_google_meet', '0' );
         }
 
-        // Save assigned staff
-        $assigned_staff = isset( $_POST['assigned_staff'] ) && is_array( $_POST['assigned_staff'] )
-            ? $_POST['assigned_staff']
-            : array();
-        update_post_meta( $post_id, '_assigned_staff', self::sanitize_staff_assignment( $assigned_staff ) );
+        // Save assigned staff only if field group was present.
+        // This preserves existing values when controls are unavailable/disabled.
+        if ( isset( $_POST['assigned_staff_present'] ) ) {
+            $assigned_staff = isset( $_POST['assigned_staff'] ) && is_array( $_POST['assigned_staff'] )
+                ? $_POST['assigned_staff']
+                : array();
+            update_post_meta( $post_id, '_assigned_staff', self::sanitize_staff_assignment( $assigned_staff ) );
+        }
 
         // Save available days
         if ( isset( $_POST['available_days_check'] ) && is_array( $_POST['available_days_check'] ) ) {

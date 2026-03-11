@@ -24,6 +24,8 @@ simple-booking/
 │   │   └── class-admin-settings.php      # Admin settings page
 │   ├── booking/
 │   │   └── class-booking-creator.php      # Booking creation logic
+│   ├── modules/
+│   │   └── class-module-manager.php        # Module registry + availability gates
 │   ├── frontend/
 │   │   └── class-booking-form.php         # Frontend booking form
 │   ├── calendar/
@@ -49,6 +51,14 @@ simple-booking/
 ```
 
 ## 3. Booking Flow (Step-by-Step)
+
+### 3.0 Module-Aware Bootstrap
+
+1. Core dependencies are loaded unconditionally.
+2. Optional provider/OAuth files are loaded only when file exists (`require_optional_dependency`).
+3. Admin settings use module availability checks (installed + license eligible) to disable unavailable provider options and show reason text.
+
+This keeps a single admin UX while supporting plug-and-play module packaging.
 
 ### 3.1 Customer Submits Booking Form
 

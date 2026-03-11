@@ -27,6 +27,50 @@ define( 'SIMPLE_BOOKING_VENDOR', SIMPLE_BOOKING_PATH . 'vendor/' );
 class Simple_Booking {
 
     /**
+     * Normalize common truthy values from wp-config constants.
+     *
+     * @param mixed $value Raw value.
+     * @return bool
+     */
+    private function to_bool( $value ) {
+        if ( is_bool( $value ) ) {
+            return $value;
+        }
+
+        if ( is_int( $value ) || is_float( $value ) ) {
+            return (bool) $value;
+        }
+
+        if ( is_string( $value ) ) {
+            return in_array( strtolower( trim( $value ) ), array( '1', 'true', 'yes', 'on' ), true );
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether wp-config is forcing Pro mode.
+     *
+     * @return bool
+     */
+    private function is_forced_pro_mode() {
+        $constants = array(
+            'SIMPLE_BOOKING_FORCE_PRO',
+            'SIMPLE_BOOKING_PRO_MODE',
+            'SIMPLE_BOOKING_PRO',
+            'SIMPLE_BOOKING_IS_PRO',
+        );
+
+        foreach ( $constants as $constant_name ) {
+            if ( defined( $constant_name ) && $this->to_bool( constant( $constant_name ) ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Constructor
      */
     public function __construct() {
@@ -59,21 +103,38 @@ class Simple_Booking {
         // Calendar Provider Architecture (Phase 6 scaffolding)
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/interface-calendar-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/class-calendar-provider-manager.php';
-        require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php';
-        require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php';
+
+        // Optional calendar modules.
+        $this->require_optional_dependency( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php' );
+        $this->require_optional_dependency( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php' );
 
         // License
         require_once SIMPLE_BOOKING_INCLUDES . 'license/class-license-manager.php';
 
+        // Modules
+        require_once SIMPLE_BOOKING_INCLUDES . 'modules/class-module-manager.php';
+
         // Google Calendar
-        require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
+        $this->require_optional_dependency( SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php' );
 
         // Outlook Calendar
-        require_once SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php';
+        $this->require_optional_dependency( SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php' );
 
         // Booking Creator
         require_once SIMPLE_BOOKING_INCLUDES . 'booking/class-booking-creator.php';
+    }
+
+    /**
+     * Require a dependency only when the file exists.
+     *
+     * @param string $absolute_path Absolute path to file.
+     * @return void
+     */
+    private function require_optional_dependency( $absolute_path ) {
+        if ( file_exists( $absolute_path ) ) {
+            require_once $absolute_path;
+        }
     }
 
     /**

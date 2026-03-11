@@ -21,6 +21,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Simple_Booking_License_Manager {
 
     /**
+     * Normalize common truthy values from wp-config constants.
+     *
+     * @param mixed $value Raw value.
+     * @return bool
+     */
+    private function to_bool( $value ) {
+        if ( is_bool( $value ) ) {
+            return $value;
+        }
+
+        if ( is_int( $value ) || is_float( $value ) ) {
+            return (bool) $value;
+        }
+
+        if ( is_string( $value ) ) {
+            return in_array( strtolower( trim( $value ) ), array( '1', 'true', 'yes', 'on' ), true );
+        }
+
+        return false;
+    }
+
+    /**
      * License option key
      */
     const LICENSE_OPTION = 'simple_booking_license';
@@ -163,13 +185,22 @@ class Simple_Booking_License_Manager {
         // TODO: Implement with caching
 
         // Dev/test override for local environments.
-        if ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && true === SIMPLE_BOOKING_FORCE_PRO ) {
-            return array(
-                'valid'   => true,
-                'status'  => 'active',
-                'plan'    => 'pro',
-                'expires' => null,
-            );
+        $constants = array(
+            'SIMPLE_BOOKING_FORCE_PRO',
+            'SIMPLE_BOOKING_PRO_MODE',
+            'SIMPLE_BOOKING_PRO',
+            'SIMPLE_BOOKING_IS_PRO',
+        );
+
+        foreach ( $constants as $constant_name ) {
+            if ( defined( $constant_name ) && $this->to_bool( constant( $constant_name ) ) ) {
+                return array(
+                    'valid'   => true,
+                    'status'  => 'active',
+                    'plan'    => 'pro',
+                    'expires' => null,
+                );
+            }
         }
 
         $override = apply_filters( 'simple_booking_license_status_override', null );

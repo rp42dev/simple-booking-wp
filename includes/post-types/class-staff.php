@@ -18,6 +18,20 @@ class Simple_Booking_Staff {
     const POST_TYPE = 'booking_staff';
 
     /**
+     * Check whether Staff management is available.
+     *
+     * @return bool
+     */
+    private static function is_staff_module_available() {
+        if ( class_exists( 'Simple_Booking_Module_Manager' ) ) {
+            $module_manager = new Simple_Booking_Module_Manager();
+            return $module_manager->is_module_available( 'staff_management' );
+        }
+
+        return true;
+    }
+
+    /**
      * Register custom post type
      */
     public static function register() {
@@ -53,6 +67,140 @@ class Simple_Booking_Staff {
 
         // Register REST endpoints
         add_action( 'rest_api_init', array( __CLASS__, 'register_rest_routes' ) );
+
+        // Lock CRUD actions in non-Pro while keeping menu/list visible.
+        add_action( 'admin_init', array( __CLASS__, 'guard_admin_actions' ) );
+        add_action( 'admin_notices', array( __CLASS__, 'render_pro_only_notice' ) );
+        add_filter( 'post_row_actions', array( __CLASS__, 'filter_row_actions' ), 10, 2 );
+        add_filter( 'bulk_actions-edit-' . self::POST_TYPE, array( __CLASS__, 'filter_bulk_actions' ) );
+        add_action( 'admin_head', array( __CLASS__, 'hide_add_new_button' ) );
+        add_filter( 'pre_delete_post', array( __CLASS__, 'prevent_delete_when_locked' ), 10, 2 );
+    }
+
+    /**
+     * Lock Staff admin actions in non-Pro mode.
+     *
+     * @return void
+     */
+    public static function guard_admin_actions() {
+        if ( self::is_staff_module_available() || ! is_admin() ) {
+            return;
+        }
+
+        $pagenow = isset( $GLOBALS['pagenow'] ) ? $GLOBALS['pagenow'] : '';
+        $post_type = isset( $_REQUEST['post_type'] ) ? sanitize_key( $_REQUEST['post_type'] ) : '';
+        $post_id = isset( $_REQUEST['post'] ) ? absint( $_REQUEST['post'] ) : 0;
+
+        if ( ! $post_type && $post_id ) {
+            $post_type = get_post_type( $post_id );
+        }
+
+        if ( self::POST_TYPE !== $post_type ) {
+            return;
+        }
+
+        // Block create/edit screens and mutation actions; keep list screen accessible.
+        if ( in_array( $pagenow, array( 'post-new.php', 'post.php' ), true ) ) {
+            wp_safe_redirect( admin_url( 'edit.php?post_type=' . self::POST_TYPE . '&simple_booking_staff_locked=1' ) );
+            exit;
+        }
+
+        $action = isset( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : '';
+        if ( in_array( $action, array( 'edit', 'trash', 'untrash', 'delete' ), true ) ) {
+            wp_safe_redirect( admin_url( 'edit.php?post_type=' . self::POST_TYPE . '&simple_booking_staff_locked=1' ) );
+            exit;
+        }
+    }
+
+    /**
+     * Render Pro-only notice on Staff pages when locked.
+     *
+     * @return void
+     */
+    public static function render_pro_only_notice() {
+        if ( self::is_staff_module_available() || ! is_admin() ) {
+            return;
+        }
+
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( ! $screen || self::POST_TYPE !== $screen->post_type ) {
+            return;
+        }
+
+        echo '<div class="notice notice-warning"><p>' . esc_html__( 'Staff management is a Pro feature. CRUD actions are disabled in Free mode.', 'simple-booking' ) . '</p></div>';
+    }
+
+    /**
+     * Remove row actions that mutate staff posts when locked.
+     *
+     * @param array   $actions Row actions.
+     * @param WP_Post $post Post object.
+     * @return array
+     */
+    public static function filter_row_actions( $actions, $post ) {
+        if ( self::is_staff_module_available() || self::POST_TYPE !== $post->post_type ) {
+            return $actions;
+        }
+
+        unset( $actions['edit'] );
+        unset( $actions['inline hide-if-no-js'] );
+        unset( $actions['trash'] );
+
+        return $actions;
+    }
+
+    /**
+     * Remove destructive bulk actions when locked.
+     *
+     * @param array $actions Bulk actions.
+     * @return array
+     */
+    public static function filter_bulk_actions( $actions ) {
+        if ( self::is_staff_module_available() ) {
+            return $actions;
+        }
+
+        unset( $actions['edit'] );
+        unset( $actions['trash'] );
+
+        return $actions;
+    }
+
+    /**
+     * Hide Add New button on Staff list when locked.
+     *
+     * @return void
+     */
+    public static function hide_add_new_button() {
+        if ( self::is_staff_module_available() || ! is_admin() ) {
+            return;
+        }
+
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( ! $screen || 'edit' !== $screen->base || self::POST_TYPE !== $screen->post_type ) {
+            return;
+        }
+
+        echo '<style>.page-title-action{display:none!important;}</style>';
+    }
+
+    /**
+     * Prevent direct post deletion when locked.
+     *
+     * @param mixed $delete Existing decision.
+     * @param WP_Post $post Post object.
+     * @return mixed
+     */
+    public static function prevent_delete_when_locked( $delete, $post ) {
+        if ( self::is_staff_module_available() || ! ( $post instanceof WP_Post ) ) {
+            return $delete;
+        }
+
+        if ( self::POST_TYPE === $post->post_type ) {
+            return false;
+        }
+
+        return $delete;
     }
 
     /**
@@ -209,7 +357,7 @@ class Simple_Booking_Staff {
                            id="staff_email"
                            name="staff_email"
                            value="<?php echo esc_attr( $staff_email ); ?>"
-                           class="regular-text" />
+                              class="regular-text" />
                     <p class="description"><?php _e( 'Staff member email address', 'simple-booking' ); ?></p>
                 </td>
             </tr>
@@ -221,7 +369,7 @@ class Simple_Booking_Staff {
                     <div style="display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap;">
                         <select id="staff_calendar_id"
                                 name="staff_calendar_id"
-                                style="flex: 1; min-width: 200px;">
+                            style="flex: 1; min-width: 200px;">
                             <option value=""><?php _e( '-- Use Global Calendar --', 'simple-booking' ); ?></option>
                             <option value="" disabled>---</option>
                             <option value="loading" disabled><?php _e( 'Loading calendars...', 'simple-booking' ); ?></option>
@@ -229,7 +377,7 @@ class Simple_Booking_Staff {
                         <button type="button" 
                                 id="reload_calendars_btn" 
                                 class="button button-secondary"
-                                style="white-space: nowrap;">
+                            style="white-space: nowrap;">
                             <?php _e( '↻ Load Calendars', 'simple-booking' ); ?>
                         </button>
                     </div>
@@ -250,7 +398,7 @@ class Simple_Booking_Staff {
                            id="staff_active"
                            name="staff_active"
                            value="1"
-                           <?php checked( $staff_active, '1' ); ?> />
+                              <?php checked( $staff_active, '1' ); ?> />
                     <label for="staff_active"><?php _e( 'Staff member is active and available for bookings', 'simple-booking' ); ?></label>
                 </td>
             </tr>
@@ -360,6 +508,10 @@ class Simple_Booking_Staff {
      * Save staff meta
      */
     public static function save_staff_meta( $post_id ) {
+        if ( ! self::is_staff_module_available() ) {
+            return;
+        }
+
         // Verify nonce
         if ( ! isset( $_POST['simple_booking_staff_nonce'] ) || 
              ! wp_verify_nonce( $_POST['simple_booking_staff_nonce'], 'simple_booking_staff_meta' ) ) {

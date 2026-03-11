@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- (No planned items currently)
+### Added
+- Module registry and availability checks (`Simple_Booking_Module_Manager`) to support plug-and-play feature modules.
+- Admin "Modules Status" diagnostics panel in settings with install/license availability breakdown.
+
+### Changed
+- Calendar provider settings now derive availability from both module installation state and license state.
+- Admin provider controls now gray out unavailable modules and show reason text (missing module vs Pro required).
+- Optional module files (Google/Outlook provider + OAuth handlers) are now loaded safely only when present to avoid bootstrap fatals.
+- Service editor now keeps Google Event Options visible but disabled/grayed out when Google is unavailable or inactive provider, and staff assignment controls are disabled with reason text when Staff module is unavailable.
+- Staff submenu is now always visible under Services, while non-Pro mode blocks Staff CRUD actions and shows a Pro-only notice.
+- Pro detection for module gating now supports filter override (`simple_booking_is_pro_active`) and local license option fallback, fixing cases where Staff submenu stayed hidden in Pro mode.
+- Pro force constants from `wp-config.php` now accept common truthy forms (`true`, `1`, `'true'`, `'1'`, `'yes'`, `'on'`) and support `SIMPLE_BOOKING_PRO_MODE` alias.
+- Added compatibility aliases for forced Pro constants (`SIMPLE_BOOKING_PRO`, `SIMPLE_BOOKING_IS_PRO`) and bootstrap-level forced-Pro bypass for staff CPT registration.
+- Staff editor fields remain editable in Pro mode; non-Pro mode can access list view only (no add/edit/delete).
 
 ## [3.0.16] - 2026-03-11
 
