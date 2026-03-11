@@ -106,6 +106,13 @@ class Simple_Booking_Staff {
                 );
             }
 
+            if ( ! method_exists( $provider, 'list_calendars' ) ) {
+                return array(
+                    'success' => false,
+                    'message' => __( 'Selected provider does not support calendar listing. Switch provider to Google or Outlook to load calendars.', 'simple-booking' ),
+                );
+            }
+
             $calendars = $provider->list_calendars();
 
             if ( is_wp_error( $calendars ) ) {
@@ -119,7 +126,7 @@ class Simple_Booking_Staff {
                 'success'   => true,
                 'calendars' => $calendars,
             );
-        } catch ( Exception $e ) {
+        } catch ( Throwable $e ) {
             return array(
                 'success' => false,
                 'message' => $e->getMessage(),
