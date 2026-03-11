@@ -2,8 +2,8 @@
 
 Quick reference for tracking implementation progress.
 
-Testing runbook: [PHASE6-TEST-PLAN.md](docs/PHASE6-TEST-PLAN.md)
-Test execution log: [PHASE6-TEST-RESULTS-LOG.md](docs/PHASE6-TEST-RESULTS-LOG.md)
+Testing runbook: [TESTING.md](TESTING.md)
+Test execution log: [TESTING.md](TESTING.md)
 
 ---
 

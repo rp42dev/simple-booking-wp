@@ -934,7 +934,7 @@ simple-booking/
 ├── simple-booking.php                     [MODIFIED]
 ├── readme.txt                             [NEW - WordPress.org]
 ├── build-free.sh                          [NEW]
-└── ROADMAP-FREE-PRO.md                    [THIS FILE]
+└── ROADMAP.md                             [THIS FILE]
 ```
 
 ---
@@ -943,17 +943,20 @@ simple-booking/
 
 1. **Review this roadmap** - Adjust timelines/scope if needed
 2. **Set up development environment** - Staging site for testing
-3. **Begin Phase 1** - Start with `class-license-manager.php`
+3. **Begin Phase 1 (safe fork flow)** - Start from `refocus/stable-v3.0.16`
 4. **Daily standups** - Track progress, blockers
-5. **Version control** - Branch: `feature/free-pro-split`
+5. **Version control** - Branches: `feat/license-core` -> `feat/license-ui` -> `feat/provider-compat` -> `feat/free-build`
 
 ---
 
 ## Quick Start Commands
 
 ```bash
-# Create feature branch
-git checkout -b feature/free-pro-split
+# Start from stable refocus baseline
+git checkout refocus/stable-v3.0.16
+
+# Create first focused branch
+git checkout -b feat/license-core
 
 # Create license directory
 mkdir -p includes/license
@@ -963,12 +966,12 @@ touch includes/license/class-license-manager.php
 
 # Track progress
 git add .
-git commit -m "feat: roadmap for free/pro split"
-git push origin feature/free-pro-split
+git commit -m "feat: license core groundwork"
+git push origin feat/license-core
 ```
 
 ---
 
-**Status:** 📋 Planning Complete - Ready to Begin  
-**Next Action:** Create `includes/license/class-license-manager.php`  
-**Estimated Completion:** April 15, 2026
+**Status:** In Progress - Refocused from stable baseline  
+**Next Action:** Complete `feat/license-core` and run regression matrix  
+**Estimated Completion:** TBD after fork-by-fork validation

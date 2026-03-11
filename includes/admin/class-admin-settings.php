@@ -27,6 +27,43 @@ class Simple_Booking_Admin_Settings {
     }
 
     /**
+     * Return module manager instance when available.
+     *
+     * @return Simple_Booking_Module_Manager|null
+     */
+    private function get_module_manager() {
+        if ( class_exists( 'Simple_Booking_Module_Manager' ) ) {
+            return new Simple_Booking_Module_Manager();
+        }
+
+        return null;
+    }
+
+    /**
+     * Return module unavailability reason for a field config, if any.
+     *
+     * @param array $args Field args.
+     * @return string
+     */
+    private function get_field_module_unavailable_reason( $args ) {
+        if ( ! is_array( $args ) || empty( $args['module_slug'] ) ) {
+            return '';
+        }
+
+        $manager = $this->get_module_manager();
+        if ( ! ( $manager instanceof Simple_Booking_Module_Manager ) ) {
+            return '';
+        }
+
+        $module_slug = sanitize_key( $args['module_slug'] );
+        if ( $manager->is_module_available( $module_slug ) ) {
+            return '';
+        }
+
+        return $manager->get_unavailable_reason( $module_slug );
+    }
+
+    /**
      * Add menu page
      */
     public function add_menu_page() {
@@ -103,6 +140,7 @@ class Simple_Booking_Admin_Settings {
             array(
                 'name'        => 'stripe_publishable_key',
                 'placeholder' => 'pk_test_xxxxxxxxxxxxxx',
+                'module_slug' => 'payments_stripe',
             )
         );
 
@@ -116,6 +154,7 @@ class Simple_Booking_Admin_Settings {
                 'name'        => 'stripe_secret_key',
                 'placeholder' => 'sk_test_xxxxxxxxxxxxxx',
                 'type'        => 'password',
+                'module_slug' => 'payments_stripe',
             )
         );
 
@@ -128,6 +167,7 @@ class Simple_Booking_Admin_Settings {
             array(
                 'name'        => 'stripe_webhook_secret',
                 'placeholder' => 'whsec_xxxxxxxxxxxxxx',
+                'module_slug' => 'payments_stripe',
             )
         );
 
@@ -145,6 +185,22 @@ class Simple_Booking_Admin_Settings {
             array( $this, 'render_calendar_provider_select' ),
             self::PAGE_SLUG,
             'simple_booking_calendar_provider'
+        );
+
+        // Modules status overview
+        add_settings_section(
+            'simple_booking_modules',
+            __( 'Modules Status', 'simple-booking' ),
+            array( $this, 'render_modules_section' ),
+            self::PAGE_SLUG
+        );
+
+        add_settings_field(
+            'modules_status',
+            __( 'Availability', 'simple-booking' ),
+            array( $this, 'render_modules_status' ),
+            self::PAGE_SLUG,
+            'simple_booking_modules'
         );
 
         // Google Calendar Settings
@@ -338,6 +394,7 @@ class Simple_Booking_Admin_Settings {
                 'max'         => 100,
                 'default'     => 100,
                 'description' => __( 'Percentage of booking amount to refund when customer cancels (0-100)', 'simple-booking' ),
+                'module_slug' => 'payments_stripe',
             )
         );
 
@@ -351,6 +408,7 @@ class Simple_Booking_Admin_Settings {
                 'name'        => 'refund_policy',
                 'placeholder' => 'Describe your refund policy for customers (optional)',
                 'rows'        => 5,
+                'module_slug' => 'payments_stripe',
             )
         );
 
@@ -372,6 +430,7 @@ class Simple_Booking_Admin_Settings {
                 'name'        => 'webhook_url',
                 'placeholder' => 'https://example.com/webhook',
                 'description' => __( 'Optional endpoint for future booking.created automation.', 'simple-booking' ),
+                'module_slug' => 'booking_webhooks',
             )
         );
 
@@ -424,7 +483,7 @@ class Simple_Booking_Admin_Settings {
         $sanitized['outlook_client_secret'] = isset( $input['outlook_client_secret'] ) ?
             sanitize_text_field( $input['outlook_client_secret'] ) : ( isset( $existing['outlook_client_secret'] ) ? $existing['outlook_client_secret'] : '' );
 
-        // Calendar Provider Selection (with Pro gating)
+        // Calendar Provider Selection (module + license gating)
         $allowed_providers = array( 'google', 'outlook', 'ics' );
         $provider = isset( $input['calendar_provider'] ) ? sanitize_text_field( $input['calendar_provider'] ) : 'ics';
         
@@ -432,20 +491,28 @@ class Simple_Booking_Admin_Settings {
             $provider = 'ics'; // Default to ICS if invalid
         }
         
-        // Check if trying to set Pro provider without Pro license
-        $is_pro = ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && true === SIMPLE_BOOKING_FORCE_PRO );
-        if ( ! $is_pro && class_exists( 'Simple_Booking_License_Manager' ) ) {
-            $license = new Simple_Booking_License_Manager();
-            $is_pro = $license->is_pro_active();
-        }
+        $module_by_provider = array(
+            'ics'     => 'calendar_ics',
+            'google'  => 'calendar_google',
+            'outlook' => 'calendar_outlook',
+        );
 
-        // If not Pro, only allow ICS
-        if ( ! $is_pro && in_array( $provider, array( 'google', 'outlook' ), true ) ) {
+        $manager = $this->get_module_manager();
+        $selected_module = isset( $module_by_provider[ $provider ] ) ? $module_by_provider[ $provider ] : 'calendar_ics';
+
+        if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( $selected_module ) ) {
             $provider = 'ics';
+            $reason = $manager->get_unavailable_reason( $selected_module );
+            $message = $reason ? $reason : __( 'Selected provider is currently unavailable.', 'simple-booking' );
+
             add_settings_error(
                 'simple_booking_settings',
-                'pro_required',
-                __( 'Pro license required for Google Calendar and Outlook. Reverting to ICS.', 'simple-booking' ),
+                'calendar_provider_unavailable',
+                sprintf(
+                    /* translators: %s: reason provider cannot be used. */
+                    __( 'Selected provider is unavailable. Reverting to ICS. Reason: %s', 'simple-booking' ),
+                    $message
+                ),
                 'warning'
             );
         }
@@ -663,6 +730,13 @@ class Simple_Booking_Admin_Settings {
      * Render Stripe section
      */
     public function render_stripe_section() {
+        $manager = $this->get_module_manager();
+        if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'payments_stripe' ) ) {
+            echo '<p><strong>' . esc_html__( 'Stripe module unavailable', 'simple-booking' ) . '</strong></p>';
+            echo '<p class="description">' . esc_html( $manager->get_unavailable_reason( 'payments_stripe' ) ) . '</p>';
+            return;
+        }
+
         echo '<p>' . __( 'Enter your Stripe API keys. You can find these in your Stripe Dashboard under Developers > API keys.', 'simple-booking' ) . '</p>';
     }
 
@@ -938,6 +1012,16 @@ class Simple_Booking_Admin_Settings {
      * Render Google section
      */
     public function render_google_section() {
+        $manager = $this->get_module_manager();
+        if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'calendar_google' ) ) {
+            $reason = $manager->get_unavailable_reason( 'calendar_google' );
+            echo '<div style="opacity:0.55; padding:10px 12px; background:#f6f7f7; border:1px solid #dcdcde; border-radius:4px;">';
+            echo '<p><strong>' . esc_html__( 'Google Calendar module unavailable', 'simple-booking' ) . '</strong></p>';
+            echo '<p class="description">' . esc_html( $reason ) . '</p>';
+            echo '</div>';
+            return;
+        }
+
         $options = get_option( 'simple_booking_settings', array() );
         $client_id = isset( $options['google_client_id'] ) ? $options['google_client_id'] : '';
         $client_secret = isset( $options['google_client_secret'] ) ? $options['google_client_secret'] : '';
@@ -1023,6 +1107,16 @@ class Simple_Booking_Admin_Settings {
      * Render Outlook section
      */
     public function render_outlook_section() {
+        $manager = $this->get_module_manager();
+        if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'calendar_outlook' ) ) {
+            $reason = $manager->get_unavailable_reason( 'calendar_outlook' );
+            echo '<div style="opacity:0.55; padding:10px 12px; background:#f6f7f7; border:1px solid #dcdcde; border-radius:4px;">';
+            echo '<p><strong>' . esc_html__( 'Outlook Calendar module unavailable', 'simple-booking' ) . '</strong></p>';
+            echo '<p class="description">' . esc_html( $reason ) . '</p>';
+            echo '</div>';
+            return;
+        }
+
         $options = get_option( 'simple_booking_settings', array() );
         $client_id = isset( $options['outlook_client_id'] ) ? $options['outlook_client_id'] : '';
 
@@ -1143,7 +1237,7 @@ class Simple_Booking_Admin_Settings {
      * Render Calendar Provider section
      */
     public function render_calendar_provider_section() {
-        echo '<p>' . __( 'Select which calendar system to use for booking sync. Google Calendar and Outlook require a Pro license.', 'simple-booking' ) . '</p>';
+        echo '<p>' . __( 'Select which calendar system to use for booking sync. Unavailable modules are shown disabled automatically.', 'simple-booking' ) . '</p>';
     }
 
     /**
@@ -1152,35 +1246,81 @@ class Simple_Booking_Admin_Settings {
     public function render_calendar_provider_select() {
         $options = get_option( 'simple_booking_settings', array() );
         $current_provider = isset( $options['calendar_provider'] ) ? $options['calendar_provider'] : 'ics';
-        
-        // Check Pro status
-        $is_pro = ( defined( 'SIMPLE_BOOKING_FORCE_PRO' ) && true === SIMPLE_BOOKING_FORCE_PRO );
-        if ( ! $is_pro && class_exists( 'Simple_Booking_License_Manager' ) ) {
-            $license = new Simple_Booking_License_Manager();
-            $is_pro = $license->is_pro_active();
+
+        $manager = $this->get_module_manager();
+        $provider_options = array(
+            'ics' => array(
+                'label' => __( 'ICS Feed', 'simple-booking' ),
+                'available' => true,
+                'requires_pro' => false,
+                'installed' => true,
+                'reason' => '',
+            ),
+            'google' => array(
+                'label' => __( 'Google Calendar', 'simple-booking' ),
+                'available' => false,
+                'requires_pro' => true,
+                'installed' => true,
+                'reason' => __( 'Requires an active Pro license.', 'simple-booking' ),
+            ),
+            'outlook' => array(
+                'label' => __( 'Outlook Calendar', 'simple-booking' ),
+                'available' => false,
+                'requires_pro' => true,
+                'installed' => true,
+                'reason' => __( 'Requires an active Pro license.', 'simple-booking' ),
+            ),
+        );
+
+        if ( $manager instanceof Simple_Booking_Module_Manager ) {
+            $provider_options = $manager->get_calendar_provider_options();
         }
         
         ?>
         <select name="simple_booking_settings[calendar_provider]" id="simple-booking-calendar-provider-select">
-            <option value="ics" <?php selected( $current_provider, 'ics' ); ?>>
-                <?php _e( 'ICS Feed (Free)', 'simple-booking' ); ?>
-            </option>
-            <option value="google" <?php selected( $current_provider, 'google' ); ?> <?php disabled( $is_pro, false ); ?>>
-                <?php _e( 'Google Calendar', 'simple-booking' ); ?> <?php if ( ! $is_pro ) { echo '(Pro)'; } ?>
-            </option>
-            <option value="outlook" <?php selected( $current_provider, 'outlook' ); ?> <?php disabled( $is_pro, false ); ?>>
-                <?php _e( 'Outlook Calendar', 'simple-booking' ); ?> <?php if ( ! $is_pro ) { echo '(Pro)'; } ?>
-            </option>
+            <?php foreach ( $provider_options as $provider_slug => $provider_meta ) : ?>
+                <?php
+                $label = isset( $provider_meta['label'] ) ? $provider_meta['label'] : ucfirst( $provider_slug );
+                $is_available = ! empty( $provider_meta['available'] );
+                $requires_pro = ! empty( $provider_meta['requires_pro'] );
+                $is_installed = array_key_exists( 'installed', $provider_meta ) ? ! empty( $provider_meta['installed'] ) : true;
+
+                if ( ! $is_available ) {
+                    if ( ! $is_installed ) {
+                        $label .= ' (' . __( 'Module Missing', 'simple-booking' ) . ')';
+                    } elseif ( $requires_pro ) {
+                        $label .= ' (' . __( 'Pro', 'simple-booking' ) . ')';
+                    } else {
+                        $label .= ' (' . __( 'Unavailable', 'simple-booking' ) . ')';
+                    }
+                }
+                ?>
+                <option value="<?php echo esc_attr( $provider_slug ); ?>" <?php selected( $current_provider, $provider_slug ); ?> <?php disabled( $is_available, false ); ?>>
+                    <?php echo esc_html( $label ); ?>
+                </option>
+            <?php endforeach; ?>
         </select>
         <p class="description">
-            <?php 
-            if ( ! $is_pro ) {
-                _e( 'Google Calendar and Outlook are Pro features. Upgrade your license to enable them.', 'simple-booking' );
-            } else {
-                _e( 'Your Pro license enables all calendar options.', 'simple-booking' );
-            }
-            ?>
+            <?php _e( 'Unavailable options are disabled automatically based on module installation and license status.', 'simple-booking' ); ?>
         </p>
+        <?php if ( ! empty( $provider_options ) ) : ?>
+            <ul style="margin:6px 0 0 18px;">
+                <?php foreach ( $provider_options as $provider_meta ) : ?>
+                    <?php
+                    $label = isset( $provider_meta['label'] ) ? $provider_meta['label'] : '';
+                    $reason = isset( $provider_meta['reason'] ) ? $provider_meta['reason'] : '';
+                    $is_available = ! empty( $provider_meta['available'] );
+                    ?>
+                    <li>
+                        <strong><?php echo esc_html( $label ); ?>:</strong>
+                        <?php echo esc_html( $is_available ? __( 'Available', 'simple-booking' ) : __( 'Unavailable', 'simple-booking' ) ); ?>
+                        <?php if ( ! $is_available && $reason ) : ?>
+                            <?php echo ' - ' . esc_html( $reason ); ?>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
         <script>
         (function() {
             function findSectionHeading(sectionTitle) {
@@ -1243,6 +1383,55 @@ class Simple_Booking_Admin_Settings {
     }
 
     /**
+     * Render Modules section intro.
+     *
+     * @return void
+     */
+    public function render_modules_section() {
+        echo '<p>' . __( 'Module availability is calculated from installed code + license eligibility. Use this panel to verify plug-and-play state.', 'simple-booking' ) . '</p>';
+    }
+
+    /**
+     * Render module status table.
+     *
+     * @return void
+     */
+    public function render_modules_status() {
+        $manager = $this->get_module_manager();
+        if ( ! ( $manager instanceof Simple_Booking_Module_Manager ) ) {
+            echo '<p class="description">' . esc_html__( 'Module manager is unavailable.', 'simple-booking' ) . '</p>';
+            return;
+        }
+
+        $rows = $manager->get_modules_status();
+        if ( empty( $rows ) ) {
+            echo '<p class="description">' . esc_html__( 'No modules registered.', 'simple-booking' ) . '</p>';
+            return;
+        }
+
+        echo '<table class="widefat striped" style="max-width: 980px;">';
+        echo '<thead><tr>';
+        echo '<th>' . esc_html__( 'Module', 'simple-booking' ) . '</th>';
+        echo '<th>' . esc_html__( 'Installed', 'simple-booking' ) . '</th>';
+        echo '<th>' . esc_html__( 'Requires Pro', 'simple-booking' ) . '</th>';
+        echo '<th>' . esc_html__( 'Available', 'simple-booking' ) . '</th>';
+        echo '<th>' . esc_html__( 'Reason (if unavailable)', 'simple-booking' ) . '</th>';
+        echo '</tr></thead><tbody>';
+
+        foreach ( $rows as $row ) {
+            echo '<tr>';
+            echo '<td><strong>' . esc_html( $row['label'] ) . '</strong><br><code>' . esc_html( $row['slug'] ) . '</code></td>';
+            echo '<td>' . esc_html( $row['installed'] ? __( 'Yes', 'simple-booking' ) : __( 'No', 'simple-booking' ) ) . '</td>';
+            echo '<td>' . esc_html( $row['requires_pro'] ? __( 'Yes', 'simple-booking' ) : __( 'No', 'simple-booking' ) ) . '</td>';
+            echo '<td>' . esc_html( $row['available'] ? __( 'Yes', 'simple-booking' ) : __( 'No', 'simple-booking' ) ) . '</td>';
+            echo '<td>' . esc_html( $row['reason'] ) . '</td>';
+            echo '</tr>';
+        }
+
+        echo '</tbody></table>';
+    }
+
+    /**
      * Render Hours section
      */
     public function render_hours_section() {
@@ -1261,6 +1450,13 @@ class Simple_Booking_Admin_Settings {
      * Render Webhook section
      */
     public function render_webhook_section() {
+        $manager = $this->get_module_manager();
+        if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'booking_webhooks' ) ) {
+            echo '<p><strong>' . esc_html__( 'Booking webhooks module unavailable', 'simple-booking' ) . '</strong></p>';
+            echo '<p class="description">' . esc_html( $manager->get_unavailable_reason( 'booking_webhooks' ) ) . '</p>';
+            return;
+        }
+
         echo '<p>' . __( 'Configure automation endpoint settings.', 'simple-booking' ) . '</p>';
     }
 
@@ -1268,6 +1464,13 @@ class Simple_Booking_Admin_Settings {
      * Render Refund section
      */
     public function render_refund_section() {
+        $manager = $this->get_module_manager();
+        if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'payments_stripe' ) ) {
+            echo '<p><strong>' . esc_html__( 'Refund settings unavailable', 'simple-booking' ) . '</strong></p>';
+            echo '<p class="description">' . esc_html( $manager->get_unavailable_reason( 'payments_stripe' ) ) . '</p>';
+            return;
+        }
+
         echo '<p>' . __( 'Configure refund settings for cancelled paid bookings.', 'simple-booking' ) . '</p>';
     }
 
@@ -1384,13 +1587,18 @@ class Simple_Booking_Admin_Settings {
     public function render_checkbox_field( $args ) {
         $options = get_option( 'simple_booking_settings', array() );
         $checked = ! empty( $options[ $args['name'] ] ) ? 'checked' : '';
+        $module_reason = $this->get_field_module_unavailable_reason( $args );
+        $disabled_attr = $module_reason ? 'disabled="disabled"' : '';
         ?>
         <label>
-            <input type="checkbox" name="simple_booking_settings[<?php echo esc_attr( $args['name'] ); ?>]" value="1" <?php echo $checked; ?>>
+            <input type="checkbox" name="simple_booking_settings[<?php echo esc_attr( $args['name'] ); ?>]" value="1" <?php echo $checked; ?> <?php echo $disabled_attr; ?>>
             <?php if ( ! empty( $args['description'] ) ) : ?>
                 <span class="description"><?php echo esc_html( $args['description'] ); ?></span>
             <?php endif; ?>
         </label>
+        <?php if ( $module_reason ) : ?>
+            <p class="description"><?php echo esc_html( $module_reason ); ?></p>
+        <?php endif; ?>
         <?php
     }
 
@@ -1401,14 +1609,20 @@ class Simple_Booking_Admin_Settings {
         $options = get_option( 'simple_booking_settings', array() );
         $value   = isset( $options[ $args['name'] ] ) ? $options[ $args['name'] ] : '';
         $type    = isset( $args['type'] ) ? $args['type'] : 'text';
+        $module_reason = $this->get_field_module_unavailable_reason( $args );
+        $disabled_attr = $module_reason ? 'disabled="disabled"' : '';
         ?>
         <input type="<?php echo esc_attr( $type ); ?>"
                name="simple_booking_settings[<?php echo esc_attr( $args['name'] ); ?>]"
                value="<?php echo esc_attr( $value ); ?>"
                placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
-               class="regular-text" />
+               class="regular-text"
+               <?php echo $disabled_attr; ?> />
         <?php if ( ! empty( $args['description'] ) ) : ?>
             <p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+        <?php endif; ?>
+        <?php if ( $module_reason ) : ?>
+            <p class="description"><?php echo esc_html( $module_reason ); ?></p>
         <?php endif; ?>
         <?php
     }
@@ -1420,11 +1634,17 @@ class Simple_Booking_Admin_Settings {
         $options = get_option( 'simple_booking_settings', array() );
         $value   = isset( $options[ $args['name'] ] ) ? $options[ $args['name'] ] : '';
         $rows    = isset( $args['rows'] ) ? $args['rows'] : 5;
+        $module_reason = $this->get_field_module_unavailable_reason( $args );
+        $disabled_attr = $module_reason ? 'disabled="disabled"' : '';
         ?>
         <textarea name="simple_booking_settings[<?php echo esc_attr( $args['name'] ); ?>]"
                   rows="<?php echo esc_attr( $rows ); ?>"
                   class="large-text code"
-                  placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
+                  placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
+                  <?php echo $disabled_attr; ?>><?php echo esc_textarea( $value ); ?></textarea>
+        <?php if ( $module_reason ) : ?>
+            <p class="description"><?php echo esc_html( $module_reason ); ?></p>
+        <?php endif; ?>
         <?php
     }
 
@@ -1436,15 +1656,21 @@ class Simple_Booking_Admin_Settings {
         $value   = isset( $options[ $args['name'] ] ) ? $options[ $args['name'] ] : ( isset( $args['default'] ) ? $args['default'] : 0 );
         $min     = isset( $args['min'] ) ? $args['min'] : 0;
         $max     = isset( $args['max'] ) ? $args['max'] : 100;
+        $module_reason = $this->get_field_module_unavailable_reason( $args );
+        $disabled_attr = $module_reason ? 'disabled="disabled"' : '';
         ?>
         <input type="number"
                name="simple_booking_settings[<?php echo esc_attr( $args['name'] ); ?>]"
                value="<?php echo esc_attr( $value ); ?>"
                min="<?php echo esc_attr( $min ); ?>"
                max="<?php echo esc_attr( $max ); ?>"
-               class="small-text" />
+               class="small-text"
+               <?php echo $disabled_attr; ?> />
         <?php if ( ! empty( $args['description'] ) ) : ?>
             <p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+        <?php endif; ?>
+        <?php if ( $module_reason ) : ?>
+            <p class="description"><?php echo esc_html( $module_reason ); ?></p>
         <?php endif; ?>
         <?php
     }

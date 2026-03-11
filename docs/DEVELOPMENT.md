@@ -8,39 +8,40 @@ See [`CONTRIBUTING.md`](../CONTRIBUTING.md) for workflow rules and release contr
 
 ## Architecture Decisions
 
-### Why Conditional File Loading (Free/Pro)?
+### Why Module-Aware File Loading?
 
-**Chosen approach:** Load Pro files only when license is active.
+**Chosen approach:** Keep one admin and one codebase, but gate features by module availability (installed files + license eligibility).
 
 | Option | Verdict | Reason |
 |--------|---------|--------|
-| Feature flags only (Pro code always loaded) | ❌ | Bloated free build, easier to crack |
+| Feature flags only (Pro code always loaded) | ❌ | Hard to package true module variants |
 | Separate plugins (two codebases) | ❌ | Code duplication, harder to maintain |
-| **Conditional loading (single codebase)** | ✅ | Clean free build, secure, maintainable |
+| **Module registry + optional loading** | ✅ | Single admin UX, plug-and-play modules, safer bootstrap |
 
 ```php
-// FREE CORE — always loaded
+// Core always loaded
 require 'post-types/class-booking-service.php';
 require 'post-types/class-booking.php';
 require 'admin/class-admin-settings.php';
 require 'frontend/class-booking-form.php';
 require 'booking/class-booking-creator.php';
 require 'license/class-license-manager.php';
+require 'modules/class-module-manager.php';
 require 'calendar/interface-calendar-provider.php';
 require 'calendar/class-calendar-provider-manager.php';
 require 'calendar/providers/class-ics-provider.php';
 
-// PRO FEATURES — only if licensed
-if ( $this->is_pro_active() ) {
-    require 'stripe/class-stripe-handler.php';
-    require 'webhook/class-stripe-webhook.php';
-    require 'google/class-google-calendar.php';
-    require 'outlook/class-outlook-calendar.php';
-    require 'post-types/class-staff.php';
-    require 'calendar/providers/class-google-provider.php';
-    require 'calendar/providers/class-outlook-provider.php';
-}
+// Optional modules — loaded if module file exists
+$this->require_optional_dependency( 'calendar/providers/class-google-provider.php' );
+$this->require_optional_dependency( 'calendar/providers/class-outlook-provider.php' );
+$this->require_optional_dependency( 'google/class-google-calendar.php' );
+$this->require_optional_dependency( 'outlook/class-outlook-calendar.php' );
+
+// Runtime gates still use license checks where required
+$module_manager->is_module_available( 'calendar_google' );
 ```
+
+This avoids maintaining two separate admin screens. Settings stay visible in one place and unavailable modules are disabled with explicit reason text.
 
 ---
 
