@@ -1,4 +1,4 @@
-)# Contributing & Dev Rules
+# Contributing & Dev Rules
 
 This is the central reference for working on Simple Booking. Read this before starting any task.
 
@@ -39,7 +39,7 @@ Before starting any new milestone, complete all four steps:
 1. **Version Sync** — `simple-booking.php` header + `SIMPLE_BOOKING_VERSION` constant match; `README.md` current release matches shipped tag
 2. **Changelog Sync** — Add entry in `CHANGELOG.md` (Added / Changed / Fixed)
 3. **Roadmap Sync** — Update Current Version line in `TODO.md`; mark completed stage; set next immediate stage
-4. **Git Release Sync** — Commit on `main` → merge to `master` → push `master` → create + push release tag → return to `main`
+4. **Git Release Sync** — Commit on working branch → merge to `master` → push `master` → create + push release tag
 
 ---
 
@@ -57,13 +57,11 @@ When a roadmap phase closes:
 
 ```
 master - Production releases (tagged)
-└── feature/free-pro-split  - Active development branch
-    ├── feat/license-manager     - Phase 1
-    ├── feat/admin-ui-gates      - Phase 2
-    ├── feat/free-build          - Phase 3
-    ├── feat/pro-launch          - Phase 4
-    ├── feat/ux-onboarding       - Phase 5
-    └── feat/calendar-providers  - Phase 6
+└── refocus/stable-v3.0.16 - Stable baseline for Free/Pro refactor
+    ├── feat/license-core      - License manager internals only
+    ├── feat/license-ui        - Admin license UX
+    ├── feat/provider-compat   - Provider/OAuth compatibility layer
+    └── feat/free-build        - Free vs Pro packaging scripts
 ```
 
 ---
