@@ -38,6 +38,8 @@ class Simple_Booking_Calendar_Provider_Manager {
             return 'ics';
         }
 
+        $this->maybe_load_provider_class( $slug );
+
         // If selected provider class is not loaded in this request (e.g. Pro
         // provider selected while current runtime is Free), gracefully fall
         // back to ICS instead of returning hard errors to frontend slot checks.
@@ -62,6 +64,8 @@ class Simple_Booking_Calendar_Provider_Manager {
 
         $slug = sanitize_key( $slug );
 
+        $this->maybe_load_provider_class( $slug );
+
         if ( ! isset( $this->provider_classes[ $slug ] ) ) {
             return new WP_Error( 'calendar_provider_invalid', __( 'Invalid calendar provider.', 'simple-booking' ) );
         }
@@ -83,6 +87,53 @@ class Simple_Booking_Calendar_Provider_Manager {
         }
 
         return $provider;
+    }
+
+    /**
+     * Lazy-load provider classes and dependencies when they were not preloaded.
+     *
+     * @param string $slug
+     * @return void
+     */
+    private function maybe_load_provider_class( $slug ) {
+        if ( ! isset( $this->provider_classes[ $slug ] ) ) {
+            return;
+        }
+
+        $class_name = $this->provider_classes[ $slug ];
+        if ( class_exists( $class_name ) ) {
+            return;
+        }
+
+        if ( ! defined( 'SIMPLE_BOOKING_INCLUDES' ) ) {
+            return;
+        }
+
+        if ( 'google' === $slug ) {
+            if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php' ) ) {
+                require_once SIMPLE_BOOKING_INCLUDES . 'google/class-google-calendar.php';
+            }
+            if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php' ) ) {
+                require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php';
+            }
+            return;
+        }
+
+        if ( 'outlook' === $slug ) {
+            if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php' ) ) {
+                require_once SIMPLE_BOOKING_INCLUDES . 'outlook/class-outlook-calendar.php';
+            }
+            if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php' ) ) {
+                require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
+            }
+            return;
+        }
+
+        if ( 'ics' === $slug ) {
+            if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php' ) ) {
+                require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php';
+            }
+        }
     }
 
     /**
