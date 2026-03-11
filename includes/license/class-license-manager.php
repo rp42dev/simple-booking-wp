@@ -74,8 +74,9 @@ class Simple_Booking_License_Manager {
      * Constructor
      */
     public function __construct() {
-        // TODO: Add hooks for admin notices
+        // Admin notices
         add_action( 'admin_notices', array( $this, 'show_admin_notices' ) );
+        add_action( 'wp_ajax_simple_booking_dismiss_free_notice', array( $this, 'ajax_dismiss_free_notice' ) );
     }
 
     /**
@@ -364,12 +365,115 @@ class Simple_Booking_License_Manager {
      * Show admin notices
      */
     public function show_admin_notices() {
-        // TODO: Implement notices
+        // Only show to admins
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
 
-        // Welcome notice (free)
-        // Grace period warning
-        // Grace period expired
-        // Activation success
+        // Only on Simple Booking settings page
+        // @todo: conditional check for page to avoid showing everywhere
+        $status = $this->check_license_status();
+        
+        // Determine notice type and message
+        if ( 'active' === $status['status'] && $status['valid'] ) {
+            // License is active - check if expiring soon (within 7 days)
+            if ( $status['expires_at'] ) {
+                $expiry_time = strtotime( $status['expires_at'] );
+                $seven_days = time() + ( 7 * DAY_IN_SECONDS );
+                
+                if ( $expiry_time <= $seven_days ) {
+                    $days_remaining = ceil( ( $expiry_time - time() ) / DAY_IN_SECONDS );
+                    ?>
+                    <div class="notice notice-warning is-dismissible">
+                        <p>
+                            <strong><?php _e( '⚠️ Your Simple Booking Pro license expires soon!', 'simple-booking' ); ?></strong><br />
+                            <?php printf(
+                                __( 'Your license expires in %d day(s) on %s. <a href="%s">Renew now</a> to maintain access to Pro features.', 'simple-booking' ),
+                                $days_remaining,
+                                esc_html( date_i18n( get_option( 'date_format' ), $expiry_time ) ),
+                                esc_url( admin_url( 'options-general.php?page=simple-booking-settings&tab=license' ) )
+                            ); ?>
+                        </p>
+                    </div>
+                    <?php
+                }
+            }
+        } elseif ( 'expired' === $status['status'] ) {
+            // License expired
+            ?>
+            <div class="notice notice-error is-dismissible">
+                <p>
+                    <strong><?php _e( '❌ Your Simple Booking Pro license has expired.', 'simple-booking' ); ?></strong><br />
+                    <?php printf(
+                        __( 'Pro features are now disabled. <a href="%s">Activate a new license</a> to restore access.', 'simple-booking' ),
+                        esc_url( admin_url( 'options-general.php?page=simple-booking-settings&tab=license' ) )
+                    ); ?>
+                </p>
+            </div>
+            <?php
+        } elseif ( 'grace_period' === $status['status'] ) {
+            // License in grace period
+            $grace_remaining = $this->get_grace_period_remaining();
+            $days_remaining = ceil( $grace_remaining / DAY_IN_SECONDS );
+            ?>
+            <div class="notice notice-warning is-dismissible">
+                <p>
+                    <strong><?php _e( '⏳ Your Simple Booking Pro license is in grace period.', 'simple-booking' ); ?></strong><br />
+                    <?php printf(
+                        __( 'You have %d day(s) remaining. <a href="%s">Renew your license</a> to maintain Pro feature access.', 'simple-booking' ),
+                        $days_remaining,
+                        esc_url( admin_url( 'options-general.php?page=simple-booking-settings&tab=license' ) )
+                    ); ?>
+                </p>
+            </div>
+            <?php
+        } elseif ( 'free' === $status['status'] || ! $status['valid'] ) {
+            // Free version - show welcome/upgrade notice (dismissible after 7 days)
+            $last_dismissed = get_transient( 'simple_booking_free_notice_dismissed' );
+            if ( empty( $last_dismissed ) ) {
+                // Check if this is a new install (no bookings yet)
+                $booking_count = wp_count_posts( 'booking' );
+                $is_new_install = ( $booking_count && $booking_count->publish === 0 );
+                
+                if ( $is_new_install ) {
+                    ?>
+                    <div class="notice notice-info is-dismissible" id="simple_booking_free_notice">
+                        <p>
+                            <strong><?php _e( '🎉 Welcome to Simple Booking!', 'simple-booking' ); ?></strong><br />
+                            <?php printf(
+                                __( 'Upgrade to <a href="%s"><strong>Simple Booking Pro</strong></a> to unlock Stripe payments, Google/Outlook calendar sync, multi-staff management, and advanced scheduling.', 'simple-booking' ),
+                                esc_url( admin_url( 'options-general.php?page=simple-booking-settings&tab=license' ) )
+                            ); ?>
+                        </p>
+                    </div>
+                    <script>
+                        document.addEventListener( 'DOMContentLoaded', function() {
+                            const notice = document.getElementById( 'simple_booking_free_notice' );
+                            if ( notice ) {
+                                const dismissButton = notice.querySelector( '.notice-dismiss' );
+                                if ( dismissButton ) {
+                                    dismissButton.addEventListener( 'click', function() {
+                                        // Dismiss for 7 days
+                                        const data = new FormData();
+                                        data.append( 'action', 'simple_booking_dismiss_free_notice' );
+                                        fetch( ajaxurl, { method: 'POST', body: data } );
+                                    } );
+                                }
+                            }
+                        } );
+                    </script>
+                    <?php
+                }
+            }
+        }
+    }
+
+    /**
+     * AJAX: Dismiss free notice
+     */
+    public function ajax_dismiss_free_notice() {
+        set_transient( 'simple_booking_free_notice_dismissed', '1', 7 * DAY_IN_SECONDS );
+        wp_send_json_success();
     }
 
     /**

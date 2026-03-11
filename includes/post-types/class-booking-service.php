@@ -558,7 +558,7 @@ class Simple_Booking_Service {
             </tr>
             <tr>
                 <th scope="row">
-                    <label for="stripe_price_id"><?php _e( 'Stripe Price ID', 'simple-booking' ); ?></label>
+                    <label for="stripe_price_id"><?php _e( 'Stripe Price ID', 'simple-booking' ); ?> <span style="color: #667eea; font-weight: bold; font-size: 11px;">💎 PRO</span></label>
                 </th>
                 <td>
                     <input type="text"
@@ -566,8 +566,12 @@ class Simple_Booking_Service {
                            name="stripe_price_id"
                            value="<?php echo esc_attr( $price_id ); ?>"
                            class="regular-text"
-                           placeholder="price_xxxxxxxxxxxxxx" />
+                           placeholder="price_xxxxxxxxxxxxxx"
+                           <?php disabled( ! $is_pro_active ); ?> />
                     <p class="description"><?php _e( 'Enter the Stripe Price ID (e.g., price_1234567890)', 'simple-booking' ); ?></p>
+                    <?php if ( ! $is_pro_active ) : ?>
+                        <p class="description" style="color: #d32626;"><strong><?php _e( '🔒 Pro Feature: Activate your license to accept payments', 'simple-booking' ); ?></strong></p>
+                    <?php endif; ?>
                 </td>
             </tr>
             <tr>
@@ -601,38 +605,49 @@ class Simple_Booking_Service {
                 </td>
             </tr>
             <?php if ( $is_google_provider_active ) : ?>
-                <tr>
+                <tr <?php echo ! $is_pro_active ? 'style="opacity: 0.6; background-color: #f8f8f8;"' : ''; ?>>
                     <th scope="row">
-                        <label for="create_google_event"><?php _e( 'Create Google Calendar Event', 'simple-booking' ); ?></label>
+                        <label for="create_google_event"><?php _e( 'Create Google Calendar Event', 'simple-booking' ); ?> <span style="color: #667eea; font-weight: bold; font-size: 11px;">💎 PRO</span></label>
                     </th>
                     <td>
                         <input type="checkbox"
                                id="create_google_event"
                                name="create_google_event"
                                value="1"
-                               <?php checked( $create_google_event, '1' ); ?> />
+                               <?php checked( $create_google_event, '1' ); ?>
+                               <?php disabled( ! $is_pro_active ); ?> />
                         <label for="create_google_event"><?php _e( 'Automatically create Google Calendar event for bookings', 'simple-booking' ); ?></label>
+                        <?php if ( ! $is_pro_active ) : ?>
+                            <p class="description" style="color: #d32626;"><strong><?php _e( '🔒 Pro Feature: Activate your license to sync with Google Calendar', 'simple-booking' ); ?></strong></p>
+                        <?php endif; ?>
                     </td>
                 </tr>
-                <tr>
+                <tr <?php echo ! $is_pro_active ? 'style="opacity: 0.6; background-color: #f8f8f8;"' : ''; ?>>
                     <th scope="row">
-                        <label for="auto_google_meet"><?php _e( 'Auto-Create Google Meet Link', 'simple-booking' ); ?></label>
+                        <label for="auto_google_meet"><?php _e( 'Auto-Create Google Meet Link', 'simple-booking' ); ?> <span style="color: #667eea; font-weight: bold; font-size: 11px;">💎 PRO</span></label>
                     </th>
                     <td>
                         <input type="checkbox"
                                id="auto_google_meet"
                                name="auto_google_meet"
                                value="1"
-                               <?php checked( $auto_google_meet, '1' ); ?> />
+                               <?php checked( $auto_google_meet, '1' ); ?>
+                               <?php disabled( ! $is_pro_active ); ?> />
                         <label for="auto_google_meet"><?php _e( 'Generate Google Meet link when creating Google Calendar events', 'simple-booking' ); ?></label>
                         <p class="description"><?php _e( 'Requires "Create Google Calendar Event" enabled and connected Google Calendar account.', 'simple-booking' ); ?></p>
+                        <?php if ( ! $is_pro_active ) : ?>
+                            <p class="description" style="color: #d32626;"><strong><?php _e( '🔒 Pro Feature: Activate your license to use auto-generated meeting links', 'simple-booking' ); ?></strong></p>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php else : ?>
                 <tr>
-                    <th scope="row"><?php _e( 'Google Event Options', 'simple-booking' ); ?></th>
+                    <th scope="row"><?php _e( 'Google Event Options', 'simple-booking' ); ?> <span style="color: #667eea; font-weight: bold; font-size: 11px;">💎 PRO</span></th>
                     <td>
-                        <p class="description"><?php _e( 'Google-specific options are hidden because active Calendar Provider is not Google.', 'simple-booking' ); ?></p>
+                        <p class="description"><?php _e( 'Google-specific options are hidden because active Calendar Provider is not Google, or Pro feature is unavailable.', 'simple-booking' ); ?></p>
+                        <?php if ( ! $is_pro_active ) : ?>
+                            <p class="description" style="color: #d32626;"><strong><?php _e( '🔒 Pro Feature: Activate your license to use Google Calendar integration', 'simple-booking' ); ?></strong></p>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endif; ?>
@@ -672,11 +687,14 @@ class Simple_Booking_Service {
                     <label for="schedule_mode"><?php _e( 'Schedule Mode', 'simple-booking' ); ?></label>
                 </th>
                 <td>
-                    <select id="schedule_mode" name="schedule_mode">
+                    <select id="schedule_mode" name="schedule_mode" <?php disabled( ! $is_pro_active && 'custom' === $schedule_mode ); ?>>
                         <option value="inherit" <?php selected( $schedule_mode, 'inherit' ); ?>><?php _e( 'Inherit Global Schedule', 'simple-booking' ); ?></option>
-                        <option value="custom" <?php selected( $schedule_mode, 'custom' ); ?>><?php _e( 'Use Custom Service Schedule', 'simple-booking' ); ?></option>
+                        <option value="custom" <?php selected( $schedule_mode, 'custom' ); ?> <?php disabled( ! $is_pro_active ); ?>><?php _e( 'Use Custom Service Schedule', 'simple-booking' ); ?> <span style="color: #667eea; font-weight: bold; font-size: 11px;">💎 PRO</span></option>
                     </select>
                     <p class="description"><?php _e( 'Inherit uses plugin Working Schedule. Custom applies day/hour rules below for this service.', 'simple-booking' ); ?></p>
+                    <?php if ( ! $is_pro_active && 'custom' === $schedule_mode ) : ?>
+                        <p class="description" style="color: #d32626;"><strong><?php _e( '🔒 Pro Feature: Custom per-service schedules require a Pro license', 'simple-booking' ); ?></strong></p>
+                    <?php endif; ?>
                 </td>
             </tr>
 

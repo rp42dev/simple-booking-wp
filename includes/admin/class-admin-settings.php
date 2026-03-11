@@ -126,7 +126,7 @@ class Simple_Booking_Admin_Settings {
         // Stripe Settings
         add_settings_section(
             'simple_booking_stripe',
-            __( 'Stripe Settings', 'simple-booking' ),
+            __( 'Stripe Settings', 'simple-booking' ) . ' <span class="simple-booking-pro-badge">💎 PRO</span>',
             array( $this, 'render_stripe_section' ),
             self::PAGE_SLUG
         );
@@ -206,7 +206,7 @@ class Simple_Booking_Admin_Settings {
         // Google Calendar Settings
         add_settings_section(
             'simple_booking_google',
-            __( 'Google Calendar Settings', 'simple-booking' ),
+            __( 'Google Calendar Settings', 'simple-booking' ) . ' <span class="simple-booking-pro-badge">💎 PRO</span>',
             array( $this, 'render_google_section' ),
             self::PAGE_SLUG
         );
@@ -259,7 +259,7 @@ class Simple_Booking_Admin_Settings {
         // Outlook Calendar Settings
         add_settings_section(
             'simple_booking_outlook',
-            __( 'Outlook Calendar Settings', 'simple-booking' ),
+            __( 'Outlook Calendar Settings', 'simple-booking' ) . ' <span class="simple-booking-pro-badge">💎 PRO</span>',
             array( $this, 'render_outlook_section' ),
             self::PAGE_SLUG
         );
@@ -377,7 +377,7 @@ class Simple_Booking_Admin_Settings {
         // Refund Settings
         add_settings_section(
             'simple_booking_refunds',
-            __( 'Refund Settings', 'simple-booking' ),
+            __( 'Refund Settings', 'simple-booking' ) . ' <span class="simple-booking-pro-badge">💎 PRO</span>',
             array( $this, 'render_refund_section' ),
             self::PAGE_SLUG
         );
@@ -415,7 +415,7 @@ class Simple_Booking_Admin_Settings {
         // Webhook Settings
         add_settings_section(
             'simple_booking_webhook',
-            __( 'Webhook Settings', 'simple-booking' ),
+            __( 'Webhook Settings', 'simple-booking' ) . ' <span class="simple-booking-pro-badge">💎 PRO</span>',
             array( $this, 'render_webhook_section' ),
             self::PAGE_SLUG
         );
@@ -574,6 +574,7 @@ class Simple_Booking_Admin_Settings {
      * Render settings page
      */
     public function render_settings_page() {
+        $this->enqueue_admin_styles();
         ?>
         <div class="wrap">
             <h1><?php _e( 'Simple Booking Settings', 'simple-booking' ); ?></h1>
@@ -584,6 +585,128 @@ class Simple_Booking_Admin_Settings {
                 submit_button( __( 'Save Settings', 'simple-booking' ) );
                 ?>
             </form>
+        </div>
+        <?php
+    }
+
+    /**
+     * Enqueue admin styles for Pro badges and upgrade prompts
+     */
+    private function enqueue_admin_styles() {
+        ?>
+        <style>
+            .simple-booking-pro-badge {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 3px 8px;
+                border-radius: 3px;
+                font-size: 11px;
+                font-weight: 600;
+                margin-left: 8px;
+                text-transform: uppercase;
+                display: inline-block;
+            }
+
+            .simple-booking-upgrade-prompt {
+                background: #f0f7ff;
+                border-left: 4px solid #667eea;
+                padding: 12px;
+                margin: 10px 0;
+                border-radius: 3px;
+            }
+
+            .simple-booking-upgrade-prompt p {
+                margin: 0 0 8px 0;
+            }
+
+            .simple-booking-upgrade-card {
+                background: #f0f7ff;
+                border: 1px solid #667eea;
+                border-radius: 4px;
+                padding: 16px;
+                margin: 10px 0;
+                text-align: center;
+            }
+
+            .simple-booking-upgrade-card h3 {
+                margin: 0 0 8px 0;
+                color: #667eea;
+            }
+
+            .simple-booking-upgrade-card a.button {
+                margin-top: 8px;
+            }
+
+            .simple-booking-section-disabled .form-table th,
+            .simple-booking-section-disabled .form-table td {
+                opacity: 0.6;
+            }
+
+            .simple-booking-section-disabled input:disabled,
+            .simple-booking-section-disabled select:disabled,
+            .simple-booking-section-disabled textarea:disabled {
+                background-color: #f5f5f5;
+                cursor: not-allowed;
+            }
+        </style>
+        <?php
+    }
+
+    /**
+     * Get license manager instance
+     *
+     * @return Simple_Booking_License_Manager|null
+     */
+    private function get_license_manager() {
+        if ( function_exists( 'simple_booking' ) ) {
+            return simple_booking()->get_license_manager();
+        }
+        return null;
+    }
+
+    /**
+     * Check if Pro is active via license manager
+     *
+     * @return bool
+     */
+    private function is_pro_active() {
+        $manager = $this->get_license_manager();
+        if ( $manager instanceof Simple_Booking_License_Manager ) {
+            return $manager->is_pro_active();
+        }
+        return false;
+    }
+
+    /**
+     * Render Pro badge
+     *
+     * @param string $label Badge label (default: "PRO")
+     */
+    private function render_pro_badge( $label = 'PRO' ) {
+        echo '<span class="simple-booking-pro-badge">💎 ' . esc_html( $label ) . '</span>';
+    }
+
+    /**
+     * Render upgrade prompt with CTA
+     *
+     * @param string $message Message text
+     * @param string $cta_text Button text (default: "Upgrade to Pro")
+     * @param string $cta_url Button URL (default: admin settings page)
+     */
+    private function render_upgrade_prompt( $message, $cta_text = null, $cta_url = null ) {
+        if ( null === $cta_text ) {
+            $cta_text = __( 'Upgrade to Pro', 'simple-booking' );
+        }
+        if ( null === $cta_url ) {
+            $cta_url = add_query_arg(
+                array( 'tab' => 'license' ),
+                admin_url( 'options-general.php?page=' . self::PAGE_SLUG )
+            );
+        }
+        ?>
+        <div class="simple-booking-upgrade-prompt">
+            <p><?php echo wp_kses_post( $message ); ?></p>
+            <a href="<?php echo esc_url( $cta_url ); ?>" class="button button-primary"><?php echo esc_html( $cta_text ); ?></a>
         </div>
         <?php
     }
@@ -730,6 +853,13 @@ class Simple_Booking_Admin_Settings {
      * Render Stripe section
      */
     public function render_stripe_section() {
+        if ( ! $this->is_pro_active() ) {
+            $this->render_upgrade_prompt(
+                __( 'Stripe payment processing is a Pro feature. Activate your license to enable payments on bookings.', 'simple-booking' )
+            );
+            return;
+        }
+
         $manager = $this->get_module_manager();
         if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'payments_stripe' ) ) {
             echo '<p><strong>' . esc_html__( 'Stripe module unavailable', 'simple-booking' ) . '</strong></p>';
@@ -1012,6 +1142,13 @@ class Simple_Booking_Admin_Settings {
      * Render Google section
      */
     public function render_google_section() {
+        if ( ! $this->is_pro_active() ) {
+            $this->render_upgrade_prompt(
+                __( 'Google Calendar integration is a Pro feature. Activate your license to sync bookings with Google Calendar and generate Google Meet links.', 'simple-booking' )
+            );
+            return;
+        }
+
         $manager = $this->get_module_manager();
         if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'calendar_google' ) ) {
             $reason = $manager->get_unavailable_reason( 'calendar_google' );
@@ -1107,6 +1244,13 @@ class Simple_Booking_Admin_Settings {
      * Render Outlook section
      */
     public function render_outlook_section() {
+        if ( ! $this->is_pro_active() ) {
+            $this->render_upgrade_prompt(
+                __( 'Outlook Calendar integration is a Pro feature. Activate your license to sync bookings with Outlook Calendar.', 'simple-booking' )
+            );
+            return;
+        }
+
         $manager = $this->get_module_manager();
         if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'calendar_outlook' ) ) {
             $reason = $manager->get_unavailable_reason( 'calendar_outlook' );
@@ -1450,6 +1594,13 @@ class Simple_Booking_Admin_Settings {
      * Render Webhook section
      */
     public function render_webhook_section() {
+        if ( ! $this->is_pro_active() ) {
+            $this->render_upgrade_prompt(
+                __( 'Webhook settings are a Pro feature. Activate your license to set up automated integrations with external services.', 'simple-booking' )
+            );
+            return;
+        }
+
         $manager = $this->get_module_manager();
         if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'booking_webhooks' ) ) {
             echo '<p><strong>' . esc_html__( 'Booking webhooks module unavailable', 'simple-booking' ) . '</strong></p>';
@@ -1464,6 +1615,13 @@ class Simple_Booking_Admin_Settings {
      * Render Refund section
      */
     public function render_refund_section() {
+        if ( ! $this->is_pro_active() ) {
+            $this->render_upgrade_prompt(
+                __( 'Refund settings are a Pro feature. Activate your license to configure automatic refunds for cancelled bookings.', 'simple-booking' )
+            );
+            return;
+        }
+
         $manager = $this->get_module_manager();
         if ( $manager instanceof Simple_Booking_Module_Manager && ! $manager->is_module_available( 'payments_stripe' ) ) {
             echo '<p><strong>' . esc_html__( 'Refund settings unavailable', 'simple-booking' ) . '</strong></p>';

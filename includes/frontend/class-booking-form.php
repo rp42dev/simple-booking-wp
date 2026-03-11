@@ -137,6 +137,13 @@ class Simple_Booking_Form {
             return;
         }
 
+        // Pro check: Reschedule and Cancel are Pro features
+        if ( ! function_exists( 'simple_booking' ) || ! simple_booking()->is_pro_active() ) {
+            $manage_page_url = $this->get_manage_page_url();
+            wp_safe_redirect( add_query_arg( 'sb_manage', 'requires_pro', $manage_page_url ) );
+            exit;
+        }
+
         $booking_id = isset( $_GET['booking_id'] ) ? absint( $_GET['booking_id'] ) : 0;
         $token = isset( $_GET['sb_token'] ) ? sanitize_text_field( wp_unslash( $_GET['sb_token'] ) ) : '';
         $manage_page_url = $this->get_manage_page_url();
@@ -608,6 +615,11 @@ class Simple_Booking_Form {
         }
 
         if ( $reschedule_booking_id && ! empty( $reschedule_token ) && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
+            // Pro check: Reschedule is a Pro feature
+            if ( ! function_exists( 'simple_booking' ) || ! simple_booking()->is_pro_active() ) {
+                wp_send_json_error( array( 'message' => __( 'Rescheduling bookings is a Pro feature. Upgrade your license to enable this.', 'simple-booking' ) ) );
+            }
+
             if ( ! Simple_Booking_Booking_Creator::verify_booking_management_token( $reschedule_booking_id, $reschedule_token ) ) {
                 wp_send_json_error( array( 'message' => __( 'Reschedule link is invalid or already used', 'simple-booking' ) ) );
             }
@@ -727,6 +739,11 @@ class Simple_Booking_Form {
         }
 
         // Paid booking flow (Stripe)
+        // Pro check: Stripe payments are a Pro feature
+        if ( ! function_exists( 'simple_booking' ) || ! simple_booking()->is_pro_active() ) {
+            wp_send_json_error( array( 'message' => __( 'Paid bookings require a Pro license. Free bookings are available without a license.', 'simple-booking' ) ) );
+        }
+
         $stripe = new Simple_Booking_Stripe();
         $session = $stripe->create_checkout_session( $service, $booking_data );
 

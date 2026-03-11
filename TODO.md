@@ -1,6 +1,6 @@
 # Simple Booking — Active Tasks
 
-Current version: **v3.1.0 (IN PROGRESS)**
+Current version: **v3.2.0 (RELEASED)**
 
 Workflow rules and release control: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 Full phase breakdown: see [`docs/ROADMAP.md`](docs/ROADMAP.md).
@@ -17,22 +17,19 @@ Shipped: Module manager registry, module-aware settings gating, service editor a
 
 ---
 
-## Active Roadmap -- v3.1.0: License Foundation (Free/Pro Split)
+## Active Roadmap -- v3.2.0: Admin UI & Feature Gates
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for full phase breakdown.
 
-### Phase 1 -- License Foundation
-- [x] 1.1 License manager — full implementation (activate, deactivate, status check, cache, grace period)
-- [x] 1.2 Feature gate helper (`is_pro_active()`, `is_feature_available()`)
-- [x] 1.3 Pro file conditional loading in main plugin
-- [x] 1.4 Singleton fix for main plugin class
-- [x] 1.5 Admin license settings panel (activate / deactivate / status / AJAX)
-- [x] 1.6 License API server — Lemon Squeezy integration (validate, activate, deactivate)
-- [x] 1.7 Smoke test: Free mode loads correctly, module gating works
-- [x] 1.8 Smoke test: SIMPLE_BOOKING_FORCE_PRO=true loads all Pro files, Pro features enabled
-- [ ] 1.9 Release control: v3.1.0, CHANGELOG, tag, push
+### Phase 2 -- Admin UI & Gates
+- [x] 2.1 Pro Badges on Settings — visual indicators on Pro-only sections
+- [x] 2.2 Service Editor Restrictions — field-level gating (Stripe, Google, Staff, Schedule Mode)
+- [x] 2.3 Frontend Validation — prevent Pro features in free mode
+- [x] 2.4 Email Template Modifications — conditional reschedule/cancel links
+- [x] 2.5 Admin Notices System — license status alerts + upgrade CTAs
+- [ ] 2.6 Release control: v3.2.0, CHANGELOG, tag, push
 
-Next: choose license server platform and point `SIMPLE_BOOKING_LICENSE_API_URL` at it.
+Next: Phase 3 - Free vs Pro packaging scripts and distribution builds.
 
 ---
 

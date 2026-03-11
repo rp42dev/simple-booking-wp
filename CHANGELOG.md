@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.1.0] - 2026-03-11
+## [3.2.0] - 2026-03-11
+
+### Added
+- Pro badges (💎 PRO) on all Pro-only settings sections (Stripe, Google Calendar, Outlook, Refunds, Webhooks)
+- Upgrade prompts on Pro-only settings sections when not licensed
+- Pro badges on Stripe Price ID field in service editor
+- Pro badges on Google Calendar Event Options (Create Event, Auto Google Meet)  
+- Pro badges on Custom Service Schedule mode with disabled state when not licensed
+- Pro gating on reschedule/cancel booking management actions (frontend)
+- Pro validation for Stripe payment processing (frontend)
+- Conditional reschedule/cancel links in confirmation emails (plain text fallback when not Pro)
+- Admin notice system with license status alerts:
+  - Expiration warning (≤7 days)
+  - Expiration alert (expired)
+  - Grace period countdown
+  - Free version welcome notice (new installs)
+- AJAX dismiss handler for free version welcome notice (7-day snooze)
+- Inline CSS for Pro badges, upgrade prompts, and admin notices
 
 ### Added
 - `Simple_Booking_License_API_Client` class — Lemon Squeezy integration with `validate_license()`, `activate_license()`, `deactivate_license()` methods.

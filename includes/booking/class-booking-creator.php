@@ -763,8 +763,19 @@ class Simple_Booking_Booking_Creator {
 
         $timezone = wp_timezone_string();
         $management_token = self::get_or_create_management_token( $booking_id );
-        $reschedule_link = self::get_management_url( $booking_id, 'reschedule', $management_token );
-        $cancel_link = self::get_management_url( $booking_id, 'cancel', $management_token );
+        
+        // Pro check: Reschedule and Cancel are Pro features
+        $is_pro_active = function_exists( 'simple_booking' ) && method_exists( simple_booking(), 'is_pro_active' )
+            ? simple_booking()->is_pro_active()
+            : false;
+        
+        if ( $is_pro_active ) {
+            $reschedule_link = self::get_management_url( $booking_id, 'reschedule', $management_token );
+            $cancel_link = self::get_management_url( $booking_id, 'cancel', $management_token );
+        } else {
+            $reschedule_link = __( '[Rescheduling available with Pro license]', 'simple-booking' );
+            $cancel_link = __( '[Cancellation available with Pro license]', 'simple-booking' );
+        }
 
         // Parse datetime for template variables (fail-safe)
         $booking_date = $start_datetime;
@@ -793,16 +804,22 @@ class Simple_Booking_Booking_Creator {
                 $meeting_info = sprintf( "\n\nMeeting Link:\n%s", $meeting_link );
             }
 
+            $manage_bookings = '';
+            if ( $is_pro_active ) {
+                $manage_bookings = sprintf( "\n\nManage your booking:\nReschedule: %s\nCancel: %s", $reschedule_link, $cancel_link );
+            } else {
+                $manage_bookings = "\n\n🔒 Pro Feature: Upgrade to Pro to reschedule or cancel your booking.";
+            }
+
             $email_body = sprintf(
-                "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s%s\n\nManage your booking:\nReschedule: %s\nCancel: %s\n\nThank you for your booking.\n\n%s",
+                "Dear %s,\n\nYour booking has been confirmed!\n\nService: %s\nStart: %s\nEnd: %s\nTimezone: %s%s%s\n\nThank you for your booking.\n\n%s",
                 $customer_name,
                 $service_name,
                 $start_datetime,
                 $end_datetime,
                 $timezone,
                 $meeting_info,
-                $reschedule_link,
-                $cancel_link,
+                $manage_bookings,
                 get_bloginfo( 'name' )
             );
         } else {
