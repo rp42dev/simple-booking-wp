@@ -185,6 +185,11 @@ class Simple_Booking_Booking_Creator {
         if ( class_exists( 'Simple_Booking_Booking_Webhook' ) ) {
             $webhook_payload = $data;
             $webhook_payload['booking_id'] = $booking_id;
+            // Use the saved meeting link (may have been generated after $data was built).
+            $saved_meeting_link = get_post_meta( $booking_id, '_meeting_link', true );
+            if ( ! empty( $saved_meeting_link ) ) {
+                $webhook_payload['meeting_link'] = $saved_meeting_link;
+            }
             $webhook_result = Simple_Booking_Booking_Webhook::send_booking_created( $webhook_payload );
             if ( is_wp_error( $webhook_result ) ) {
                 self::debug_log( 'Webhook failed: ' . $webhook_result->get_error_message(), 'BOOKING' );

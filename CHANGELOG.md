@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - (No planned items currently)
 
+## [3.0.16] - 2026-03-11
+
+### Added
+- WP-Cron dependency notice added below the Webhook Queue Status panel with WP-CLI and server cron instructions.
+
+### Fixed
+- Outlook calendar events now fall back to default calendar when a stored staff calendar ID becomes stale ("Id is malformed" Graph error), preventing booking failures after token refresh or re-auth.
+- Webhook `booking.created` payload now includes the generated Google Meet link instead of an empty string.
+
 ## [3.0.15] - 2026-03-10
 
 ### Added

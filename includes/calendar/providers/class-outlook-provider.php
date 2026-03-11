@@ -687,7 +687,35 @@ class Simple_Booking_Outlook_Provider implements Simple_Booking_Calendar_Provide
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
 
         if ( $status_code !== 201 ) {
-            return new WP_Error( 'outlook_create_failed', $body['error']['message'] ?? __( 'Event creation failed', 'simple-booking' ) );
+            $error_message = $body['error']['message'] ?? __( 'Event creation failed', 'simple-booking' );
+            $error_code    = $body['error']['code'] ?? '';
+
+            // "Id is malformed" means the stored calendar ID is stale.
+            // Retry once against the default calendar (/me/events) so the booking succeeds.
+            if ( '' !== $target_calendar_id && ( 'ErrorInvalidIdMalformed' === $error_code || false !== stripos( $error_message, 'id is malformed' ) ) ) {
+                $this->debug_log( 'Calendar ID "' . $target_calendar_id . '" is malformed — retrying against default calendar. Re-select staff calendar in settings.' );
+                error_log( '[SIMPLE_BOOKING_OUTLOOK] WARNING: Stored calendar ID is stale/malformed. Re-open staff settings and re-save the calendar dropdown.' );
+
+                $fallback_endpoint = self::GRAPH_API_BASE . '/me/events';
+                $fallback_response = wp_remote_post(
+                    $fallback_endpoint,
+                    array(
+                        'headers' => array(
+                            'Authorization' => 'Bearer ' . $access_token,
+                            'Content-Type'  => 'application/json',
+                        ),
+                        'body'    => wp_json_encode( $event ),
+                        'timeout' => 30,
+                    )
+                );
+
+                if ( ! is_wp_error( $fallback_response ) && 201 === wp_remote_retrieve_response_code( $fallback_response ) ) {
+                    $fallback_body = json_decode( wp_remote_retrieve_body( $fallback_response ), true );
+                    return $fallback_body['id'] ?? '';
+                }
+            }
+
+            return new WP_Error( 'outlook_create_failed', $error_message );
         }
 
         return $body['id'] ?? '';

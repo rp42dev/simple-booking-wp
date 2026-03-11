@@ -541,6 +541,7 @@ class Simple_Booking_Admin_Settings {
         if ( ! is_array( $cron ) || empty( $cron ) ) {
             echo '<p><strong>' . esc_html__( 'No pending webhook retries.', 'simple-booking' ) . '</strong></p>';
             echo '<p class="description">' . esc_html__( 'No cron events are currently scheduled.', 'simple-booking' ) . '</p>';
+            $this->render_wpcron_dependency_notice();
             return;
         }
 
@@ -575,6 +576,7 @@ class Simple_Booking_Admin_Settings {
         if ( empty( $events ) ) {
             echo '<p><strong>' . esc_html__( 'No pending webhook retries.', 'simple-booking' ) . '</strong></p>';
             echo '<p class="description">' . esc_html__( 'Webhook background queue is currently clear.', 'simple-booking' ) . '</p>';
+            $this->render_wpcron_dependency_notice();
             return;
         }
 
@@ -615,6 +617,23 @@ class Simple_Booking_Admin_Settings {
         if ( count( $events ) > 10 ) {
             echo '<p class="description">' . esc_html__( 'Showing next 10 retries.', 'simple-booking' ) . '</p>';
         }
+
+        $this->render_wpcron_dependency_notice();
+    }
+
+    /**
+     * Render a compact WP-Cron dependency notice below the webhook queue panel.
+     *
+     * @return void
+     */
+    private function render_wpcron_dependency_notice() {
+        echo '<p class="description" style="margin-top:12px;">&#9432; ' . wp_kses(
+            __( 'Retries are dispatched by <strong>WP-Cron</strong>, which fires on the next page load after the scheduled time. Sites without regular traffic may see delays. For reliable delivery use a real server cron: <code>* * * * * curl https://yoursite.com/wp-cron.php?doing_wp_cron</code> or WP-CLI: <code>wp cron event run --due-now</code>', 'simple-booking' ),
+            array(
+                'strong' => array(),
+                'code'   => array(),
+            )
+        ) . '</p>';
     }
 
     /**
