@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-03-11
+
+### Added
+- Distribution build tooling:
+  - `scripts/build.php` for `free|pro|all` package generation.
+  - `scripts/build.ps1` for Windows-native package generation.
+- Automatic version detection from `simple-booking.php` header for zip naming.
+- Free/Pro packaging rules:
+  - Free build excludes Pro-only modules (Stripe, Google, Outlook, Staff, Stripe webhook, Stripe vendor SDK).
+  - Pro build includes full feature set while excluding local build/dev artifacts.
+
+### Changed
+- Release packaging workflow now supports generating both distributables from one codebase in a repeatable build step.
+
 ## [3.2.0] - 2026-03-11
 
 ### Added
