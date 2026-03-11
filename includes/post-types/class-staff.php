@@ -400,10 +400,15 @@ class Simple_Booking_Staff {
             'post_status'    => 'publish',
             'posts_per_page' => -1,
             'meta_query'     => array(
+                'relation' => 'OR',
                 array(
                     'key'     => '_staff_active',
                     'value'   => '1',
                     'compare' => '=',
+                ),
+                array(
+                    'key'     => '_staff_active',
+                    'compare' => 'NOT EXISTS',
                 ),
             ),
             'orderby'        => 'title',
