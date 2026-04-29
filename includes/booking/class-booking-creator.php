@@ -180,6 +180,7 @@ class Simple_Booking_Booking_Creator {
         // Send confirmation email from creator to guarantee delivery attempt
         // for all booking entry points (frontend, webhook, API, reschedule).
         self::send_confirmation_email( $booking_id );
+        self::send_admin_notification_email( $booking_id );
 
         // Send webhook notification (non-blocking, failures won't affect booking)
         if ( class_exists( 'Simple_Booking_Booking_Webhook' ) ) {
@@ -822,27 +823,27 @@ class Simple_Booking_Booking_Creator {
                 $manage_bookings,
                 get_bloginfo( 'name' )
             );
-        } else {
-            // Replace template variables
-            $variables = array(
-                '{customer_name}' => $customer_name,
-                '{service_name}'  => $service_name,
-                '{booking_date}'  => $booking_date,
-                '{booking_time}'  => $booking_time,
-                '{meeting_link}'  => ! empty( $meeting_link ) ? $meeting_link : '',
-                '{reschedule_link}' => $reschedule_link,
-                '{cancel_link}'   => $cancel_link,
-                '{timezone}'      => $timezone,
-                '{site_name}'     => get_bloginfo( 'name' ),
-            );
+        }
 
-            $email_subject = str_replace( array_keys( $variables ), array_values( $variables ), $email_subject );
-            $email_body = str_replace( array_keys( $variables ), array_values( $variables ), $email_body );
+        // Replace template variables in both subject and body
+        $variables = array(
+            '{customer_name}' => $customer_name,
+            '{service_name}'  => $service_name,
+            '{booking_date}'  => $booking_date,
+            '{booking_time}'  => $booking_time,
+            '{meeting_link}'  => ! empty( $meeting_link ) ? $meeting_link : '',
+            '{reschedule_link}' => $reschedule_link,
+            '{cancel_link}'   => $cancel_link,
+            '{timezone}'      => $timezone,
+            '{site_name}'     => get_bloginfo( 'name' ),
+        );
 
-            // Remove meeting link line if empty
-            if ( empty( $meeting_link ) ) {
-                $email_body = preg_replace( '/Meeting Link:\s*\n/', '', $email_body );
-            }
+        $email_subject = str_replace( array_keys( $variables ), array_values( $variables ), $email_subject );
+        $email_body = str_replace( array_keys( $variables ), array_values( $variables ), $email_body );
+
+        // Remove meeting link line if empty
+        if ( empty( $meeting_link ) ) {
+            $email_body = preg_replace( '/Meeting Link:\s*\n/', '', $email_body );
         }
 
         // Final guardrails: never send empty subject/body
@@ -861,16 +862,28 @@ class Simple_Booking_Booking_Creator {
             );
         }
 
-        $from_email = self::get_default_sender_email();
-        $reply_to_email = (string) get_option( 'admin_email' );
+        $from_name  = simple_booking()->get_setting( 'email_from_name', '' );
+        $from_email = simple_booking()->get_setting( 'email_from_email', '' );
+        
+        if ( empty( $from_name ) ) {
+            $from_name = get_bloginfo( 'name' );
+        }
+        if ( empty( $from_email ) ) {
+            $from_email = self::get_default_sender_email();
+        }
+
+        $reply_to_email = simple_booking()->get_setting( 'notification_email', '' );
+        if ( empty( $reply_to_email ) ) {
+            $reply_to_email = (string) get_option( 'admin_email' );
+        }
 
         $headers = array(
             'Content-Type: text/plain; charset=UTF-8',
-            'From: ' . get_bloginfo( 'name' ) . ' <' . $from_email . '>',
+            'From: ' . $from_name . ' <' . $from_email . '>',
         );
 
         if ( is_email( $reply_to_email ) ) {
-            $headers[] = 'Reply-To: ' . get_bloginfo( 'name' ) . ' <' . $reply_to_email . '>';
+            $headers[] = 'Reply-To: ' . $reply_to_email;
         }
 
         self::debug_log( 'Attempting confirmation email for booking ' . $booking_id . ' to ' . $to . ' from=' . $from_email, 'EMAIL' );
@@ -893,6 +906,81 @@ class Simple_Booking_Booking_Creator {
         }
 
         self::debug_log( 'Confirmation email failed for booking ' . $booking_id . ' to ' . $to, 'EMAIL' );
+        return false;
+    }
+
+    /**
+     * Send admin notification email
+     */
+    public static function send_admin_notification_email( $booking_id ) {
+        $booking_id = absint( $booking_id );
+        if ( ! $booking_id ) {
+            return false;
+        }
+
+        $to = simple_booking()->get_setting( 'notification_email', '' );
+        if ( empty( $to ) ) {
+            $to = (string) get_option( 'admin_email' );
+        }
+        
+        if ( ! is_email( $to ) ) {
+            return false;
+        }
+
+        $customer_name   = get_post_meta( $booking_id, '_customer_name', true );
+        $customer_email  = get_post_meta( $booking_id, '_customer_email', true );
+        $customer_phone  = get_post_meta( $booking_id, '_customer_phone', true );
+        $service_id      = get_post_meta( $booking_id, '_service_id', true );
+        $start_datetime = get_post_meta( $booking_id, '_start_datetime', true );
+        $end_datetime   = get_post_meta( $booking_id, '_end_datetime', true );
+
+        $service = get_post( $service_id );
+        $service_name = $service ? $service->post_title : '';
+        $meeting_link = get_post_meta( $booking_id, '_meeting_link', true );
+        
+        $email_subject = '[' . get_bloginfo( 'name' ) . '] New Booking: ' . $service_name;
+        
+        $meeting_info = '';
+        if ( ! empty( $meeting_link ) ) {
+            $meeting_info = "\nMeeting Link: " . $meeting_link;
+        }
+
+        $email_body = sprintf(
+            "New booking received!\n\nCustomer: %s\nEmail: %s\nPhone: %s\n\nService: %s\nStart: %s\nEnd: %s%s\n\nManage this booking in the WordPress dashboard: %s",
+            $customer_name,
+            $customer_email,
+            $customer_phone,
+            $service_name,
+            $start_datetime,
+            $end_datetime,
+            $meeting_info,
+            admin_url( 'post.php?post=' . $booking_id . '&action=edit' )
+        );
+
+        $from_name  = simple_booking()->get_setting( 'email_from_name', '' );
+        $from_email = simple_booking()->get_setting( 'email_from_email', '' );
+        
+        if ( empty( $from_name ) ) {
+            $from_name = get_bloginfo( 'name' );
+        }
+        if ( empty( $from_email ) ) {
+            $from_email = self::get_default_sender_email();
+        }
+
+        $headers = array(
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: ' . $from_name . ' <' . $from_email . '>',
+            'Reply-To: ' . $customer_name . ' <' . $customer_email . '>',
+        );
+
+        $sent = wp_mail( $to, $email_subject, $email_body, $headers );
+
+        if ( $sent ) {
+            self::debug_log( 'Admin notification email sent for booking ' . $booking_id . ' to ' . $to, 'EMAIL' );
+            return true;
+        }
+
+        self::debug_log( 'Admin notification email failed for booking ' . $booking_id . ' to ' . $to, 'EMAIL' );
         return false;
     }
 
