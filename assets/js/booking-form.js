@@ -33,6 +33,7 @@
         if (timezoneNotice.length && customerTimezone) {
             timezoneNotice.html('Times are shown in <strong>' + customerTimezone + '</strong>');
         }
+        form.find('#customer_timezone').val(customerTimezone);
 
         // Ensure unique element IDs per form instance (datepicker is sensitive to duplicate IDs)
         const idSuffix = '_' + formIndex;
@@ -55,7 +56,7 @@
         function getServiceMeta() {
             const serviceFieldRef = serviceField;
             if (!serviceFieldRef.length) {
-                return { hasPrice: false, duration: 0 };
+                return { hasPrice: false, duration: 0, type: 'one_off', schedule: '', soldout: false };
             }
 
             if (serviceFieldRef.is('select')) {
@@ -63,25 +64,61 @@
                 return {
                     hasPrice: selected.data('has-price') === 1 || selected.data('has-price') === '1',
                     duration: parseInt(selected.data('duration'), 10) || 0,
+                    type: selected.data('type') || 'one_off',
+                    schedule: selected.data('schedule') || '',
+                    soldout: selected.data('soldout') === 1 || selected.data('soldout') === '1'
                 };
             }
 
             return {
                 hasPrice: serviceFieldRef.data('has-price') === 1 || serviceFieldRef.data('has-price') === '1',
                 duration: parseInt(serviceFieldRef.data('duration'), 10) || 0,
+                type: serviceFieldRef.data('type') || 'one_off',
+                schedule: serviceFieldRef.data('schedule') || '',
+                soldout: serviceFieldRef.data('soldout') === 1 || serviceFieldRef.data('soldout') === '1'
             };
         }
 
         function getSubmitLabel() {
-            const hasPrice = getServiceMeta().hasPrice;
-            if (hasPrice) {
+            const meta = getServiceMeta();
+            if (meta.type === 'recurring_group') {
+                return meta.soldout ? 'Join Waitlist' : 'Subscribe Now';
+            }
+            if (meta.hasPrice) {
                 return simpleBooking.i18n.submitText || 'Proceed to Payment';
             }
             return simpleBooking.i18n.submitFreeText || 'Book Now';
         }
 
         function updateSubmitLabel() {
+            const meta = getServiceMeta();
             submitBtn.text(getSubmitLabel());
+            submitBtn.prop('disabled', false); // Waitlist allows submission
+        }
+
+        // Initialize Membership Schedule Display
+        let scheduleDisplay = form.find('.membership-schedule-display');
+        if (!scheduleDisplay.length) {
+            scheduleDisplay = $('<div class="booking-field membership-schedule-display" style="display:none;"></div>');
+            serviceField.closest('.booking-field').after(scheduleDisplay);
+        }
+
+        function updateFieldVisibility() {
+            const meta = getServiceMeta();
+            if (meta.type === 'recurring_group') {
+                dateField.closest('.booking-field').hide();
+                timeContainer.hide();
+                dateField.removeAttr('required');
+                timeField.removeAttr('required');
+                
+                scheduleDisplay.html('<p><strong>Schedule:</strong> ' + meta.schedule + '</p>').show();
+            } else {
+                dateField.closest('.booking-field').show();
+                timeContainer.show();
+                dateField.attr('required', 'required');
+                timeField.attr('required', 'required');
+                scheduleDisplay.hide();
+            }
         }
 
         // Initialize Stripe
@@ -100,6 +137,15 @@
             if (!date || !serviceId) {
                 return;
             }
+
+            // Show loading state
+            timeField.html('<option value="">' + (simpleBooking.i18n.loadingSlots || 'Loading slots...') + '</option>');
+            timeField.prop('disabled', true);
+            timeField.addClass('loading-slots');
+
+            // Clear any previous messages
+            messageEl.hide().removeClass('error success').text('');
+
             $.ajax({
                 url: simpleBooking.ajaxUrl,
                 method: 'POST',
@@ -112,6 +158,7 @@
                 },
                 dataType: 'json'
             }).done(function(response) {
+                timeField.removeClass('loading-slots');
                 console.log('slot AJAX response', response);
                 if (response.data && response.data.debug) {
                     console.log('slot AJAX debug:', response.data.debug.join('\n'));
@@ -123,60 +170,122 @@
                         timezoneNotice.html('Times are shown in <strong>' + response.data.timezone + '</strong>');
                     }
                 } else {
-                    timeField.html('<option value="">' + (response.data && response.data.message ? response.data.message : 'No slots') + '</option>');
+                    const errorMsg = (response.data && response.data.message ? response.data.message : 'No slots available for this day.');
+                    timeField.html('<option value="">' + errorMsg + '</option>');
                     timeField.prop('disabled', true);
-                    alert('No slots available or error: ' + (response.data && response.data.message ? response.data.message : 'unknown'));
+                    
+                    // Show inline message instead of alert
+                    messageEl.addClass('error').text(errorMsg).fadeIn();
                 }
                 // re-evaluate end estimate/warning in case selected value remains
                 updateEndEstimate();
             }).fail(function(xhr, status, err) {
+                timeField.removeClass('loading-slots');
                 console.log('Failed to load slots', status, err);
                 timeField.html('<option value="">Failed to load</option>');
                 timeField.prop('disabled', true);
-                alert('Slot request failed: ' + status);
+                messageEl.addClass('error').text('Slot request failed: ' + status).fadeIn();
             });
         }
 
         // initialize date input (jQuery UI datepicker with native fallback)
+        let disabledDays = [];
+        let bookedDates = [];
+
+        function loadBookedDates() {
+            const serviceId = serviceField.val();
+            if (!serviceId) return;
+
+            $.ajax({
+                url: simpleBooking.ajaxUrl,
+                method: 'POST',
+                data: {
+                    action: 'simple_booking_get_booked_dates',
+                    nonce: simpleBooking.nonce,
+                    service_id: serviceId
+                }
+            }).done(function(response) {
+                if (response.success && response.data.booked_dates) {
+                    bookedDates = response.data.booked_dates;
+                    if (dateField.data('datepicker')) {
+                        dateField.datepicker('refresh');
+                    }
+                }
+            });
+        }
+
+        function updateDisabledDays() {
+            disabledDays = [];
+            const serviceId = serviceField.val();
+            let schedule = simpleBooking.schedule; // global default
+
+            // check if we have a service-specific schedule
+            if (serviceId && simpleBooking.serviceSchedules && simpleBooking.serviceSchedules[serviceId]) {
+                const sData = simpleBooking.serviceSchedules[serviceId];
+                if (sData.mode === 'custom' && sData.schedule) {
+                    schedule = sData.schedule;
+                    // Custom schedule uses 1-7 keys (1=Mon, 7=Sun)
+                    const dayKeys = ['1','2','3','4','5','6','7'];
+                    dayKeys.forEach(function(key) {
+                        const cfg = schedule[key];
+                        if (!cfg || !cfg.enabled) {
+                            // Map 1-7 (Mon-Sun) to JS 0-6 (Sun-Sat)
+                            // 7 (Sun) becomes 0
+                            // 1 (Mon) becomes 1, etc.
+                            const jsIdx = (parseInt(key, 10) % 7);
+                            disabledDays.push(jsIdx);
+                        }
+                    });
+                    return; // Early return for custom
+                }
+            }
+
+            // Global schedule fallback
+            if (schedule) {
+                const names = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+                names.forEach(function(name, idx) {
+                    const cfg = schedule[name];
+                    // If no config or not enabled, mark as disabled
+                    if (!cfg || (cfg.enabled !== 1 && cfg.enabled !== '1' && cfg.enabled !== true)) {
+                        disabledDays.push(idx);
+                    }
+                });
+            }
+
+            // No safety guard needed here; if it's closed, it's closed.
+        }
+
         (function() {
             var dateInput = dateField;
             if (!dateInput.length) {
                 return;
             }
 
-            // compute disabled weekday indexes (0=Sunday..6)
-            var disabled = [];
-            if (simpleBooking.schedule) {
-                var names = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-                var hasScheduleConfig = names.some(function(name) {
-                    var cfg = simpleBooking.schedule[name];
-                    return cfg && (cfg.enabled === 1 || cfg.enabled === '1' || cfg.enabled === true);
-                });
-                names.forEach(function(name, idx) {
-                    var cfg = simpleBooking.schedule[name];
-                    if (hasScheduleConfig && (!cfg || !cfg.enabled)) {
-                        disabled.push(idx);
-                    }
-                });
+            updateDisabledDays();
 
-                // Safety guard: never block all dates in the picker UI
-                if (disabled.length === 7) {
-                    disabled = [];
-                }
-            }
+            // Client-side today's date calculation (100% cache-safe)
+            var today = new Date();
+            var yyyy = today.getFullYear();
+            var mm = String(today.getMonth() + 1).padStart(2, '0');
+            var dd = String(today.getDate()).padStart(2, '0');
+            var todayStr = yyyy + '-' + mm + '-' + dd;
 
             var initialized = false;
             if ($.fn && typeof $.fn.datepicker === 'function') {
                 try {
                     dateInput.datepicker({
                         dateFormat: 'yy-mm-dd',
-                        minDate: simpleBooking.minDate || null,
+                        minDate: 0, // 0 represents today in jQuery UI (dynamic client-side calculated)
                         beforeShowDay: function(date) {
-                            var wd = date.getDay();
-                            if (disabled.indexOf(wd) !== -1) {
-                                return [false, 'unavailable'];
+                            var dateStr = $.datepicker.formatDate('yy-mm-dd', date);
+                            if (bookedDates.indexOf(dateStr) !== -1) {
+                                return [false, 'booked-out', 'Fully Booked'];
                             }
-                            return [true, ''];
+                            var wd = date.getDay();
+                            if (disabledDays.indexOf(wd) !== -1) {
+                                return [false, 'unavailable', 'Not available'];
+                            }
+                            return [true, '', 'Available'];
                         },
                         onSelect: function() {
                             loadSlots();
@@ -192,9 +301,7 @@
             if (!initialized) {
                 dateInput.prop('readonly', false);
                 dateInput.attr('type', 'date');
-                if (simpleBooking.minDate) {
-                    dateInput.attr('min', simpleBooking.minDate);
-                }
+                dateInput.attr('min', todayStr);
                 dateInput.on('change', function() {
                     loadSlots();
                     clearEndEstimate();
@@ -202,12 +309,42 @@
             }
         })();
 
+        function refreshDatepicker() {
+            updateDisabledDays();
+            if (dateField.data('datepicker')) {
+                dateField.datepicker('refresh');
+                // if currently selected date is now disabled, clear it
+                const current = dateField.val();
+                if (current) {
+                    const d = new Date(current + 'T00:00:00');
+                    const dStr = $.datepicker.formatDate('yy-mm-dd', d);
+                    if (disabledDays.indexOf(d.getDay()) !== -1 || bookedDates.indexOf(dStr) !== -1) {
+                        dateField.val('');
+                        timeField.html('<option value="">' + simpleBooking.i18n.selectDateTime + '</option>');
+                        timeField.prop('disabled', true);
+                    }
+                }
+            }
+        }
+
         // pick up changes
-        serviceField.on('change', function(){ loadSlots(); clearEndEstimate(); updateSubmitLabel(); });
+        serviceField.on('change', function(){ 
+            updateFieldVisibility(); 
+            refreshDatepicker(); 
+            loadBookedDates();
+            const meta = getServiceMeta();
+            if (meta.type !== 'recurring_group') {
+                loadSlots(); 
+            }
+            clearEndEstimate(); 
+            updateSubmitLabel(); 
+        });
         timeField.on('change', updateEndEstimate);
+        updateFieldVisibility();
         updateSubmitLabel();
+        loadBookedDates();
         // optionally load slots on page load if date present
-        if (dateField.val() && serviceField.val()) {
+        if (dateField.val() && serviceField.val() && getServiceMeta().type !== 'recurring_group') {
             loadSlots();
         }
 
@@ -299,15 +436,16 @@
         // update estimated end time + warning
         function updateEndEstimate() {
             // remove previous notes
-            $('#end-estimate, #closing-warning').remove();
+            form.find('#end-estimate, #closing-warning').remove();
             const date = dateField.val();
             const time = timeField.val();
             const dur = getServiceMeta().duration;
             if (date && time && dur) {
-                const startDt = new Date(date + 'T' + time);
+                const startDt = time.indexOf('T') !== -1 ? new Date(time) : new Date(date + 'T' + time);
                 const endDt = new Date(startDt.getTime() + dur * 60000);
                 const opts = {hour:'2-digit', minute:'2-digit'};
                 const text = 'Ends at ' + endDt.toLocaleTimeString([], opts);
+                timeContainer.find('#end-estimate').remove();
                 timeContainer.append('<p id="end-estimate">'+text+'</p>');
                 // determine closing time for that weekday from schedule if available
                 if (simpleBooking.schedule) {
@@ -345,14 +483,23 @@
             const email = emailField.val();
             const phone = phoneField.val();
 
+            const meta = getServiceMeta();
+
             if (!serviceId) {
                 errors.push(simpleBooking.i18n.selectService);
                 isValid = false;
             }
 
-            if (!datetime) {
-                errors.push(simpleBooking.i18n.selectDateTime);
-                isValid = false;
+            if (meta.type === 'recurring_group') {
+                if (meta.soldout) {
+                    errors.push('This group is currently sold out.');
+                    isValid = false;
+                }
+            } else {
+                if (!datetime) {
+                    errors.push(simpleBooking.i18n.selectDateTime);
+                    isValid = false;
+                }
             }
 
             if (!name.trim()) {

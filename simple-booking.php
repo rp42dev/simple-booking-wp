@@ -73,12 +73,25 @@ class Simple_Booking {
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/interface-calendar-provider.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/class-calendar-provider-manager.php';
         require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-ics-provider.php';
+        if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'modules/class-module-manager.php' ) ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'modules/class-module-manager.php';
+        }
         if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php' ) ) {
             require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-google-provider.php';
         }
         if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php' ) ) {
             require_once SIMPLE_BOOKING_INCLUDES . 'calendar/providers/class-outlook-provider.php';
         }
+        if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'modules/class-group-memberships.php' ) ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'modules/class-group-memberships.php';
+        }
+        
+        // Admin Dashboard Widgets
+        if ( is_admin() && file_exists( SIMPLE_BOOKING_INCLUDES . 'admin/class-dashboard-widget.php' ) ) {
+            require_once SIMPLE_BOOKING_INCLUDES . 'admin/class-dashboard-widget.php';
+            Simple_Booking_Dashboard_Widget::register();
+        }
+
         require_once SIMPLE_BOOKING_INCLUDES . 'booking/class-booking-creator.php';
 
         // OAuth callback handlers must always be loaded so REST routes exist
@@ -102,8 +115,32 @@ class Simple_Booking {
 
         // --- PRO (only when licensed) ---
         if ( $this->license_manager->is_pro_active() ) {
-            require_once SIMPLE_BOOKING_INCLUDES . 'stripe/class-stripe-handler.php';
+            $this->load_pro_dependencies();
+        }
+
+        // Always load webhook handler so the REST route is registered, 
+        // even if Pro status is uncertain during early init.
+        if ( file_exists( SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php' ) ) {
             require_once SIMPLE_BOOKING_INCLUDES . 'webhook/class-stripe-webhook.php';
+        }
+    }
+
+    /**
+     * Load Pro dependencies if not already loaded.
+     */
+    public function load_pro_dependencies() {
+        if ( ! $this->license_manager->is_pro_active() ) {
+            return;
+        }
+        
+        $pro_files = array(
+            SIMPLE_BOOKING_INCLUDES . 'stripe/class-stripe-handler.php',
+        );
+
+        foreach ( $pro_files as $file ) {
+            if ( file_exists( $file ) ) {
+                require_once $file;
+            }
         }
     }
 
@@ -256,6 +293,9 @@ class Simple_Booking {
         if ( class_exists( 'Simple_Booking_Staff' ) ) {
             Simple_Booking_Staff::register();
         }
+        if ( class_exists( 'Simple_Booking_Group_Memberships' ) ) {
+            Simple_Booking_Group_Memberships::register();
+        }
         Simple_Booking_Booking_Webhook::register_hooks();
 
         // Ensure default pages exist after plugin upgrades (without requiring reactivation)
@@ -274,6 +314,31 @@ class Simple_Booking {
     public static function get_setting( $key, $default = '' ) {
         $settings = get_option( 'simple_booking_settings', array() );
         return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
+    }
+
+    /**
+     * Log an email event for the dashboard
+     */
+    public static function log_email( $to, $subject, $type = 'general' ) {
+        $logs = get_option( 'simple_booking_email_log', array() );
+        
+        if ( ! is_array( $logs ) ) {
+            $logs = array();
+        }
+
+        $new_entry = array(
+            'time'    => current_time( 'mysql' ),
+            'to'      => $to,
+            'subject' => $subject,
+            'type'    => $type
+        );
+        
+        array_unshift( $logs, $new_entry );
+        
+        // Keep only last 50
+        $logs = array_slice( $logs, 0, 50 );
+        
+        update_option( 'simple_booking_email_log', $logs, false );
     }
 }
 

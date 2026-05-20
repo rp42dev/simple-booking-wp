@@ -64,8 +64,8 @@ This keeps a single admin UX while supporting plug-and-play module packaging.
 
 1. **Frontend Form** (`class-booking-form.php`)
    - Shortcode: `[simple_booking_form]`
-   - Shortcode supports optional scoping attributes:
-     - `[simple_booking_form service_id="123"]`
+   - Shortcode supports optional scoping and styling attributes:
+     - `[simple_booking_form service_id="123" title="Book Now" accent="Welcome"]`
      - `[simple_booking_form service="consultation"]`
    - User selects service, date/time, enters contact info
    - AJAX submission to `wp_ajax_simple_booking_submit`
@@ -88,6 +88,17 @@ This keeps a single admin UX while supporting plug-and-play module packaging.
 3. **Customer Redirect**
    - Paid: customer redirected to Stripe Checkout, then webhook finalizes booking
    - Free: customer redirected to success page immediately after direct booking
+
+### 3.4 Booking Management Routing
+
+1. **Email Links** (`class-booking-creator.php`)
+   - Generates `sb_action=reschedule` or `cancel` combined with `booking_id` and `sb_token`.
+   - Uses `simple_booking_manage_page` option to find the base URL.
+   - **Fallback Routing**: If option is lost, automatically falls back to finding pages with slug `booking-manage` or `manage-booking`.
+   
+2. **Frontend Handler** (`class-booking-form.php`)
+   - Hooks into `template_redirect` to intercept `sb_action` GET parameters.
+   - Validates tokens and redirects to the final manage page URL with `sb_manage` parameters.
 
 ### 3.2 Webhook Processing
 
@@ -507,4 +518,4 @@ This architecture document must be updated whenever:
    - New payment providers
    - New calendar providers
 
-**Last Updated**: 2026-03-06
+**Last Updated**: 2026-04-30

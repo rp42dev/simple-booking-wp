@@ -230,11 +230,11 @@ class Simple_Booking_Service {
      */
     public static function get_default_schedule() {
         return array(
-            '1' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
-            '2' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
-            '3' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
-            '4' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
-            '5' => array( 'enabled' => true,  'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '1' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '2' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '3' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '4' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
+            '5' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
             '6' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
             '7' => array( 'enabled' => false, 'start' => '09:00', 'end' => '17:00', 'buffer' => 0 ),
         );
@@ -975,6 +975,8 @@ class Simple_Booking_Service {
             'buffer_time'          => absint( get_post_meta( $post->ID, '_buffer_time', true ) ),
             'schedule_mode'        => get_post_meta( $post->ID, '_schedule_mode', true ) ?: 'inherit',
             'service_schedule'     => $service_schedule,
+            'service_type'         => get_post_meta( $post->ID, '_service_type', true ) ?: 'one_off',
+            'group_capacity'       => absint( get_post_meta( $post->ID, '_group_capacity', true ) ),
         );
     }
 

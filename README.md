@@ -24,6 +24,9 @@ Current release: v3.0.17 (stable)
 - **Success/Cancel Pages**: Automatic creation of dedicated redirect pages for better UX
 - **Meeting Link Audit**: Booking-level source tracking (`generated`, `static`, `none`)
 - **Admin Override**: Editable booking meeting link with validation and admin error notice
+- **Premium Theming**: Integrated CSS variables with Playfair Display, Great Vibes, and Lato fonts
+- **Dynamic Shortcode**: `[simple_booking_form]` now supports `title` and `accent` attributes
+- **Resilient Management Page**: Fallback routing by slug (`booking-manage` or `manage-booking`) if option ID is lost
 
 ## File Structure
 
@@ -193,11 +196,11 @@ Add the booking form to any page using the shortcode:
 [simple_booking_form]
 ```
 
-Single-service form examples:
+Single-service form examples with custom titles and accents (Premium styling):
 
 ```
-[simple_booking_form service_id="123"]
-[simple_booking_form service="consultation"]
+[simple_booking_form service_id="123" title="Book Your Free Call" accent="Consultation"]
+[simple_booking_form service="consultation" title="Let's Talk"]
 ```
 
 ## How It Works
@@ -214,7 +217,7 @@ Single-service form examples:
 8. Plugin creates:
    - Booking post in WordPress
    - Calendar event in configured provider (Google/Outlook/ICS fallback behavior)
-   - Confirmation email to customer
+   - Confirmation email to customer (Prioritizes `notification_email` for Reply-To headers)
 
 Webhook delivery note:
 - `booking.created` webhooks use background retries on rate-limit/server errors so booking creation stays responsive

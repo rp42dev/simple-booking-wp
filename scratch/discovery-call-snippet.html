@@ -1,0 +1,266 @@
+<!-- Free Discovery Call - Premium Elementor HTML Block -->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
+:root {
+  --uui-bg: #F5F1E8;
+  --uui-text: #2B2B2B;
+  --uui-accent: #1F3A2E;
+  --uui-accent-muted: rgba(31, 58, 46, 0.1);
+  --uui-white: #ffffff;
+  --uui-serif: 'Playfair Display', serif;
+  --uui-sans: 'Lato', sans-serif;
+  --uui-transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.uui-wrap {
+  background: var(--uui-bg);
+  color: var(--uui-text);
+  padding: 100px 20px;
+  font-family: var(--uui-sans);
+  line-height: 1.8;
+  overflow: hidden;
+}
+
+.uui-container {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.uui-accent-label {
+  color: var(--uui-accent);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  display: inline-block;
+  position: relative;
+}
+
+.uui-accent-label::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 1px;
+  background: var(--uui-accent);
+  right: -45px;
+  top: 50%;
+}
+
+.uui-accent-label::before {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 1px;
+  background: var(--uui-accent);
+  left: -45px;
+  top: 50%;
+}
+
+.uui-title {
+  font-family: var(--uui-serif);
+  font-size: clamp(38px, 6vw, 64px);
+  font-weight: 400;
+  margin-bottom: 32px;
+  line-height: 1.1;
+  color: var(--uui-text);
+  letter-spacing: -0.01em;
+}
+
+.uui-description {
+  font-size: clamp(18px, 2vw, 22px);
+  max-width: 700px;
+  margin: 0 auto 80px;
+  font-weight: 300;
+  color: #6F8A76; /* Accent color for description */
+}
+
+.uui-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  text-align: left;
+  margin-bottom: 80px;
+}
+
+@media (max-width: 768px) {
+  .uui-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+.uui-h3 {
+  font-family: var(--uui-serif);
+  font-size: 26px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  color: var(--uui-text);
+}
+
+.uui-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.uui-list li {
+  margin-bottom: 18px;
+  font-size: 16px;
+  padding-left: 28px;
+  position: relative;
+  transition: var(--uui-transition);
+}
+
+.uui-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  width: 12px;
+  height: 1px;
+  background: var(--uui-accent);
+}
+
+.uui-list li:hover {
+  transform: translateX(5px);
+  color: var(--uui-accent);
+}
+
+.uui-booking-card {
+  background: var(--uui-white);
+  padding: 80px 60px;
+  border-radius: 0;
+  box-shadow: 0 50px 100px -20px rgba(0,0,0,0.05);
+  max-width: 750px;
+  margin: 0 auto;
+  border: 1px solid rgba(0,0,0,0.02);
+  position: relative;
+}
+
+.uui-details-row {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 50px;
+  font-family: var(--uui-serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--uui-accent);
+}
+
+.uui-details-row span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.uui-details-row span:not(:last-child)::after {
+    content: '•';
+    opacity: 0.3;
+    margin-left: 20px;
+}
+
+@media (max-width: 600px) {
+  .uui-booking-card {
+    padding: 40px 20px;
+  }
+  .uui-details-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .uui-details-row span::after {
+      display: none;
+  }
+}
+
+/* Styling for the Shortcode output */
+.uui-form-container {
+    margin-top: 20px;
+    text-align: left;
+}
+
+/* We can add some CSS to make the form itself look better when it renders inside */
+.uui-form-container #simple-booking-form {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.uui-form-container .booking-button {
+    background: var(--uui-accent) !important;
+    border-radius: 0 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-size: 13px;
+    padding: 18px !important;
+    transition: var(--uui-transition) !important;
+}
+
+.uui-form-container .booking-button:hover {
+    background: var(--uui-text) !important;
+    letter-spacing: 0.25em;
+}
+
+.uui-form-container input, 
+.uui-form-container select {
+    border-radius: 0 !important;
+    border: 1px solid #E8E2D9 !important;
+    padding: 14px !important;
+    font-family: var(--uui-sans) !important;
+}
+
+.uui-form-container input:focus {
+    border-color: var(--uui-accent) !important;
+    box-shadow: none !important;
+}
+</style>
+
+<div class="uui-wrap">
+  <div class="uui-container">
+    <div class="uui-accent-label">Clarity & Space</div>
+    
+    <h1 class="uui-title">Free Discovery Call</h1>
+    
+    <p class="uui-description">
+      A 45-minute intentional space to explore what feels repetitive or unclear in your life, 
+      and to discover if this work aligns with your current journey.
+    </p>
+
+    <div class="uui-grid">
+      <div class="uui-section">
+        <h3 class="uui-h3">The Intention</h3>
+        <ul class="uui-list">
+          <li>Understanding emotional or relational patterns</li>
+          <li>Gaining grounded clarity without pressure</li>
+          <li>Exploring if deeper work is right for you</li>
+          <li>Seeing what currently feels stuck or repeating</li>
+        </ul>
+      </div>
+
+      <div class="uui-section">
+        <h3 class="uui-h3">The Session</h3>
+        <p>
+          A calm, guided conversation where focused attention is brought to what is unfolding. 
+          There is no pressure to fix or analyze — only the movement toward clarity through awareness.
+        </p>
+      </div>
+    </div>
+
+    <div class="uui-booking-card">
+      <div class="uui-details-row">
+        <span>45 Minutes</span>
+        <span>Online via Zoom</span>
+        <span>Complimentary</span>
+      </div>
+      
+      <div class="uui-form-container">
+        [simple_booking_form service_id="3021"]
+      </div>
+    </div>
+  </div>
+</div>

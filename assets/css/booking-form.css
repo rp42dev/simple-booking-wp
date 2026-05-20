@@ -1,158 +1,297 @@
 /**
- * Simple Booking Form Styles
+ * Simple Booking Form - Premium Theme
+ * Colors: Primary #1F3A2E, Secondary #F5F1E8, Text #2B2B2B, Accent #6F8A76
+ * Fonts: Playfair Display (Headings), Great Vibes (Accent), Lato (Body)
  */
 
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
 #simple-booking-form-wrapper {
-    max-width: 500px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+    max-width: 650px;
+    margin: 40px auto;
+    padding: 0;
+    font-family: 'Lato', sans-serif;
+    color: #2B2B2B;
+    line-height: 1.6;
 }
 
 #simple-booking-form {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    border: none;
+    border-radius: 0;
+    padding: 60px 50px;
+    box-shadow: 0 30px 60px -20px rgba(31, 58, 46, 0.15);
+    position: relative;
+}
+
+/* Accent text above titles */
+.uui-accent-text {
+    font-family: 'Great Vibes', cursive;
+    color: #6F8A76;
+    font-size: 32px;
+    display: block;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.uui-form-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 400;
+    color: #1F3A2E;
+    text-align: center;
+    margin: 0 0 40px;
+    line-height: 1.2;
 }
 
 .booking-field {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
 .booking-field label {
     display: block;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #333;
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: #1F3A2E;
+    letter-spacing: 0.01em;
 }
 
 .booking-field input[type="text"],
 .booking-field input[type="email"],
 .booking-field input[type="tel"],
+.booking-field input[type="date"],
 .booking-field input[type="datetime-local"],
 .booking-field select {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
+    padding: 16px 20px;
+    border: 1px solid #E8E2D9;
+    border-radius: 0;
+    font-size: 15px;
+    font-family: 'Lato', sans-serif;
+    color: #2B2B2B;
+    background-color: #fff;
     box-sizing: border-box;
-    transition: border-color 0.2s ease;
+    transition: all 0.3s ease;
+    -webkit-appearance: none;
+}
+
+.booking-field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236F8A76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 18px;
+    padding-right: 45px;
 }
 
 .booking-field input:focus,
 .booking-field select:focus {
     outline: none;
-    border-color: #2271b1;
-    box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.1);
+    border-color: #6F8A76;
+    background-color: #FBF9F6;
+    box-shadow: 0 5px 15px rgba(111, 138, 118, 0.1);
 }
 
 .booking-button {
     width: 100%;
-    padding: 14px 24px;
-    background: #2271b1;
-    color: #fff;
+    padding: 20px 30px;
+    background: #1F3A2E !important;
+    color: #F5F1E8 !important;
     border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    font-weight: 600;
+    border-radius: 0;
+    font-family: 'Lato', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    margin-top: 10px;
 }
 
 .booking-button:hover {
-    background: #135e96;
+    background: #2a4e3e !important;
+    letter-spacing: 0.3em;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.booking-button:active {
+    transform: translateY(0);
 }
 
 .booking-button:disabled {
-    background: #94a3b8;
+    background: #cbd5e1;
     cursor: not-allowed;
+    letter-spacing: 0.25em;
+    transform: none;
 }
 
 .booking-message {
-    margin-top: 16px;
-    padding: 12px;
-    border-radius: 4px;
+    margin-top: 25px;
+    padding: 20px;
+    border-radius: 0;
     text-align: center;
+    font-family: 'Lato', sans-serif;
+    font-size: 15px;
 }
 
 .booking-message.success {
-    background: #d1fae5;
-    color: #065f46;
-    border: 1px solid #a7f3d0;
+    background: #F5F1E8;
+    color: #1F3A2E;
+    border: 1px solid #6F8A76;
 }
 
 .booking-message.error {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
+    background: #fff5f5;
+    color: #c53030;
+    border: 1px solid #feb2b2;
 }
 
 .booking-timezone-notice {
-    margin-top: 12px;
-    font-size: 14px;
-    color: #666;
+    margin-top: 25px;
+    font-size: 13px;
+    color: #6F8A76;
     text-align: center;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Time slots container */
+#time-container select {
+    border-left: 4px solid #6F8A76;
+}
+
+/* Estimate and Warnings */
+#end-estimate {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: #6F8A76;
+    font-weight: 400;
+}
+
+#closing-warning {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #c53030;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* jQuery UI Datepicker Theming */
+.ui-datepicker {
+    font-family: 'Lato', sans-serif !important;
+    padding: 15px !important;
+    width: 320px !important;
+    border: none !important;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1) !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+}
+
+.ui-datepicker-header {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid #eee !important;
+    padding-bottom: 10px !important;
+    font-family: 'Playfair Display', serif !important;
+}
+
+.ui-datepicker-title {
+    color: #1F3A2E !important;
+    font-weight: 600 !important;
+    font-size: 18px !important;
+}
+
+.ui-datepicker th {
+    color: #6F8A76 !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.ui-state-default, 
+.ui-widget-content .ui-state-default {
+    border: none !important;
+    background: transparent !important;
+    text-align: center !important;
+    color: #2B2B2B !important;
+    padding: 8px !important;
+    transition: all 0.2s ease;
+}
+
+.ui-state-hover {
+    background: #F5F1E8 !important;
+    color: #1F3A2E !important;
+}
+
+.ui-state-active, 
+.ui-widget-content .ui-state-active {
+    background: #1F3A2E !important;
+    color: #F5F1E8 !important;
+}
+
+.ui-datepicker td.unavailable .ui-state-default,
+.ui-datepicker td.booked-out .ui-state-default,
+.ui-datepicker-unselectable .ui-state-default,
+.ui-state-disabled .ui-state-default {
+    background: transparent !important;
+    color: #cbd5e1 !important;
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+}
+
+/* Gray out disabled time options */
+.booking-field select option:disabled {
+    color: #a1a1a1 !important;
+    background-color: #f3f4f6 !important;
+}
+
+/* Datepicker animations */
+.ui-datepicker {
+    display: none;
 }
 
 /* Loading spinner */
 .booking-button.loading::after {
     content: "";
     display: inline-block;
-    width: 16px;
-    height: 16px;
-    margin-left: 8px;
-    border: 2px solid #fff;
-    border-top-color: transparent;
+    width: 18px;
+    height: 18px;
+    margin-left: 12px;
+    border: 2px solid rgba(245, 241, 232, 0.3);
+    border-top-color: #F5F1E8;
     border-radius: 50%;
+    vertical-align: middle;
     animation: booking-spin 0.8s linear infinite;
 }
 
 @keyframes booking-spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
 
-/* visually de-emphasize disabled time options */
-.booking-field select option[disabled] {
-    color: #999;
+@keyframes booking-pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
 }
 
-/* end-time estimate and warnings */
-#end-estimate {
-    margin: 8px 0 0;
-    font-size: 14px;
-    color: #333;
-}
-#closing-warning {
-    margin: 4px 0 0;
-    font-size: 14px;
-    color: #b91c1c;
-    font-weight: 600;
-}
-
-/* datepicker unavailable days styling */
-.ui-datepicker td.unavailable a {
-    background: #f0f0f0 !important;
-    color: #999 !important;
-    cursor: not-allowed;
+.booking-field select.loading-slots {
+    background-color: #FBF9F6;
+    color: #6F8A76;
+    animation: booking-pulse 1.5s ease-in-out infinite;
 }
 
 /* Responsive */
-@media (max-width: 480px) {
-    #simple-booking-form-wrapper {
-        padding: 12px;
-    }
-
+@media (max-width: 600px) {
     #simple-booking-form {
-        padding: 16px;
+        padding: 40px 25px;
     }
-
-    .booking-field input,
-    .booking-field select {
-        font-size: 14px;
+    
+    .ui-datepicker {
+        width: 280px !important;
     }
 }

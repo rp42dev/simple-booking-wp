@@ -1108,6 +1108,67 @@ class Simple_Booking_Google_Calendar {
 
         return $description;
     }
+    /**
+     * Delete events matching a specific signature in the description within a date range.
+     */
+    public function delete_events_by_signature( $signature, $start_date, $end_date, $calendar_id = null ) {
+        if ( ! $this->is_connected() ) {
+            return;
+        }
+
+        if ( empty( $calendar_id ) ) {
+            $calendar_id = simple_booking()->get_setting( 'google_calendar_id' );
+        }
+        if ( empty( $calendar_id ) ) {
+            return;
+        }
+
+        $access_token = $this->get_access_token();
+        if ( empty( $access_token ) ) {
+            return;
+        }
+
+        $tz = wp_timezone();
+        $start = new DateTime( $start_date . ' 00:00:00', $tz );
+        $end   = new DateTime( $end_date . ' 23:59:59', $tz );
+
+        // We use the 'q' parameter for fuzzy searching the signature
+        $url = sprintf(
+            'https://www.googleapis.com/calendar/v3/calendars/%s/events?timeMin=%s&timeMax=%s&singleEvents=true&q=%s',
+            urlencode( $calendar_id ),
+            urlencode( $start->format( DateTime::ATOM ) ),
+            urlencode( $end->format( DateTime::ATOM ) ),
+            urlencode( $signature )
+        );
+
+        $response = wp_remote_get( $url, array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $access_token,
+            ),
+            'timeout' => 30,
+        ) );
+
+        if ( is_wp_error( $response ) ) {
+            return;
+        }
+
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        if ( empty( $body['items'] ) || ! is_array( $body['items'] ) ) {
+            return;
+        }
+
+        foreach ( $body['items'] as $event ) {
+            if ( empty( $event['id'] ) ) {
+                continue;
+            }
+
+            // Verify the signature is actually in the description (fuzzy 'q' match might find other things)
+            $desc = isset( $event['description'] ) ? $event['description'] : '';
+            if ( strpos( $desc, $signature ) !== false ) {
+                $this->delete_event( $event['id'], $calendar_id );
+            }
+        }
+    }
 }
 
 // Initialize Google Calendar

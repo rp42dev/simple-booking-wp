@@ -30,6 +30,10 @@ class Simple_Booking_Form {
         // AJAX endpoint for fetching available time slots
         add_action( 'wp_ajax_simple_booking_get_slots', array( $this, 'ajax_get_slots' ) );
         add_action( 'wp_ajax_nopriv_simple_booking_get_slots', array( $this, 'ajax_get_slots' ) );
+
+        // AJAX endpoint for fetching fully booked dates
+        add_action( 'wp_ajax_simple_booking_get_booked_dates', array( $this, 'ajax_get_booked_dates' ) );
+        add_action( 'wp_ajax_nopriv_simple_booking_get_booked_dates', array( $this, 'ajax_get_booked_dates' ) );
     }
 
     /**
@@ -50,11 +54,14 @@ class Simple_Booking_Form {
      * Enqueue scripts and styles
      */
     public function enqueue_scripts() {
+        $css_path = SIMPLE_BOOKING_PATH . 'assets/css/booking-form.css';
+        $css_version = file_exists( $css_path ) ? filemtime( $css_path ) : SIMPLE_BOOKING_VERSION;
+
         wp_enqueue_style(
             'simple-booking-form',
             SIMPLE_BOOKING_URL . 'assets/css/booking-form.css',
             array(),
-            SIMPLE_BOOKING_VERSION
+            $css_version
         );
 
         wp_enqueue_script(
@@ -101,18 +108,32 @@ class Simple_Booking_Form {
             }
         }
 
+        // Include service-specific schedules for frontend datepicker
+        $service_schedules = array();
+        $active_services = Simple_Booking_Service::get_active_services();
+        if ( ! empty( $active_services ) ) {
+            foreach ( $active_services as $service_post ) {
+                $s = Simple_Booking_Service::get_service( $service_post->ID );
+                $service_schedules[ $service_post->ID ] = array(
+                    'mode'     => $s['schedule_mode'],
+                    'schedule' => $s['service_schedule'],
+                );
+            }
+        }
+
         $minDate = date( 'Y-m-d', strtotime( $this->get_min_datetime() ) );
         wp_localize_script(
             'simple-booking-form',
             'simpleBooking',
             array(
-                'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
-                'nonce'     => wp_create_nonce( 'simple_booking_form_nonce' ),
-                'publishableKey' => $this->get_stripe_publishable_key(),
-                'schedule'   => $schedule,
-                'timezone'   => wp_timezone_string(),
-                'minDate'    => $minDate,
-                'homeUrl'    => home_url( '/' ),
+                'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
+                'nonce'             => wp_create_nonce( 'simple_booking_form_nonce' ),
+                'publishableKey'    => $this->get_stripe_publishable_key(),
+                'schedule'          => $schedule,
+                'serviceSchedules'  => $service_schedules,
+                'timezone'          => wp_timezone_string(),
+                'minDate'           => $minDate,
+                'homeUrl'           => home_url( '/' ),
                 'i18n'      => array(
                     'selectService' => __( 'Please select a service', 'simple-booking' ),
                     'selectDateTime' => __( 'Please select a date and time', 'simple-booking' ),
@@ -123,6 +144,7 @@ class Simple_Booking_Form {
                     'error'         => __( 'An error occurred. Please try again.', 'simple-booking' ),
                     'submitText'    => __( 'Proceed to Payment', 'simple-booking' ),
                     'submitFreeText' => __( 'Book Now', 'simple-booking' ),
+                    'loadingSlots'  => __( 'Loading slots...', 'simple-booking' ),
                 ),
             )
         );
@@ -259,6 +281,8 @@ class Simple_Booking_Form {
             array(
                 'service'    => '',
                 'service_id' => 0,
+                'title'      => '',
+                'accent'     => '',
             ),
             $atts,
             self::SHORTCODE
@@ -340,9 +364,21 @@ class Simple_Booking_Form {
         ob_start();
         ?>
         <div id="simple-booking-form-wrapper">
+            <?php if ( ! empty( $atts['accent'] ) ) : ?>
+                <span class="uui-accent-text"><?php echo esc_html( $atts['accent'] ); ?></span>
+            <?php endif; ?>
+
+            <?php if ( ! empty( $atts['title'] ) ) : ?>
+                <h2 class="uui-form-title"><?php echo esc_html( $atts['title'] ); ?></h2>
+            <?php endif; ?>
+
             <?php if ( 'success' === $booking_status ) : ?>
                 <div class="booking-message success">
                     <p><?php _e( 'Thank you! Your booking has been confirmed. Check your email for details.', 'simple-booking' ); ?></p>
+                </div>
+            <?php elseif ( 'waitlist' === $booking_status ) : ?>
+                <div class="booking-message success">
+                    <p><?php _e( 'You have been added to the waitlist! We will contact you as soon as a spot opens up.', 'simple-booking' ); ?></p>
                 </div>
             <?php elseif ( 'cancelled' === $booking_status ) : ?>
                 <div class="booking-message error">
@@ -414,17 +450,37 @@ class Simple_Booking_Form {
                     <?php if ( $is_single_service_form ) : ?>
                         <?php
                         $single_service = $services[0];
-                        $single_duration = get_post_meta( $single_service->ID, '_service_duration', true );
-                        $single_duration = $single_duration ? $single_duration : 60;
+                        $single_duration = get_post_meta( $single_service->ID, '_service_duration', true ) ?: 60;
                         $single_price_id = get_post_meta( $single_service->ID, '_stripe_price_id', true );
+                        
+                        $service_type = get_post_meta( $single_service->ID, '_service_type', true ) ?: 'one_off';
+                        $group_capacity = absint( get_post_meta( $single_service->ID, '_group_capacity', true ) );
+                        $meeting_schedule = get_post_meta( $single_service->ID, '_meeting_schedule', true );
+                        $active_members = 0;
+                        if ( 'recurring_group' === $service_type ) {
+                            $active_members = count( get_posts( array(
+                                'post_type'  => 'booking_membership',
+                                'meta_query' => array(
+                                    'relation' => 'AND',
+                                    array( 'key' => '_service_id', 'value' => $single_service->ID ),
+                                    array( 'key' => '_status', 'value' => 'active' ),
+                                ),
+                                'fields' => 'ids',
+                                'posts_per_page' => -1,
+                            ) ) );
+                        }
+                        $is_sold_out = ( $group_capacity > 0 && $active_members >= $group_capacity );
                         ?>
-                        <p class="booking-selected-service"><strong><?php echo esc_html( $single_service->post_title . ' (' . $single_duration . ' min)' ); ?></strong></p>
+                        <p class="booking-selected-service"><strong><?php echo esc_html( $single_service->post_title ); ?><?php if ( $is_sold_out ) echo ' (' . __( 'Sold Out', 'simple-booking' ) . ')'; ?></strong></p>
                         <select id="service_id" name="service_id" required style="display:none;">
                             <option value="<?php echo esc_attr( $single_service->ID ); ?>"
                                     data-duration="<?php echo esc_attr( $single_duration ); ?>"
                                     data-has-price="<?php echo ! empty( $single_price_id ) ? '1' : '0'; ?>"
+                                    data-type="<?php echo esc_attr( $service_type ); ?>"
+                                    data-schedule="<?php echo esc_attr( $meeting_schedule ); ?>"
+                                    data-soldout="<?php echo $is_sold_out ? '1' : '0'; ?>"
                                     selected>
-                                <?php echo esc_html( $single_service->post_title . ' (' . $single_duration . ' min)' ); ?>
+                                <?php echo esc_html( $single_service->post_title ); ?>
                             </option>
                         </select>
                     <?php else : ?>
@@ -432,15 +488,35 @@ class Simple_Booking_Form {
                             <option value=""><?php _e( 'Choose a service...', 'simple-booking' ); ?></option>
                             <?php foreach ( $services as $service ) : ?>
                                 <?php
-                                $duration = get_post_meta( $service->ID, '_service_duration', true );
-                                $duration = $duration ? $duration : 60;
+                                $duration = get_post_meta( $service->ID, '_service_duration', true ) ?: 60;
                                 $price_id = get_post_meta( $service->ID, '_stripe_price_id', true );
+                                
+                                $service_type = get_post_meta( $service->ID, '_service_type', true ) ?: 'one_off';
+                                $group_capacity = absint( get_post_meta( $service->ID, '_group_capacity', true ) );
+                                $meeting_schedule = get_post_meta( $service->ID, '_meeting_schedule', true );
+                                $active_members = 0;
+                                if ( 'recurring_group' === $service_type ) {
+                                    $active_members = count( get_posts( array(
+                                        'post_type'  => 'booking_membership',
+                                        'meta_query' => array(
+                                            'relation' => 'AND',
+                                            array( 'key' => '_service_id', 'value' => $service->ID ),
+                                            array( 'key' => '_status', 'value' => 'active' ),
+                                        ),
+                                        'fields' => 'ids',
+                                        'posts_per_page' => -1,
+                                    ) ) );
+                                }
+                                $is_sold_out = ( $group_capacity > 0 && $active_members >= $group_capacity );
                                 ?>
                                 <option value="<?php echo esc_attr( $service->ID ); ?>"
                                         data-duration="<?php echo esc_attr( $duration ); ?>"
                                         data-has-price="<?php echo ! empty( $price_id ) ? '1' : '0'; ?>"
+                                        data-type="<?php echo esc_attr( $service_type ); ?>"
+                                        data-schedule="<?php echo esc_attr( $meeting_schedule ); ?>"
+                                        data-soldout="<?php echo $is_sold_out ? '1' : '0'; ?>"
                                         <?php selected( absint( $selected_service_id ), absint( $service->ID ) ); ?>>
-                                    <?php echo esc_html( $service->post_title . ' (' . $duration . ' min)' ); ?>
+                                    <?php echo esc_html( $service->post_title ); ?><?php if ( $is_sold_out ) echo ' (' . __( 'Sold Out', 'simple-booking' ) . ')'; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -501,6 +577,7 @@ class Simple_Booking_Form {
 
                 <!-- Hidden field for Stripe checkout -->
                 <input type="hidden" id="stripe_session_id" name="stripe_session_id" value="" />
+                <input type="hidden" id="customer_timezone" name="customer_timezone" value="" />
 
                 <!-- Submit -->
                 <div class="booking-field">
@@ -543,223 +620,281 @@ class Simple_Booking_Form {
      * Handle form submission
      */
     public function handle_submission() {
-        // Verify nonce
-        if ( ! check_ajax_referer( 'simple_booking_form_nonce', 'nonce', false ) ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed', 'simple-booking' ) ) );
-        }
-
-        // Sanitize inputs
-        $service_id       = isset( $_POST['service_id'] ) ? absint( $_POST['service_id'] ) : 0;
-        // booking datetime can arrive as single field (new JS) or separate date/time (legacy)
-        if ( isset( $_POST['booking_datetime'] ) && ! empty( $_POST['booking_datetime'] ) ) {
-            $booking_datetime = sanitize_text_field( $_POST['booking_datetime'] );
-        } elseif ( isset( $_POST['booking_date'], $_POST['booking_time'] ) ) {
-            $booking_datetime = sanitize_text_field( $_POST['booking_date'] ) . 'T' . sanitize_text_field( $_POST['booking_time'] );
-        } else {
-            $booking_datetime = '';
-        }
-        $customer_name    = isset( $_POST['customer_name'] ) ? sanitize_text_field( $_POST['customer_name'] ) : '';
-        $customer_email   = isset( $_POST['customer_email'] ) ? sanitize_email( $_POST['customer_email'] ) : '';
-        $customer_phone  = isset( $_POST['customer_phone'] ) ? sanitize_text_field( $_POST['customer_phone'] ) : '';
-        $reschedule_booking_id = isset( $_POST['reschedule_booking_id'] ) ? absint( $_POST['reschedule_booking_id'] ) : 0;
-        $reschedule_token = isset( $_POST['reschedule_token'] ) ? sanitize_text_field( $_POST['reschedule_token'] ) : '';
-
-        // Validate inputs
-        $errors = array();
-
-        if ( empty( $service_id ) ) {
-            $errors[] = __( 'Please select a service', 'simple-booking' );
-        }
-
-        if ( empty( $booking_datetime ) ) {
-            $errors[] = __( 'Please select a date and time', 'simple-booking' );
-        } else {
-            // log for debugging in case some formats slip through
-            if ( simple_booking()->get_setting( 'debug_mode' ) ) {
-                error_log( '[DEBUG] submit booking_datetime received: ' . $booking_datetime );
+        $log_file = SIMPLE_BOOKING_PATH . 'submit_debug.log';
+        try {
+            // Verify nonce (lax check for guest submissions to prevent page caching issues)
+            if ( is_user_logged_in() && ! check_ajax_referer( 'simple_booking_form_nonce', 'nonce', false ) ) {
+                wp_send_json_error( array( 'message' => __( 'Security check failed', 'simple-booking' ) ) );
             }
 
-            // server-side prevent past bookings as well
-            try {
-                $tz   = new DateTimeZone( wp_timezone_string() );
-                $start_dt = new DateTime( $booking_datetime, $tz );
-                $now      = new DateTime( 'now', $tz );
-                if ( $start_dt < $now ) {
-                    $errors[] = __( 'Selected time is in the past', 'simple-booking' );
+            // Sanitize inputs
+            $service_id       = isset( $_POST['service_id'] ) ? absint( $_POST['service_id'] ) : 0;
+            // booking datetime can arrive as single field (new JS) or separate date/time (legacy)
+            if ( isset( $_POST['booking_datetime'] ) && ! empty( $_POST['booking_datetime'] ) ) {
+                $booking_datetime = sanitize_text_field( $_POST['booking_datetime'] );
+            } elseif ( isset( $_POST['booking_date'], $_POST['booking_time'] ) ) {
+                $booking_datetime = sanitize_text_field( $_POST['booking_date'] ) . 'T' . sanitize_text_field( $_POST['booking_time'] );
+            } else {
+                $booking_datetime = '';
+            }
+            $customer_name    = isset( $_POST['customer_name'] ) ? sanitize_text_field( $_POST['customer_name'] ) : '';
+            $customer_email   = isset( $_POST['customer_email'] ) ? sanitize_email( $_POST['customer_email'] ) : '';
+            $customer_phone   = isset( $_POST['customer_phone'] ) ? sanitize_text_field( $_POST['customer_phone'] ) : '';
+            $customer_timezone = isset( $_POST['customer_timezone'] ) ? sanitize_text_field( $_POST['customer_timezone'] ) : '';
+            $reschedule_booking_id = isset( $_POST['reschedule_booking_id'] ) ? absint( $_POST['reschedule_booking_id'] ) : 0;
+            $customer_email   = isset( $_POST['customer_email'] ) ? sanitize_email( $_POST['customer_email'] ) : '';
+            $customer_phone  = isset( $_POST['customer_phone'] ) ? sanitize_text_field( $_POST['customer_phone'] ) : '';
+            $reschedule_booking_id = isset( $_POST['reschedule_booking_id'] ) ? absint( $_POST['reschedule_booking_id'] ) : 0;
+            $reschedule_token = isset( $_POST['reschedule_token'] ) ? sanitize_text_field( $_POST['reschedule_token'] ) : '';
+
+            // Validate inputs
+            $errors = array();
+
+            if ( empty( $service_id ) ) {
+                $errors[] = __( 'Please select a service', 'simple-booking' );
+            }
+
+            // Get service early for validation branching
+            $service = Simple_Booking_Service::get_service( $service_id );
+            if ( ! $service || ! $service['is_active'] ) {
+                wp_send_json_error( array( 'message' => __( 'Selected service is not available', 'simple-booking' ) ) );
+            }
+
+            $is_membership = isset( $service['service_type'] ) && 'recurring_group' === $service['service_type'];
+
+            $is_membership_waitlist = false;
+            if ( $is_membership ) {
+                // Capacity validation
+                if ( $service['group_capacity'] > 0 ) {
+                    $active_members = count( get_posts( array(
+                        'post_type'  => 'booking_membership',
+                        'meta_query' => array(
+                            'relation' => 'AND',
+                            array( 'key' => '_service_id', 'value' => $service_id ),
+                            array( 'key' => '_status', 'value' => 'active' ),
+                        ),
+                        'fields' => 'ids',
+                        'posts_per_page' => -1,
+                    ) ) );
+                    if ( $active_members >= $service['group_capacity'] ) {
+                        $is_membership_waitlist = true;
+                    }
                 }
-            } catch ( Exception $e ) {
-                // ignore parse errors; they will be caught below
-            }
-        }
-
-        if ( empty( $customer_name ) ) {
-            $errors[] = __( 'Please enter your name', 'simple-booking' );
-        }
-
-        if ( empty( $customer_email ) || ! is_email( $customer_email ) ) {
-            $errors[] = __( 'Please enter a valid email address', 'simple-booking' );
-        }
-
-        if ( empty( $customer_phone ) ) {
-            $errors[] = __( 'Please enter your phone number', 'simple-booking' );
-        }
-
-        if ( ! empty( $errors ) ) {
-            wp_send_json_error( array( 'message' => implode( ' ', $errors ) ) );
-        }
-
-        // Get service
-        $service = Simple_Booking_Service::get_service( $service_id );
-        if ( ! $service || ! $service['is_active'] ) {
-            wp_send_json_error( array( 'message' => __( 'Selected service is not available', 'simple-booking' ) ) );
-        }
-
-        if ( $reschedule_booking_id && ! empty( $reschedule_token ) && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
-            // Pro check: Reschedule is a Pro feature
-            if ( ! function_exists( 'simple_booking' ) || ! simple_booking()->is_pro_active() ) {
-                wp_send_json_error( array( 'message' => __( 'Rescheduling bookings is a Pro feature. Upgrade your license to enable this.', 'simple-booking' ) ) );
-            }
-
-            if ( ! Simple_Booking_Booking_Creator::verify_booking_management_token( $reschedule_booking_id, $reschedule_token ) ) {
-                wp_send_json_error( array( 'message' => __( 'Reschedule link is invalid or already used', 'simple-booking' ) ) );
-            }
-
-            $original_start_datetime = get_post_meta( $reschedule_booking_id, '_start_datetime', true );
-            $requested_ts = strtotime( (string) $booking_datetime );
-            $original_ts  = strtotime( (string) $original_start_datetime );
-
-            if ( false !== $requested_ts && false !== $original_ts && $requested_ts === $original_ts ) {
-                wp_send_json_error( array( 'message' => __( 'Please choose a different time when rescheduling.', 'simple-booking' ) ) );
-            }
-        }
-
-        // server-side slot availability re-check
-        if ( $booking_datetime ) {
-            try {
-                $tz    = new DateTimeZone( wp_timezone_string() );
-                $start = new DateTime( $booking_datetime, $tz );
-                $duration = intval( get_post_meta( $service_id, '_service_duration', true ) );
-                if ( $duration <= 0 ) {
-                    $duration = 60;
+            } else {
+                if ( empty( $booking_datetime ) ) {
+                    $errors[] = __( 'Please select a date and time', 'simple-booking' );
+                } else {
+                    // server-side prevent past bookings as well
+                    try {
+                        $tz   = new DateTimeZone( wp_timezone_string() );
+                        $start_dt = new DateTime( $booking_datetime, $tz );
+                        $now      = new DateTime( 'now', $tz );
+                        if ( $start_dt < $now ) {
+                            $errors[] = __( 'Selected time is in the past', 'simple-booking' );
+                        }
+                    } catch ( Exception $e ) {
+                        // ignore parse errors; they will be caught below
+                    }
                 }
-                $end = clone $start;
-                $end->modify( "+{$duration} minutes" );
+            }
 
-                $provider = $this->get_active_calendar_provider();
-                if ( is_wp_error( $provider ) ) {
-                    wp_send_json_error( array( 'message' => __( 'Calendar provider is unavailable', 'simple-booking' ) ) );
+            if ( empty( $customer_name ) ) {
+                $errors[] = __( 'Please enter your name', 'simple-booking' );
+            }
+
+            if ( empty( $customer_email ) || ! is_email( $customer_email ) ) {
+                $errors[] = __( 'Please enter a valid email address', 'simple-booking' );
+            }
+
+            if ( empty( $customer_phone ) ) {
+                $errors[] = __( 'Please enter your phone number', 'simple-booking' );
+            }
+
+            if ( ! empty( $errors ) ) {
+                wp_send_json_error( array( 'message' => implode( ' ', $errors ) ) );
+            }
+
+            if ( $reschedule_booking_id && ! empty( $reschedule_token ) && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
+                // Pro check: Reschedule is a Pro feature
+                if ( ! function_exists( 'simple_booking' ) || ! simple_booking()->is_pro_active() ) {
+                    wp_send_json_error( array( 'message' => __( 'Rescheduling bookings is a Pro feature. Upgrade your license to enable this.', 'simple-booking' ) ) );
                 }
 
-                $staff_availability = $provider->find_available_staff( $service_id, $start->format( DateTime::ATOM ), $duration );
-                if ( false === $staff_availability ) {
-                    wp_send_json_error( array( 'message' => __( 'Selected time slot is no longer available', 'simple-booking' ) ) );
+                if ( ! Simple_Booking_Booking_Creator::verify_booking_management_token( $reschedule_booking_id, $reschedule_token ) ) {
+                    wp_send_json_error( array( 'message' => __( 'Reschedule link is invalid or already used', 'simple-booking' ) ) );
                 }
 
-                if ( is_wp_error( $staff_availability ) && simple_booking()->get_setting( 'debug_mode' ) ) {
-                    error_log( '[DEBUG]: provider slot check failed during submission: ' . $staff_availability->get_error_message() );
+                $original_start_datetime = get_post_meta( $reschedule_booking_id, '_start_datetime', true );
+                $requested_ts = strtotime( (string) $booking_datetime );
+                $original_ts  = strtotime( (string) $original_start_datetime );
+
+                if ( false !== $requested_ts && false !== $original_ts && $requested_ts === $original_ts ) {
+                    wp_send_json_error( array( 'message' => __( 'Please choose a different time when rescheduling.', 'simple-booking' ) ) );
                 }
-            } catch ( Exception $e ) {
-                // ignore parse problem, will be caught earlier
-            }
-        }
-
-        // Prepare booking data
-        $booking_data = array(
-            'service_id'     => $service_id,
-            'customer_name'  => $customer_name,
-            'customer_email' => $customer_email,
-            'customer_phone' => $customer_phone,
-            'start_datetime' => $booking_datetime,
-        );
-
-        if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
-            $booking_data['reschedule_from_booking_id'] = $reschedule_booking_id;
-            $booking_data['reschedule_token'] = $reschedule_token;
-        }
-
-        // Check if this is a reschedule of a paid booking - if so, treat as free reschedule
-        $reschedule_paid_booking = false;
-        if ( $reschedule_booking_id && ! empty( $reschedule_token ) && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
-            if ( Simple_Booking_Booking_Creator::is_paid_booking( $reschedule_booking_id ) ) {
-                $reschedule_paid_booking = true;
-            }
-        }
-
-        // Free booking flow (no Stripe Price ID) OR free reschedule of paid booking
-        if ( empty( $service['stripe_price_id'] ) || $reschedule_paid_booking ) {
-            $duration = isset( $service['duration'] ) ? absint( $service['duration'] ) : 60;
-            if ( $duration <= 0 ) {
-                $duration = 60;
             }
 
-            try {
-                $tz = new DateTimeZone( wp_timezone_string() );
-                $start = new DateTime( $booking_datetime, $tz );
-                $end = clone $start;
-                $end->modify( "+{$duration} minutes" );
-                $end_datetime = $end->format( 'Y-m-d\TH:i' );
-            } catch ( Exception $e ) {
-                wp_send_json_error( array( 'message' => __( 'Invalid booking time selected', 'simple-booking' ) ) );
+            // server-side slot availability re-check
+            if ( ! $is_membership && $booking_datetime ) {
+                try {
+                    $tz    = new DateTimeZone( wp_timezone_string() );
+                    $start = new DateTime( $booking_datetime, $tz );
+                    $duration = intval( get_post_meta( $service_id, '_service_duration', true ) );
+                    if ( $duration <= 0 ) {
+                        $duration = 60;
+                    }
+                    $end = clone $start;
+                    $end->modify( "+{$duration} minutes" );
+
+                    $provider = $this->get_active_calendar_provider();
+                    if ( is_wp_error( $provider ) ) {
+                        wp_send_json_error( array( 'message' => __( 'Calendar provider is unavailable', 'simple-booking' ) ) );
+                    }
+
+                    $staff_availability = $provider->find_available_staff( $service_id, $start->format( DateTime::ATOM ), $duration );
+                    if ( false === $staff_availability ) {
+                        wp_send_json_error( array( 'message' => __( 'Selected time slot is no longer available', 'simple-booking' ) ) );
+                    }
+                } catch ( Exception $e ) {
+                    // ignore
+                }
             }
 
-            $booking_payload = array(
-                'service_id'        => $service_id,
-                'service_name'      => $service['name'],
-                'customer_name'     => $customer_name,
-                'customer_email'    => $customer_email,
-                'customer_phone'    => $customer_phone,
-                'start_datetime'    => $booking_datetime,
-                'end_datetime'      => $end_datetime,
-                'meeting_link'      => isset( $service['meeting_link'] ) ? $service['meeting_link'] : '',
-                'auto_google_meet'  => isset( $service['auto_google_meet'] ) ? $service['auto_google_meet'] : '0',
-                'stripe_payment_id' => '',
+            // Prepare booking data
+            $booking_data = array(
+                'service_id'     => $service_id,
+                'customer_name'  => $customer_name,
+                'customer_email' => $customer_email,
+                'customer_phone' => $customer_phone,
+                'start_datetime' => $booking_datetime,
+                'customer_timezone' => $customer_timezone,
             );
 
             if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
-                $booking_payload['reschedule_from_booking_id'] = $reschedule_booking_id;
-                $booking_payload['reschedule_token'] = $reschedule_token;
+                $booking_data['reschedule_from_booking_id'] = $reschedule_booking_id;
+                $booking_data['reschedule_token'] = $reschedule_token;
             }
 
-            $booking_id = Simple_Booking_Booking_Creator::create_booking( $booking_payload );
-
-            if ( is_wp_error( $booking_id ) ) {
-                wp_send_json_error( array( 'message' => $booking_id->get_error_message() ) );
+            // Check if this is a reschedule of a paid booking - if so, treat as free reschedule
+            $reschedule_paid_booking = false;
+            if ( $reschedule_booking_id && ! empty( $reschedule_token ) && class_exists( 'Simple_Booking_Booking_Creator' ) ) {
+                if ( Simple_Booking_Booking_Creator::is_paid_booking( $reschedule_booking_id ) ) {
+                    $reschedule_paid_booking = true;
+                }
             }
 
-            $redirect_url = $this->get_success_redirect_url();
-            if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
-                $redirect_url = add_query_arg( 'booking', 'success', $this->get_success_redirect_url() );
+            // Waitlist flow for full groups
+            if ( $is_membership_waitlist ) {
+                $membership_id = wp_insert_post( array(
+                    'post_title'  => sprintf( 'Waitlist: %s - %s', $customer_name, $service['name'] ),
+                    'post_type'   => 'booking_membership',
+                    'post_status' => 'publish',
+                ) );
+
+                if ( ! is_wp_error( $membership_id ) ) {
+                    update_post_meta( $membership_id, '_service_id', $service_id );
+                    update_post_meta( $membership_id, '_customer_name', $customer_name );
+                    update_post_meta( $membership_id, '_customer_email', $customer_email );
+                    update_post_meta( $membership_id, '_customer_phone', $customer_phone );
+                    update_post_meta( $membership_id, '_status', 'waitlist' );
+                    
+                    // We also need to assign a password and member portal access, like the webhook does
+                    $password = wp_generate_password( 12, false );
+                    update_post_meta( $membership_id, '_member_password', $password );
+
+                    $redirect_url = add_query_arg( 'booking', 'waitlist', $this->get_success_redirect_url() );
+                    wp_send_json_success( array(
+                        'booking_id'    => $membership_id,
+                        'redirect_url'  => $redirect_url,
+                        'message'       => __( 'You have been added to the waitlist.', 'simple-booking' ),
+                    ) );
+                } else {
+                    wp_send_json_error( array( 'message' => __( 'Failed to add to waitlist.', 'simple-booking' ) ) );
+                }
             }
 
+            // Free booking flow (no Stripe Price ID) OR free reschedule of paid booking
+            if ( empty( $service['stripe_price_id'] ) || $reschedule_paid_booking ) {
+                $duration = isset( $service['duration'] ) ? absint( $service['duration'] ) : 60;
+                if ( $duration <= 0 ) {
+                    $duration = 60;
+                }
+
+                try {
+                    $tz = new DateTimeZone( wp_timezone_string() );
+                    $start = new DateTime( $booking_datetime, $tz );
+                    $end = clone $start;
+                    $end->modify( "+{$duration} minutes" );
+                    $end_datetime = $end->format( 'Y-m-d\TH:i' );
+                } catch ( Exception $e ) {
+                    wp_send_json_error( array( 'message' => __( 'Invalid booking time selected', 'simple-booking' ) ) );
+                }
+
+                $booking_payload = array(
+                    'service_id'        => $service_id,
+                    'service_name'      => $service['name'],
+                    'customer_name'     => $customer_name,
+                    'customer_email'    => $customer_email,
+                    'customer_phone'    => $customer_phone,
+                    'customer_timezone' => $customer_timezone,
+                    'start_datetime'    => $booking_datetime,
+                    'end_datetime'      => $end_datetime,
+                    'meeting_link'      => isset( $service['meeting_link'] ) ? $service['meeting_link'] : '',
+                    'auto_google_meet'  => isset( $service['auto_google_meet'] ) ? $service['auto_google_meet'] : '0',
+                    'stripe_payment_id' => '',
+                );
+
+                if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
+                    $booking_payload['reschedule_from_booking_id'] = $reschedule_booking_id;
+                    $booking_payload['reschedule_token'] = $reschedule_token;
+                }
+
+                $booking_id = Simple_Booking_Booking_Creator::create_booking( $booking_payload );
+
+                if ( is_wp_error( $booking_id ) ) {
+                    wp_send_json_error( array( 'message' => $booking_id->get_error_message() ) );
+                }
+
+                $redirect_url = $this->get_success_redirect_url();
+                if ( $reschedule_booking_id && ! empty( $reschedule_token ) ) {
+                    $redirect_url = add_query_arg( 'booking', 'success', $this->get_success_redirect_url() );
+                }
+
+                wp_send_json_success( array(
+                    'booking_id'    => $booking_id,
+                    'redirect_url'  => $redirect_url,
+                    'message'       => __( 'Booking confirmed successfully.', 'simple-booking' ),
+                ) );
+            }
+
+            // Paid booking flow (Stripe)
+            // Pro check: Stripe payments are a Pro feature
+            if ( ! function_exists( 'simple_booking' ) || ! simple_booking()->is_pro_active() ) {
+                wp_send_json_error( array( 'message' => __( 'Paid bookings require a Pro license. Free bookings are available without a license.', 'simple-booking' ) ) );
+            }
+
+            // Ensure Pro files are loaded (re-check in case they were skipped during init)
+            simple_booking()->load_pro_dependencies();
+
+            $stripe = new Simple_Booking_Stripe();
+            $session = $stripe->create_checkout_session( $service, $booking_data );
+
+            if ( is_wp_error( $session ) ) {
+                wp_send_json_error( array( 'message' => $session->get_error_message() ) );
+            }
+
+            if ( ! $session || ! isset( $session->id ) ) {
+                wp_send_json_error( array( 'message' => __( 'Failed to create payment session', 'simple-booking' ) ) );
+            }
+
+            // Return session ID for redirect
             wp_send_json_success( array(
-                'booking_id'    => $booking_id,
-                'redirect_url'  => $redirect_url,
-                'message'       => __( 'Booking confirmed successfully.', 'simple-booking' ),
+                'session_id' => $session->id,
+                'url'        => $session->url,
             ) );
+        } catch ( Throwable $t ) {
+            error_log( '[' . date('Y-m-d H:i:s') . '] SUBMIT FATAL: ' . $t->getMessage() . ' in ' . $t->getFile() . ' on line ' . $t->getLine() . PHP_EOL, 3, $log_file );
+            wp_send_json_error( array( 'message' => 'Internal server error. Check submit_debug.log in plugin directory.', 'debug_msg' => $t->getMessage() ) );
         }
-
-        // Paid booking flow (Stripe)
-        // Pro check: Stripe payments are a Pro feature
-        if ( ! function_exists( 'simple_booking' ) || ! simple_booking()->is_pro_active() ) {
-            wp_send_json_error( array( 'message' => __( 'Paid bookings require a Pro license. Free bookings are available without a license.', 'simple-booking' ) ) );
-        }
-
-        $stripe = new Simple_Booking_Stripe();
-        $session = $stripe->create_checkout_session( $service, $booking_data );
-
-        if ( is_wp_error( $session ) ) {
-            wp_send_json_error( array( 'message' => $session->get_error_message() ) );
-        }
-
-        if ( ! $session || ! isset( $session->id ) ) {
-            wp_send_json_error( array( 'message' => __( 'Failed to create payment session', 'simple-booking' ) ) );
-        }
-
-        // Return session ID for redirect
-        wp_send_json_success( array(
-            'session_id' => $session->id,
-            'url'        => $session->url,
-        ) );
     }
 
     /**
@@ -792,7 +927,18 @@ class Simple_Booking_Form {
             if ( $page && 'publish' === $page->post_status ) {
                 return get_permalink( $page_id );
             }
-            delete_option( 'simple_booking_manage_page' );
+        }
+
+        // Fallback: Try to find by slug if option is missing or invalid
+        $page = get_page_by_path( 'booking-manage' );
+        if ( ! $page ) {
+            // Try common alternative slugs
+            $page = get_page_by_path( 'manage-booking' );
+        }
+
+        if ( $page && 'publish' === $page->post_status ) {
+            update_option( 'simple_booking_manage_page', $page->ID );
+            return get_permalink( $page->ID );
         }
 
         return home_url( '/' );
@@ -846,8 +992,8 @@ class Simple_Booking_Form {
      * AJAX handler: return time dropdown HTML for a given date/service.
      */
     public function ajax_get_slots() {
-        // security check
-        if ( ! check_ajax_referer( 'simple_booking_form_nonce', 'nonce', false ) ) {
+        // security check (bypass or relax check for guests/cached pages as fetching slots is read-only)
+        if ( is_user_logged_in() && ! check_ajax_referer( 'simple_booking_form_nonce', 'nonce', false ) ) {
             wp_send_json_error( array( 'message' => 'Security check failed' ) );
         }
 
@@ -879,49 +1025,84 @@ class Simple_Booking_Form {
             wp_send_json_error( array( 'message' => 'Missing parameters', 'debug' => $debug ) );
         }
 
-        // respect configured per-day schedule
-        $schedule = simple_booking()->get_setting( 'schedule', array() );
-        // fallback to legacy settings if schedule not yet set
-        if ( empty( $schedule ) ) {
-            $old_days = simple_booking()->get_setting( 'working_days', array() );
-            $old_start = simple_booking()->get_setting( 'work_start', '' );
-            $old_end   = simple_booking()->get_setting( 'work_end', '' );
-            if ( $old_days || $old_start || $old_end ) {
-                $weekdayNames = array( 'monday','tuesday','wednesday','thursday','friday','saturday','sunday' );
-                $schedule = array();
-                foreach ( $weekdayNames as $idx => $name ) {
-                    $schedule[ $name ] = array(
-                        'enabled' => in_array( (string) ( $idx + 1 ), (array) $old_days, true ) ? 1 : 0,
-                        'start'   => $old_start,
-                        'end'     => $old_end,
-                    );
-                }
-            }
+        $duration = intval( get_post_meta( $service_id, '_service_duration', true ) );
+        if ( $duration <= 0 ) {
+            $duration = 60;
         }
+
+        // Get service with availability settings
+        $service = Simple_Booking_Service::get_service( $service_id );
+        if ( ! $service ) {
+            wp_send_json_error( array( 'message' => 'Service not found', 'debug' => $debug ) );
+        }
+
+        // respect configured per-day schedule
+        $schedule_mode = isset( $service['schedule_mode'] ) ? $service['schedule_mode'] : 'inherit';
         $work_start = '';
         $work_end   = '';
-        if ( ! empty( $schedule ) ) {
+
+        if ( 'custom' === $schedule_mode && ! empty( $service['service_schedule'] ) ) {
+            $service_schedule = $service['service_schedule'];
             try {
                 $checkDt = new DateTime( $date, new DateTimeZone( wp_timezone_string() ) );
-                $weekdayName = strtolower( $checkDt->format( 'l' ) );
-                if ( isset( $schedule[ $weekdayName ] ) ) {
-                    $day = $schedule[ $weekdayName ];
+                $weekday = (int) $checkDt->format( 'N' ); // 1 (Mon) to 7 (Sun)
+                
+                if ( isset( $service_schedule[ $weekday ] ) ) {
+                    $day = $service_schedule[ $weekday ];
                     if ( empty( $day['enabled'] ) ) {
-                        wp_send_json_error( array( 'message' => 'No availability on selected day', 'debug' => $debug ) );
+                        wp_send_json_error( array( 'message' => 'No availability on selected day (Service Custom)', 'debug' => $debug ) );
                     }
-                    // use start/end from schedule if provided
-                    if ( ! empty( $day['start'] ) ) {
-                        $work_start = $day['start'];
-                    }
-                    if ( ! empty( $day['end'] ) ) {
-                        $work_end = $day['end'];
-                    }
+                    $work_start = ! empty( $day['start'] ) ? $day['start'] : '09:00';
+                    $work_end   = ! empty( $day['end'] ) ? $day['end'] : '17:00';
                 } else {
-                    // day not configured at all
                     wp_send_json_error( array( 'message' => 'No availability on selected day', 'debug' => $debug ) );
                 }
             } catch ( Exception $e ) {
-                // parsing failure, continue with defaults
+                $debug[] = '[DEBUG]: custom schedule parse error: ' . $e->getMessage();
+            }
+        } else {
+            // Inherit from global schedule
+            $schedule = simple_booking()->get_setting( 'schedule', array() );
+            // fallback to legacy settings if schedule not yet set
+            if ( empty( $schedule ) ) {
+                $old_days = simple_booking()->get_setting( 'working_days', array() );
+                $old_start = simple_booking()->get_setting( 'work_start', '' );
+                $old_end   = simple_booking()->get_setting( 'work_end', '' );
+                if ( $old_days || $old_start || $old_end ) {
+                    $weekdayNames = array( 'monday','tuesday','wednesday','thursday','friday','saturday','sunday' );
+                    $schedule = array();
+                    foreach ( $weekdayNames as $idx => $name ) {
+                        $schedule[ $name ] = array(
+                            'enabled' => in_array( (string) ( $idx + 1 ), (array) $old_days, true ) ? 1 : 0,
+                            'start'   => $old_start,
+                            'end'     => $old_end,
+                        );
+                    }
+                }
+            }
+
+            if ( ! empty( $schedule ) ) {
+                try {
+                    $checkDt = new DateTime( $date, new DateTimeZone( wp_timezone_string() ) );
+                    $weekdayName = strtolower( $checkDt->format( 'l' ) );
+                    if ( isset( $schedule[ $weekdayName ] ) ) {
+                        $day = $schedule[ $weekdayName ];
+                        if ( empty( $day['enabled'] ) ) {
+                            wp_send_json_error( array( 'message' => 'No availability on selected day (Global)', 'debug' => $debug ) );
+                        }
+                        // use start/end from schedule if provided
+                        $work_start = ! empty( $day['start'] ) ? $day['start'] : '09:00';
+                        $work_end = ! empty( $day['end'] ) ? $day['end'] : '17:00';
+                    } else {
+                        // day not configured at all
+                        wp_send_json_error( array( 'message' => 'No availability on selected day', 'debug' => $debug ) );
+                    }
+                } catch ( Exception $e ) {
+                    // parsing failure, continue with defaults
+                }
+            } else {
+                // If schedule is completely empty and we are in inherit mode, assume closed
+                wp_send_json_error( array( 'message' => 'No global schedule configured. Please set your working hours.', 'debug' => $debug ) );
             }
         }
 
@@ -946,6 +1127,7 @@ class Simple_Booking_Form {
         $tz = new DateTimeZone( wp_timezone_string() );
 
         // compute bounds
+        $debug[] = '[DEBUG]: work_start="' . $work_start . '", work_end="' . $work_end . '"';
         if ( $work_start ) {
             $pointer = new DateTime( $date . ' ' . $work_start, $tz );
         } else {
@@ -969,28 +1151,51 @@ class Simple_Booking_Form {
 
         // iterate hourly; ensure the full duration fits within working hours and does
         // not overlap any events.
-        while ( true ) {
+        while ( $pointer < $endOfDay ) {
             $slotStart = clone $pointer;
+
+            // Stop the loop entirely if the slot starts after working hours end.
+            if ( $endBoundary && $slotStart >= $endBoundary ) {
+                break;
+            }
+
             $slotEnd   = clone $pointer;
             $slotEnd->modify( "+{$duration} minutes" );
 
-            // stop when the intended end exceeds whichever boundary is earlier
+            $reason = '';
+            $available_flag = true;
+
+            // Stop when the intended end exceeds whichever boundary is earlier
             $limitTs = $endOfDay->getTimestamp();
             if ( $endBoundary ) {
                 $limitTs = min( $limitTs, $endBoundary->getTimestamp() );
             }
+
             if ( $slotEnd->getTimestamp() > $limitTs ) {
-                break;
+                $available_flag = false;
+                $reason = 'closed';
+                $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' exceeds working hours boundary';
             }
 
-            $reason = '';
+            if ( $available_flag ) {
             // check past boundary first
             if ( $slotStart < $now ) {
                 $available_flag = false;
                 $reason = 'past';
                 $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' is in the past';
             } else {
-                if ( $provider ) {
+                $available_flag = true;
+
+                // Native Blocker: Check if a Recurring Group Membership is already scheduled at this exact time
+                if ( class_exists( 'Simple_Booking_Membership_Sync' ) ) {
+                    if ( Simple_Booking_Membership_Sync::is_group_scheduled_at( $slotStart->format( 'Y-m-d' ), $slotStart->format( 'H:i' ) ) ) {
+                        $available_flag = false;
+                        $reason = 'booked';
+                        $debug[] = '[DEBUG]: slot ' . $slotStart->format( DateTime::ATOM ) . ' unavailable (Blocked by Recurring Group Schedule)';
+                    }
+                }
+
+                if ( $available_flag && $provider ) {
                     $staff_availability = $provider->find_available_staff( $service_id, $slotStart->format( DateTime::ATOM ), $duration );
                     if ( is_wp_error( $staff_availability ) ) {
                         $available_flag = false;
@@ -1027,7 +1232,7 @@ class Simple_Booking_Form {
                             }
                         }
                     }
-                } else {
+                } elseif ( $available_flag ) {
                     // fallback behavior when Google class is unavailable
                     $available_flag = $this->check_slot_availability(
                         $slotStart->format( DateTime::ATOM ),
@@ -1042,6 +1247,7 @@ class Simple_Booking_Form {
                     }
                 }
             }
+        }
 
             $slots[] = array(
                 'start'     => $slotStart->format( DateTime::ATOM ),
@@ -1077,6 +1283,9 @@ class Simple_Booking_Form {
                             break;
                         case 'booked':
                             $title = __( 'Unavailable – already booked', 'simple-booking' );
+                            break;
+                        case 'closed':
+                            $title = __( 'Unavailable – ends after closing time', 'simple-booking' );
                             break;
                         default:
                             $title = __( 'Unavailable', 'simple-booking' );
@@ -1171,6 +1380,113 @@ class Simple_Booking_Form {
         }
         $html .= '</select>';
         return $html;
+    }
+    /**
+     * AJAX endpoint to get dates that are fully booked for a given service.
+     */
+    public function ajax_get_booked_dates() {
+        if ( is_user_logged_in() ) {
+            check_ajax_referer( 'simple_booking_form_nonce', 'nonce' );
+        }
+
+        $service_id = isset( $_POST['service_id'] ) ? absint( $_POST['service_id'] ) : 0;
+        if ( ! $service_id ) {
+            wp_send_json_error( array( 'message' => 'Service ID is required' ) );
+        }
+
+        $duration = intval( get_post_meta( $service_id, '_service_duration', true ) ) ?: 60;
+        
+        // Check next 60 days
+        $start_date = new DateTime( 'now', wp_timezone() );
+        $end_date = clone $start_date;
+        $end_date->modify( '+60 days' );
+
+        $booked_dates = array();
+        
+        // To be efficient, we SHOULD fetch all events in range once, 
+        // but for now, let's use the existing logic if we can't range-fetch easily.
+        // Actually, we can just iterate.
+        
+        $current = clone $start_date;
+        while ( $current <= $end_date ) {
+            $date_str = $current->format( 'Y-m-d' );
+            
+            // Check if ANY slot is available for this date
+            if ( ! $this->has_available_slots( $date_str, $service_id, $duration ) ) {
+                $booked_dates[] = $date_str;
+            }
+            
+            $current->modify( '+1 day' );
+        }
+
+        wp_send_json_success( array( 'booked_dates' => $booked_dates ) );
+    }
+
+    /**
+     * Internal helper to check if a date has any available slots.
+     */
+    private function has_available_slots( $date, $service_id, $duration ) {
+        // 1. Check schedule first
+        $schedule = simple_booking()->get_setting( 'schedule', array() );
+        $checkDt = new DateTime( $date, wp_timezone() );
+        $weekdayName = strtolower( $checkDt->format( 'l' ) );
+        
+        if ( ! isset( $schedule[ $weekdayName ] ) || empty( $schedule[ $weekdayName ]['enabled'] ) ) {
+            return false; // Day is closed
+        }
+
+        $work_start = ! empty( $schedule[ $weekdayName ]['start'] ) ? $schedule[ $weekdayName ]['start'] : '09:00';
+        $work_end = ! empty( $schedule[ $weekdayName ]['end'] ) ? $schedule[ $weekdayName ]['end'] : '17:00';
+
+        $tz = wp_timezone();
+        $pointer = new DateTime( $date . ' ' . $work_start, $tz );
+        $endBoundary = new DateTime( $date . ' ' . $work_end, $tz );
+        $endOfDay = new DateTime( $date . ' 23:59:59', $tz );
+        $now = new DateTime( 'now', $tz );
+
+        if ( $pointer >= $endBoundary ) {
+            return false;
+        }
+
+        $provider = $this->get_active_calendar_provider();
+        
+        while ( $pointer < $endOfDay ) {
+            $slotStart = clone $pointer;
+            if ( $endBoundary && $slotStart >= $endBoundary ) {
+                break;
+            }
+
+            $slotEnd = clone $pointer;
+            $slotEnd->modify( "+{$duration} minutes" );
+
+            // Check if it fits within working hours
+            $limitTs = min( $endOfDay->getTimestamp(), $endBoundary->getTimestamp() );
+            if ( $slotEnd->getTimestamp() <= $limitTs && $slotStart >= $now ) {
+                
+                // Now check provider availability
+                $available = true;
+                
+                // Native Blocker check
+                if ( class_exists( 'Simple_Booking_Membership_Sync' ) ) {
+                    if ( Simple_Booking_Membership_Sync::is_group_scheduled_at( $date, $slotStart->format( 'H:i' ) ) ) {
+                        $available = false;
+                    }
+                }
+
+                if ( $available && ! is_wp_error( $provider ) ) {
+                    $staff = $provider->find_available_staff( $service_id, $slotStart->format( DateTime::ATOM ), $duration );
+                    if ( is_array( $staff ) ) {
+                        return true; // Found at least one slot!
+                    }
+                } elseif ( $available ) {
+                    return true;
+                }
+            }
+            
+            $pointer->modify( '+1 hour' );
+        }
+
+        return false;
     }
 }
 

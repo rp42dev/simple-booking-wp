@@ -70,28 +70,44 @@ class Simple_Booking_Stripe {
         }
 
         try {
-            $session = \Stripe\Checkout\Session::create(
-                array(
-                    'mode'         => 'payment',
-                    'line_items'   => array(
-                        array(
-                            'price' => $service['stripe_price_id'],
-                            'quantity' => 1,
-                        ),
+            $is_subscription = isset( $service['service_type'] ) && 'recurring_group' === $service['service_type'];
+
+            $session_params = array(
+                'mode'         => $is_subscription ? 'subscription' : 'payment',
+                'line_items'   => array(
+                    array(
+                        'price' => $service['stripe_price_id'],
+                        'quantity' => 1,
                     ),
-                    'success_url'  => $this->append_query_param( $success_url, 'session_id', '{CHECKOUT_SESSION_ID}' ),
-                    'cancel_url'   => $cancel_url,
-                    'metadata'     => array(
-                        'customer_name'    => sanitize_text_field( $booking_data['customer_name'] ),
-                        'customer_email'   => sanitize_email( $booking_data['customer_email'] ),
-                        'customer_phone'   => sanitize_text_field( $booking_data['customer_phone'] ),
-                        'service_id'       => absint( $booking_data['service_id'] ),
-                        'start_datetime'   => sanitize_text_field( $booking_data['start_datetime'] ),
-                        'reschedule_from_booking_id' => isset( $booking_data['reschedule_from_booking_id'] ) ? absint( $booking_data['reschedule_from_booking_id'] ) : 0,
-                        'reschedule_token' => isset( $booking_data['reschedule_token'] ) ? sanitize_text_field( $booking_data['reschedule_token'] ) : '',
-                    ),
-                )
+                ),
+                'success_url'  => $this->append_query_param( $success_url, 'session_id', '{CHECKOUT_SESSION_ID}' ),
+                'cancel_url'   => $cancel_url,
+                'metadata'     => array(
+                    'customer_name'    => sanitize_text_field( $booking_data['customer_name'] ),
+                    'customer_email'   => sanitize_email( $booking_data['customer_email'] ),
+                    'customer_phone'   => sanitize_text_field( $booking_data['customer_phone'] ),
+                    'customer_timezone' => isset( $booking_data['customer_timezone'] ) ? sanitize_text_field( $booking_data['customer_timezone'] ) : '',
+                    'service_id'       => absint( $booking_data['service_id'] ),
+                    'start_datetime'   => sanitize_text_field( $booking_data['start_datetime'] ),
+                    'reschedule_from_booking_id' => isset( $booking_data['reschedule_from_booking_id'] ) ? absint( $booking_data['reschedule_from_booking_id'] ) : 0,
+                    'reschedule_token' => isset( $booking_data['reschedule_token'] ) ? sanitize_text_field( $booking_data['reschedule_token'] ) : '',
+                ),
             );
+
+            // Pass customer_email to link to an existing or new Stripe Customer
+            if ( ! empty( $booking_data['customer_email'] ) ) {
+                $session_params['customer_email'] = sanitize_email( $booking_data['customer_email'] );
+            }
+
+            // Stripe Subscriptions don't support custom metadata on the subscription level
+            // directly from checkout without passing subscription_data.
+            if ( $is_subscription ) {
+                $session_params['subscription_data'] = array(
+                    'metadata' => $session_params['metadata']
+                );
+            }
+
+            $session = \Stripe\Checkout\Session::create( $session_params );
 
             return $session;
         } catch ( \Exception $e ) {
@@ -240,4 +256,29 @@ class Simple_Booking_Stripe {
         } catch ( \Exception $e ) {
             return new WP_Error( 'stripe_refund_error', $e->getMessage() );
         }
-    }}
+    }
+
+    /**
+     * Create a Stripe Billing Portal Session URL
+     * 
+     * @param string $customer_id Stripe Customer ID
+     * @param string $return_url URL to return to after managing billing
+     * @return string|WP_Error Portal URL or WP_Error on failure
+     */
+    public function create_billing_portal_session( $customer_id, $return_url ) {
+        if ( ! $this->stripe ) {
+            return new WP_Error( 'stripe_not_initialized', __( 'Stripe not initialized', 'simple-booking' ) );
+        }
+
+        try {
+            $session = \Stripe\BillingPortal\Session::create( array(
+                'customer'   => $customer_id,
+                'return_url' => $return_url,
+            ) );
+
+            return $session->url;
+        } catch ( \Exception $e ) {
+            return new WP_Error( 'stripe_portal_error', $e->getMessage() );
+        }
+    }
+}

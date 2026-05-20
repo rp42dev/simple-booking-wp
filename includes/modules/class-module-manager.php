@@ -84,6 +84,13 @@ class Simple_Booking_Module_Manager {
                 'required_class'  => 'Simple_Booking_Booking_Webhook',
                 'required_file'   => SIMPLE_BOOKING_INCLUDES . 'webhook/class-booking-webhook.php',
             ),
+            'group_memberships' => array(
+                'slug'            => 'group_memberships',
+                'label'           => __( 'Group Memberships', 'simple-booking' ),
+                'requires_pro'    => true,
+                'required_class'  => 'Simple_Booking_Group_Memberships',
+                'required_file'   => SIMPLE_BOOKING_INCLUDES . 'modules/class-group-memberships.php',
+            ),
         );
 
         return apply_filters( 'simple_booking_modules_registry', $modules );

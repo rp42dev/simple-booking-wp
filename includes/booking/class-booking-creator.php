@@ -148,6 +148,10 @@ class Simple_Booking_Booking_Creator {
             update_post_meta( $booking_id, '_calendar_id', sanitize_text_field( (string) $data['calendar_id'] ) );
         }
 
+        if ( ! empty( $data['customer_timezone'] ) ) {
+            update_post_meta( $booking_id, '_customer_timezone', sanitize_text_field( $data['customer_timezone'] ) );
+        }
+
         // Record initial meeting link source from payload
         $initial_meeting_source = ! empty( $data['meeting_link'] ) ? 'static' : 'none';
         update_post_meta( $booking_id, '_meeting_link_source', $initial_meeting_source );
@@ -416,13 +420,32 @@ class Simple_Booking_Booking_Creator {
         $action = sanitize_key( $action );
         $token = sanitize_text_field( $token );
 
+        $manage_page_url = home_url( '/' );
+        $page_id = get_option( 'simple_booking_manage_page' );
+        
+        if ( $page_id ) {
+            $page = get_post( $page_id );
+            if ( $page && 'publish' === $page->post_status ) {
+                $manage_page_url = get_permalink( $page_id );
+            }
+        }
+
+        // Fallback: Try to find by slug if option is missing or invalid
+        if ( $manage_page_url === home_url( '/' ) ) {
+            $page = get_page_by_path( 'booking-manage' );
+            if ( $page && 'publish' === $page->post_status ) {
+                $manage_page_url = get_permalink( $page->ID );
+                update_option( 'simple_booking_manage_page', $page->ID );
+            }
+        }
+
         return add_query_arg(
             array(
                 'sb_action'   => $action,
                 'booking_id'  => $booking_id,
                 'sb_token'    => $token,
             ),
-            home_url( '/' )
+            $manage_page_url
         );
     }
 
@@ -790,6 +813,24 @@ class Simple_Booking_Booking_Creator {
             self::debug_log( 'Email template datetime parse failed: ' . $e->getMessage(), 'EMAIL' );
         }
 
+        // Dual Timezone Calculation
+        $customer_tz = get_post_meta( $booking_id, '_customer_timezone', true );
+        $site_tz_obj = wp_timezone();
+        $site_abbr = ( new DateTime( 'now', $site_tz_obj ) )->format( 'T' );
+        $dual_time = $booking_time . ' ' . $site_abbr;
+        
+        if ( ! empty( $customer_tz ) ) {
+            try {
+                $user_tz = new DateTimeZone( $customer_tz );
+                $dt = new DateTime( $start_datetime, $site_tz_obj );
+                $dt->setTimezone( $user_tz );
+                $u_time = $dt->format( 'g:i A' );
+                if ( $u_time !== $booking_time ) {
+                    $dual_time .= ' / ' . $u_time . ' Local';
+                }
+            } catch ( Exception $e ) { }
+        }
+
         // Get custom templates from settings (or use defaults)
         $email_subject = simple_booking()->get_setting( 'email_subject', '' );
         $email_body = simple_booking()->get_setting( 'email_body', '' );
@@ -830,7 +871,7 @@ class Simple_Booking_Booking_Creator {
             '{customer_name}' => $customer_name,
             '{service_name}'  => $service_name,
             '{booking_date}'  => $booking_date,
-            '{booking_time}'  => $booking_time,
+            '{booking_time}'  => $dual_time,
             '{meeting_link}'  => ! empty( $meeting_link ) ? $meeting_link : '',
             '{reschedule_link}' => $reschedule_link,
             '{cancel_link}'   => $cancel_link,

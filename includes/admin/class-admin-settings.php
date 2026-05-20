@@ -122,6 +122,22 @@ class Simple_Booking_Admin_Settings {
             self::PAGE_SLUG,
             'simple_booking_license'
         );
+        
+        // Modules status overview
+        add_settings_section(
+            'simple_booking_modules',
+            __( 'Modules Status', 'simple-booking' ),
+            array( $this, 'render_modules_section' ),
+            self::PAGE_SLUG
+        );
+
+        add_settings_field(
+            'modules_status',
+            __( 'Availability', 'simple-booking' ),
+            array( $this, 'render_modules_status' ),
+            self::PAGE_SLUG,
+            'simple_booking_modules'
+        );
 
         // Stripe Settings
         add_settings_section(
@@ -187,21 +203,6 @@ class Simple_Booking_Admin_Settings {
             'simple_booking_calendar_provider'
         );
 
-        // Modules status overview
-        add_settings_section(
-            'simple_booking_modules',
-            __( 'Modules Status', 'simple-booking' ),
-            array( $this, 'render_modules_section' ),
-            self::PAGE_SLUG
-        );
-
-        add_settings_field(
-            'modules_status',
-            __( 'Availability', 'simple-booking' ),
-            array( $this, 'render_modules_status' ),
-            self::PAGE_SLUG,
-            'simple_booking_modules'
-        );
 
         // Google Calendar Settings
         add_settings_section(
@@ -358,6 +359,45 @@ class Simple_Booking_Admin_Settings {
             array(
                 'name'        => 'email_subject',
                 'placeholder' => 'Booking Confirmed - {service_name}',
+            )
+        );
+
+        add_settings_field(
+            'notification_email',
+            __( 'Notification Email', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_email',
+            array(
+                'name'        => 'notification_email',
+                'placeholder' => get_option( 'admin_email' ),
+                'description' => __( 'The email address where booking notifications will be sent to the owner.', 'simple-booking' ),
+            )
+        );
+
+        add_settings_field(
+            'email_from_name',
+            __( 'From Name', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_email',
+            array(
+                'name'        => 'email_from_name',
+                'placeholder' => get_bloginfo( 'name' ),
+                'description' => __( 'The name that appears in the "From" field of confirmation emails.', 'simple-booking' ),
+            )
+        );
+
+        add_settings_field(
+            'email_from_email',
+            __( 'From Email', 'simple-booking' ),
+            array( $this, 'render_text_field' ),
+            self::PAGE_SLUG,
+            'simple_booking_email',
+            array(
+                'name'        => 'email_from_email',
+                'placeholder' => 'no-reply@' . wp_parse_url( home_url(), PHP_URL_HOST ),
+                'description' => __( 'The email address that appears in the "From" field. Note: Using an address from a different domain may affect deliverability.', 'simple-booking' ),
             )
         );
 
@@ -525,6 +565,12 @@ class Simple_Booking_Admin_Settings {
         // Email customization
         $sanitized['email_subject'] = isset( $input['email_subject'] ) ?
             sanitize_text_field( $input['email_subject'] ) : '';
+        $sanitized['notification_email'] = isset( $input['notification_email'] ) ?
+            sanitize_email( $input['notification_email'] ) : '';
+        $sanitized['email_from_name'] = isset( $input['email_from_name'] ) ?
+            sanitize_text_field( $input['email_from_name'] ) : '';
+        $sanitized['email_from_email'] = isset( $input['email_from_email'] ) ?
+            sanitize_email( $input['email_from_email'] ) : '';
         $sanitized['email_body'] = isset( $input['email_body'] ) ?
             sanitize_textarea_field( $input['email_body'] ) : '';
 
