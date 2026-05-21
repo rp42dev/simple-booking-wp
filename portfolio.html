@@ -667,12 +667,12 @@
       filter: drop-shadow(0 0 6px currentColor);
     }
 
-    .p-flow-1 { animation: schematic-flow-forward 4s linear infinite; }
-    .p-flow-2 { animation: schematic-flow-forward 3.2s linear infinite 0.6s; }
-    .p-flow-3 { animation: schematic-flow-forward 4.5s linear infinite 1.2s; }
-    .p-flow-4 { animation: schematic-flow-forward 3.8s linear infinite 0.3s; }
-    .p-flow-5 { animation: schematic-flow-forward 3s linear infinite 0.9s; }
-    .p-flow-6 { animation: schematic-flow-forward 4.8s linear infinite 0.5s; }
+    .project-modal-overlay.active .p-flow-1 { animation: schematic-flow-forward 4s linear infinite; }
+    .project-modal-overlay.active .p-flow-2 { animation: schematic-flow-forward 3.2s linear infinite 0.6s; }
+    .project-modal-overlay.active .p-flow-3 { animation: schematic-flow-forward 4.5s linear infinite 1.2s; }
+    .project-modal-overlay.active .p-flow-4 { animation: schematic-flow-forward 3.8s linear infinite 0.3s; }
+    .project-modal-overlay.active .p-flow-5 { animation: schematic-flow-forward 3s linear infinite 0.9s; }
+    .project-modal-overlay.active .p-flow-6 { animation: schematic-flow-forward 4.8s linear infinite 0.5s; }
 
     @keyframes schematic-flow-forward {
       0% { stroke-dashoffset: 400; }
@@ -689,8 +689,11 @@
     }
 
     .schematic-pulse-node {
-      animation: schematic-pulse-node-scale 2s infinite alternate ease-in-out;
       filter: drop-shadow(0 0 8px var(--project-color));
+    }
+
+    .project-modal-overlay.active .schematic-pulse-node {
+      animation: schematic-pulse-node-scale 2s infinite alternate ease-in-out;
     }
 
     @keyframes schematic-pulse-node-scale {
@@ -700,11 +703,17 @@
 
     .schematic-radar-ping {
       transform-origin: 400px 80px;
-      animation: schematic-radar-ping-anim 3s infinite ease-out;
     }
 
     .schematic-radar-ping-delay {
       transform-origin: 400px 80px;
+    }
+
+    .project-modal-overlay.active .schematic-radar-ping {
+      animation: schematic-radar-ping-anim 3s infinite ease-out;
+    }
+
+    .project-modal-overlay.active .schematic-radar-ping-delay {
       animation: schematic-radar-ping-anim 3s infinite ease-out 1.5s;
     }
 
