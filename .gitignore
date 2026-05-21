@@ -86,3 +86,7 @@ composer.lock
 # Debug and temporary files
 debug-*.txt
 temp-*.txt
+
+# Generated custom untracked snippets
+/wp-portfolio-snippet.html
+/understanding-snippet.html
