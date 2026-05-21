@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium Plugin Showcase - rp42dev</title>
+  
+  <!-- Import Outfit and Inter Google Fonts for high-end typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* ====================================================== */
+    /* MASTER PORTFOLIO DESIGN SYSTEM & CORE TOKENS           */
+    /* ====================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #06080d;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      color: #e2e8f0;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Subtle Blueprint Grid Layout for Background */
+    .portfolio-grid-blueprint {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 24px 24px;
+      z-index: 0;
+      pointer-events: none;
+      mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
+    }
+
+    /* Glowing decorative ambient orbs */
+    .bg-glow-orb-1 {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+      top: -200px;
+      left: -200px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .bg-glow-orb-2 {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.035) 0%, rgba(0, 0, 0, 0) 70%);
+      bottom: -200px;
+      right: -200px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .portfolio-container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 6rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* PORTFOLIO HEADER */
+    .portfolio-header {
+      text-align: center;
+      margin-bottom: 5rem;
+    }
+
+    .portfolio-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      margin-bottom: 1.25rem;
+    }
+
+    .portfolio-badge-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #6366f1;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #6366f1;
+    }
+
+    .portfolio-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3rem;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #ffffff 40%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+
+    .portfolio-subtitle {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      max-width: 650px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* GRID FOR PORTFOLIO ITEMS */
+    .portfolio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 2.5rem;
+      width: 100%;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    /* ====================================================== */
+    /* UNIFIED PROJECT PREVIEW CARD DESIGN                    */
+    /* ====================================================== */
+    .project-card {
+      /* Default Theme Fallbacks (Overridden via inline HTML variables) */
+      --project-color: #6366f1;
+      --project-color-rgb: 99, 102, 241;
+      --project-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      --project-accent-color: #a855f7;
+      --project-accent-bg: rgba(168, 85, 247, 0.08);
+
+      max-width: 380px;
+      width: 100%;
+      background: rgba(13, 18, 30, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 1.75rem;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 
+                  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      color: #e2e8f0;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      z-index: 1;
+      margin: 0 auto;
+    }
+
+    .project-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(var(--project-color-rgb), 0.45);
+      box-shadow: 0 25px 50px rgba(var(--project-color-rgb), 0.1),
+                  0 0 30px rgba(var(--project-color-rgb), 0.04),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .project-card-blueprint {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 16px 16px;
+      z-index: 0;
+      pointer-events: none;
+      mask-image: radial-gradient(ellipse at center, black 50%, transparent 90%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 50%, transparent 90%);
+    }
+
+    .project-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .project-preview-logo {
+      width: 38px;
+      height: 38px;
+      background: var(--project-gradient);
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(var(--project-color-rgb), 0.25);
+    }
+
+    .project-preview-logo svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .project-category-chip {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: var(--project-accent-color);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: var(--project-accent-bg);
+      border: 1px solid rgba(var(--project-color-rgb), 0.15);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    .project-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 0.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .project-subtitle {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-bottom: 1.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .project-tech-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .project-tech-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #94a3b8;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    .project-preview-cta {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--project-color);
+      gap: 4px;
+      transition: color 0.3s ease;
+      position: relative;
+      z-index: 1;
+    }
+
+    .project-card:hover .project-preview-cta {
+      filter: brightness(1.15);
+    }
+
+    .project-preview-cta svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.3s ease;
+    }
+
+    .project-card:hover .project-preview-cta svg {
+      transform: translateX(3px);
+    }
+
+    /* DYNAMIC "ADD NEW PROJECT" TEMPLATE HOLDER CARD */
+    .portfolio-add-card {
+      min-height: 380px;
+      border: 2px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.01);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      text-align: center;
+      padding: 2.5rem 2rem;
+      color: #64748b;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .portfolio-add-card:hover {
+      border-color: rgba(99, 102, 241, 0.35);
+      background: rgba(99, 102, 241, 0.02);
+      color: #e2e8f0;
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.04);
+    }
+
+    .portfolio-add-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      color: #94a3b8;
+    }
+
+    .portfolio-add-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .portfolio-add-card:hover .portfolio-add-icon {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      transform: scale(1.1);
+    }
+
+    .portfolio-add-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 0.5rem;
+      transition: color 0.3s ease;
+    }
+
+    .portfolio-add-card:hover .portfolio-add-title {
+      color: #ffffff;
+    }
+
+    .portfolio-add-desc {
+      font-size: 0.85rem;
+      max-width: 260px;
+      line-height: 1.5;
+    }
+
+    /* ====================================================== */
+    /* UNIFIED PROJECT GLASS MODAL DESIGN SYSTEM              */
+    /* ====================================================== */
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .project-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(3, 5, 10, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    .project-modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    .project-modal-content {
+      position: relative;
+      max-width: 580px;
+      width: 100%;
+      transform: scale(0.95) translateY(10px);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 90vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+      border-radius: 28px;
+    }
+
+    .project-modal-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .project-modal-content::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.12);
+      border-radius: 99px;
+    }
+
+    .project-modal-overlay.active .project-modal-content {
+      transform: scale(1) translateY(0);
+    }
+
+    /* GLASS CLOSE BUTTON */
+    .project-modal-close {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      color: #94a3b8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .project-modal-close:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      transform: rotate(90deg) scale(1.05);
+    }
+
+    .project-modal-close svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* EXPANDED INNER MODAL DETAIL CARD */
+    .project-modal-card {
+      /* Dynamic properties matching parent card */
+      --project-color: #6366f1;
+      --project-color-rgb: 99, 102, 241;
+      --project-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      --project-accent-color: #a855f7;
+      --project-accent-bg: rgba(168, 85, 247, 0.08);
+      --project-glow: rgba(99, 102, 241, 0.22);
+
+      width: 100%;
+      background: rgba(13, 18, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      padding: 2.5rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), 
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      text-align: left;
+    }
+
+    .project-modal-card::before {
+      content: '';
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, var(--project-glow) 0%, rgba(var(--project-color-rgb), 0) 70%);
+      top: -90px;
+      right: -90px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .project-modal-card-blueprint {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 24px 24px;
+      z-index: 0;
+      pointer-events: none;
+      mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+    }
+
+    .project-card-header-inner {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-right: 2.5rem;
+    }
+
+    .project-logo-container {
+      width: 44px;
+      height: 44px;
+      background: var(--project-gradient);
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 8px 16px rgba(var(--project-color-rgb), 0.3);
+    }
+
+    .project-logo-container svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .project-card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      background: var(--project-accent-bg);
+      border: 1px solid rgba(var(--project-color-rgb), 0.25);
+      color: var(--project-accent-color);
+      filter: brightness(1.2);
+    }
+
+    .project-status-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: project-pulse-badge-green 1.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes project-pulse-badge-green {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+
+    .project-title-group {
+      position: relative;
+      z-index: 2;
+      margin-bottom: 1.25rem;
+    }
+
+    .project-modal-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.15;
+      background: linear-gradient(120deg, #ffffff 40%, var(--project-accent-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.35rem;
+      letter-spacing: -0.5px;
+    }
+
+    .project-modal-subtitle {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #94a3b8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .project-description {
+      position: relative;
+      z-index: 2;
+      font-size: 0.95rem;
+      line-height: 1.65;
+      color: #94a3b8;
+      margin-bottom: 2rem;
+    }
+
+    /* INLINE SCHEMATIC DRAWING WRAPPER */
+    .project-schematic-container {
+      width: 100%;
+      margin: 1.75rem auto 2rem;
+      position: relative;
+      background: radial-gradient(ellipse at center, rgba(var(--project-color-rgb), 0.07) 0%, transparent 65%);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      background-color: rgba(9, 13, 22, 0.5);
+      padding: 1rem 0.5rem;
+      z-index: 2;
+    }
+
+    .project-schematic-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* ====================================================== */
+    /* SCHEMATIC SVG GENERIC ANIMATION KEYFRAMES & TRACKS     */
+    /* ====================================================== */
+    .schematic-track-lines path {
+      stroke: rgba(255, 255, 255, 0.05);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .schematic-particle {
+      stroke-dasharray: 40, 400;
+      stroke-dashoffset: 400;
+      filter: drop-shadow(0 0 6px currentColor);
+    }
+
+    .p-flow-1 { animation: schematic-flow-forward 4s linear infinite; }
+    .p-flow-2 { animation: schematic-flow-forward 3.2s linear infinite 0.6s; }
+    .p-flow-3 { animation: schematic-flow-forward 4.5s linear infinite 1.2s; }
+    .p-flow-4 { animation: schematic-flow-forward 3.8s linear infinite 0.3s; }
+    .p-flow-5 { animation: schematic-flow-forward 3s linear infinite 0.9s; }
+    .p-flow-6 { animation: schematic-flow-forward 4.8s linear infinite 0.5s; }
+
+    @keyframes schematic-flow-forward {
+      0% { stroke-dashoffset: 400; }
+      100% { stroke-dashoffset: -400; }
+    }
+
+    .schematic-node-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 8.5px;
+      font-weight: 800;
+      fill: #64748b;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .schematic-pulse-node {
+      animation: schematic-pulse-node-scale 2s infinite alternate ease-in-out;
+      filter: drop-shadow(0 0 8px var(--project-color));
+    }
+
+    @keyframes schematic-pulse-node-scale {
+      0% { transform: scale(0.85); transform-origin: 400px 80px; }
+      100% { transform: scale(1.15); transform-origin: 400px 80px; }
+    }
+
+    .schematic-radar-ping {
+      transform-origin: 400px 80px;
+      animation: schematic-radar-ping-anim 3s infinite ease-out;
+    }
+
+    .schematic-radar-ping-delay {
+      transform-origin: 400px 80px;
+      animation: schematic-radar-ping-anim 3s infinite ease-out 1.5s;
+    }
+
+    @keyframes schematic-radar-ping-anim {
+      0% { transform: scale(0.6); opacity: 0.8; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    /* BENEFITS LIST */
+    .project-features-list {
+      position: relative;
+      z-index: 2;
+      list-style: none;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .project-feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+
+    .project-feature-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      margin-top: 0.15rem;
+    }
+
+    .project-feature-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: var(--project-color);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .project-feature-text strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    /* TECHNICAL BADGES */
+    .project-tags {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2.25rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 1.5rem;
+    }
+
+    .project-tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #94a3b8;
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .project-tag:hover {
+      color: #ffffff;
+      background: rgba(var(--project-color-rgb), 0.15);
+      border-color: rgba(var(--project-color-rgb), 0.35);
+      transform: translateY(-2px);
+    }
+
+    /* PRIMARY LIQUID SHIMMER BUTTON */
+    .project-action-btn {
+      position: relative;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 1rem;
+      background: var(--project-gradient);
+      background-size: 200% auto;
+      border: none;
+      border-radius: 14px;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 6px 20px rgba(var(--project-color-rgb), 0.25);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: project-liquid-shimmer 4s infinite linear;
+    }
+
+    /* Light overlay text color tweak for gold-style button if required */
+    .project-action-btn.dark-btn-text {
+      color: #06080d !important;
+    }
+
+    .project-action-btn svg {
+      width: 18px;
+      height: 18px;
+      margin-left: 6px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.3s ease;
+    }
+
+    .project-action-btn:hover svg {
+      transform: translateX(5px);
+    }
+
+    @keyframes project-liquid-shimmer {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    /* FOOTER */
+    .portfolio-footer {
+      text-align: center;
+      margin-top: 6rem;
+      font-size: 0.85rem;
+      color: #475569;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 2rem;
+    }
+
+    .portfolio-footer a {
+      color: #6366f1;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .portfolio-footer a:hover {
+      color: #818cf8;
+    }
+
+    /* RESPONSIVE LAYOUT ADJUSTMENTS */
+    @media (max-width: 991px) {
+      .portfolio-title {
+        font-size: 2.5rem;
+      }
+      .portfolio-container {
+        padding: 4rem 1.5rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .project-modal-card {
+        padding: 1.75rem;
+      }
+      .project-modal-title {
+        font-size: 1.65rem;
+      }
+      .project-schematic-container {
+        padding: 0.75rem 0.25rem;
+        margin: 1.25rem auto 1.5rem;
+      }
+      .project-modal-close {
+        top: 0.75rem;
+        right: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BACKGROUND DESIGN ELEMENTS -->
+  <div class="portfolio-grid-blueprint"></div>
+  <div class="bg-glow-orb-1"></div>
+  <div class="bg-glow-orb-2"></div>
+
+  <!-- PORTFOLIO CONTAINER -->
+  <div class="portfolio-container">
+    
+    <!-- HEADER -->
+    <header class="portfolio-header">
+      <div class="portfolio-badge">
+        <span class="portfolio-badge-dot"></span>
+        <span>rp42dev • WordPress Architect</span>
+      </div>
+      <h1 class="portfolio-title">Premium Plugins Showcase</h1>
+      <p class="portfolio-subtitle">
+        A curated suite of enterprise-grade, high-converting WordPress integrations designed natively to automate and run your client workflows.
+      </p>
+    </header>
+
+    <!-- PROJECT SHOWCASE GRID -->
+    <main class="portfolio-grid">
+
+      <!-- ITEM 1: SIMPLE BOOKING CARD (Indigo Styled via CSS variables) -->
+      <div class="project-card" 
+           style="
+             --project-color: #6366f1; 
+             --project-color-rgb: 99, 102, 241; 
+             --project-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+             --project-accent-color: #a855f7;
+             --project-accent-bg: rgba(168, 85, 247, 0.08);
+           "
+           data-project-target="simple-booking-modal">
+        <div class="project-card-blueprint"></div>
+        
+        <div class="project-card-header">
+          <div class="project-preview-logo">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2.2" fill="none"/>
+              <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2.2"/>
+              <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2.2"/>
+              <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2.2"/>
+              <path d="M8 14h.01M12 14h.01M16 14h.01" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="project-category-chip">WordPress</span>
+        </div>
+
+        <div>
+          <h4 class="project-title">Simple Booking</h4>
+          <p class="project-subtitle">Enterprise WordPress booking engine with Stripe, Google, and Microsoft Outlook calendar sync integrations.</p>
+        </div>
+
+        <div>
+          <div class="project-tech-row">
+            <span class="project-tech-badge">PHP 8</span>
+            <span class="project-tech-badge">Stripe API</span>
+            <span class="project-tech-badge">MS Graph</span>
+            <span class="project-tech-badge">OAuth 2.0</span>
+          </div>
+
+          <span class="project-preview-cta">
+            View Project System
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- ITEM 2: ONBOARDING PORTAL CARD (Amber Styled via CSS variables) -->
+      <div class="project-card" 
+           style="
+             --project-color: #f59e0b; 
+             --project-color-rgb: 245, 158, 11; 
+             --project-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+             --project-accent-color: #f59e0b;
+             --project-accent-bg: rgba(245, 158, 11, 0.08);
+           "
+           data-project-target="onboarding-portal-modal">
+        <div class="project-card-blueprint"></div>
+        
+        <div class="project-card-header">
+          <div class="project-preview-logo">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </div>
+          <span class="project-category-chip">WordPress</span>
+        </div>
+
+        <div>
+          <h4 class="project-title">Onboarding Portal</h4>
+          <p class="project-subtitle">A premium, high-converting agency client onboarding and dynamic project roadmap engine featuring interactive Stripe milestone payments.</p>
+        </div>
+
+        <div>
+          <div class="project-tech-row">
+            <span class="project-tech-badge">WP Core</span>
+            <span class="project-tech-badge">Stripe SDK</span>
+            <span class="project-tech-badge">Signatures</span>
+            <span class="project-tech-badge">PDF Automation</span>
+          </div>
+
+          <span class="project-preview-cta">
+            View Onboarding System
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      /* DEVELOPER GUIDANCE: TO ADD A THIRD CARD, COPY ITEM 1 OR 2 ABOVE,   */
+      /* AND FILL IN THE DYNAMIC INLINE VARIABLES WITH YOUR NEW ACCENTS!   */
+      <!-- ================================================================= -->
+
+      <!-- DYNAMIC ADD PROJECT TEMPLATE HOLDER -->
+      <div class="portfolio-add-card" id="add-project-btn">
+        <div class="portfolio-add-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </div>
+        <h4 class="portfolio-add-title">Add New Plugin</h4>
+        <p class="portfolio-add-desc">Copy-paste either card HTML from this file, assign a new target ID, and customize with your next premium product!</p>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="portfolio-footer">
+      <p>&copy; 2026 rp42dev. Made with premium design aesthetics by <a href="#" target="_blank">Antigravity AI</a>.</p>
+    </footer>
+
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- MODAL 1: SIMPLE BOOKING DETAIL MODAL                 -->
+  <!-- ==================================================== -->
+  <div class="project-modal-overlay" id="simple-booking-modal">
+    <div class="project-modal-content">
+      
+      <button class="project-modal-close" aria-label="Close details">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      
+      <div class="project-modal-card"
+           style="
+             --project-color: #6366f1; 
+             --project-color-rgb: 99, 102, 241; 
+             --project-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+             --project-accent-color: #a855f7;
+             --project-accent-bg: rgba(168, 85, 247, 0.12);
+             --project-glow: rgba(99, 102, 241, 0.22);
+           ">
+        <div class="project-modal-card-blueprint"></div>
+
+        <div class="project-card-header-inner">
+          <div class="project-logo-container">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+              <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
+              <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/>
+              <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="project-card-badge">
+            <span class="project-status-dot"></span>
+            <span>WordPress Engine • v3.0.17</span>
+          </div>
+        </div>
+
+        <div class="project-title-group">
+          <h3 class="project-modal-title">Simple Booking</h3>
+          <p class="project-modal-subtitle">Automated Scheduling Ecosystem</p>
+        </div>
+
+        <p class="project-description">
+          A lightweight, highly resilient, and modular scheduling orchestrator for WordPress. Integrates secure payment gateways, dual-calendar syncing, and automated virtual meeting utilities natively with zero external platform lock-in.
+        </p>
+
+        <!-- HIGH-FIDELITY ANIMATION SCHEMATIC -->
+        <div class="project-schematic-container">
+          <svg viewBox="0 0 800 160" class="project-schematic-svg" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="sb-grad-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0" />
+                <stop offset="50%" stop-color="#06b6d4" />
+                <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="sb-grad-green" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
+                <stop offset="50%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="sb-grad-purple" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#a855f7" stop-opacity="0" />
+                <stop offset="50%" stop-color="#a855f7" />
+                <stop offset="100%" stop-color="#a855f7" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="sb-grad-indigo" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#6366f1" stop-opacity="0" />
+                <stop offset="50%" stop-color="#6366f1" />
+                <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="sb-grad-red" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ef4444" stop-opacity="0" />
+                <stop offset="50%" stop-color="#ef4444" />
+                <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+
+            <!-- Pathways -->
+            <g class="schematic-track-lines">
+              <path d="M 110,40 C 250,40 250,80 400,80" />
+              <path d="M 110,80 L 400,80" />
+              <path d="M 110,120 C 250,120 250,80 400,80" />
+              <path d="M 400,80 C 550,80 550,40 690,40" />
+              <path d="M 400,80 L 690,80" />
+              <path d="M 400,80 C 550,80 550,120 690,120" />
+            </g>
+
+            <!-- Dynamic Flowing Particles -->
+            <g fill="none" stroke-width="3" stroke-linecap="round">
+              <path class="schematic-particle p-flow-1" stroke="url(#sb-grad-cyan)" d="M 110,40 C 250,40 250,80 400,80" />
+              <path class="schematic-particle p-flow-2" stroke="url(#sb-grad-green)" d="M 110,80 L 400,80" />
+              <path class="schematic-particle p-flow-3" stroke="url(#sb-grad-purple)" d="M 110,120 C 250,120 250,80 400,80" />
+              <path class="schematic-particle p-flow-4" stroke="url(#sb-grad-indigo)" d="M 400,80 C 550,80 550,40 690,40" />
+              <path class="schematic-particle p-flow-5" stroke="url(#sb-grad-red)" d="M 400,80 L 690,80" />
+              <path class="schematic-particle p-flow-6" stroke="url(#sb-grad-cyan)" d="M 400,80 C 550,80 550,120 690,120" />
+            </g>
+
+            <!-- Connections & Label Overlays -->
+            <g>
+              <circle cx="400" cy="80" r="14" fill="#080c14" stroke="#10b981" stroke-width="2.5" />
+              <circle cx="400" cy="80" r="5" fill="#10b981" class="schematic-pulse-node" />
+              <circle cx="400" cy="80" r="22" fill="none" stroke="#10b981" stroke-width="1.5" opacity="0.4" class="schematic-radar-ping" />
+              <circle cx="400" cy="80" r="22" fill="none" stroke="#10b981" stroke-width="1" opacity="0.2" class="schematic-radar-ping-delay" />
+              <text x="400" y="52" text-anchor="middle" class="schematic-node-label" font-weight="900" fill="#10b981">Booking Engine</text>
+
+              <circle cx="110" cy="40" r="4.5" fill="#080c14" stroke="#06b6d4" stroke-width="2.5" />
+              <text x="95" y="43" text-anchor="end" class="schematic-node-label">Customer</text>
+
+              <circle cx="110" cy="80" r="4.5" fill="#080c14" stroke="#10b981" stroke-width="2.5" />
+              <text x="95" y="83" text-anchor="end" class="schematic-node-label">WP Core</text>
+
+              <circle cx="110" cy="120" r="4.5" fill="#080c14" stroke="#a855f7" stroke-width="2.5" />
+              <text x="95" y="123" text-anchor="end" class="schematic-node-label">Staff UI</text>
+
+              <circle cx="690" cy="40" r="4.5" fill="#080c14" stroke="#6366f1" stroke-width="2.5" />
+              <text x="705" y="43" text-anchor="start" class="schematic-node-label">Stripe API</text>
+
+              <circle cx="690" cy="80" r="4.5" fill="#080c14" stroke="#ef4444" stroke-width="2.5" />
+              <text x="705" y="83" text-anchor="start" class="schematic-node-label">Google Cal</text>
+
+              <circle cx="690" cy="120" r="4.5" fill="#080c14" stroke="#0ea5e9" stroke-width="2.5" />
+              <text x="705" y="123" text-anchor="start" class="schematic-node-label">Outlook Cal</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Dynamic Feature Bullet Points -->
+        <ul class="project-features-list">
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Smart Payments:</strong> Seamless Stripe Checkout integration supporting both paid reservations and instant free bookings.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Dual-Calendar Sync:</strong> Automated, real-time bi-directional synchronization via Google Calendar and Microsoft Graph APIs.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Fault-Tolerant Webhooks:</strong> An advanced background webhook retry queue guaranteeing data and booking integrity.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Secure Management:</strong> Clean Customer Dashboard with tokenized URL links for secure, code-free reschedules and cancellations.</span>
+          </li>
+        </ul>
+
+        <!-- Tech Stack Tags -->
+        <div class="project-tags">
+          <span class="project-tag">WordPress Core</span>
+          <span class="project-tag">PHP 8+</span>
+          <span class="project-tag">Stripe API</span>
+          <span class="project-tag">MS Graph API</span>
+          <span class="project-tag">Google OAuth</span>
+          <span class="project-tag">Vanilla JS</span>
+        </div>
+
+        <!-- Call-to-Action Link Button -->
+        <a href="https://github.com/rp42dev/simple-booking-wp" class="project-action-btn" target="_blank" rel="noopener noreferrer">
+          Explore Booking Repository
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- MODAL 2: ONBOARDING PORTAL DETAIL MODAL              -->
+  <!-- ==================================================== -->
+  <div class="project-modal-overlay" id="onboarding-portal-modal">
+    <div class="project-modal-content">
+      
+      <button class="project-modal-close" aria-label="Close details">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      
+      <div class="project-modal-card"
+           style="
+             --project-color: #f59e0b; 
+             --project-color-rgb: 245, 158, 11; 
+             --project-gradient: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #b45309 100%);
+             --project-accent-color: #ffe08a;
+             --project-accent-bg: rgba(245, 158, 11, 0.1);
+             --project-glow: rgba(245, 158, 11, 0.18);
+           ">
+        <div class="project-modal-card-blueprint"></div>
+
+        <div class="project-card-header-inner">
+          <div class="project-logo-container">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </div>
+          <div class="project-card-badge">
+            <span class="project-status-dot"></span>
+            <span>Agency Portal • v1.0.0</span>
+          </div>
+        </div>
+
+        <div class="project-title-group">
+          <h3 class="project-modal-title">Onboarding Portal</h3>
+          <p class="project-modal-subtitle">Milestone-Driven Agency Client System</p>
+        </div>
+
+        <p class="project-description">
+          An enterprise-grade client workspace and project management plugin for agencies. Direct client registration dynamically converts into structured roadmap milestones, securing payments and legal agreements natively inside WordPress.
+        </p>
+
+        <!-- HIGH-FIDELITY ANIMATION SCHEMATIC -->
+        <div class="project-schematic-container">
+          <svg viewBox="0 0 800 160" class="project-schematic-svg" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="op-grad-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0" />
+                <stop offset="50%" stop-color="#06b6d4" />
+                <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="op-grad-green" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
+                <stop offset="50%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="op-grad-purple" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#a855f7" stop-opacity="0" />
+                <stop offset="50%" stop-color="#a855f7" />
+                <stop offset="100%" stop-color="#a855f7" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="op-grad-indigo" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#6366f1" stop-opacity="0" />
+                <stop offset="50%" stop-color="#6366f1" />
+                <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="op-grad-amber" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#f59e0b" stop-opacity="0" />
+                <stop offset="50%" stop-color="#f59e0b" />
+                <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+
+            <!-- Pathways -->
+            <g class="schematic-track-lines">
+              <path d="M 110,40 C 250,40 250,80 400,80" />
+              <path d="M 110,80 L 400,80" />
+              <path d="M 110,120 C 250,120 250,80 400,80" />
+              <path d="M 400,80 C 550,80 550,40 690,40" />
+              <path d="M 400,80 L 690,80" />
+              <path d="M 400,80 C 550,80 550,120 690,120" />
+            </g>
+
+            <!-- Dynamic Flowing Particles -->
+            <g fill="none" stroke-width="3" stroke-linecap="round">
+              <path class="schematic-particle p-flow-1" stroke="url(#op-grad-cyan)" d="M 110,40 C 250,40 250,80 400,80" />
+              <path class="schematic-particle p-flow-2" stroke="url(#op-grad-green)" d="M 110,80 L 400,80" />
+              <path class="schematic-particle p-flow-3" stroke="url(#op-grad-purple)" d="M 110,120 C 250,120 250,80 400,80" />
+              <path class="schematic-particle p-flow-4" stroke="url(#op-grad-indigo)" d="M 400,80 C 550,80 550,40 690,40" />
+              <path class="schematic-particle p-flow-5" stroke="url(#op-grad-amber)" d="M 400,80 L 690,80" />
+              <path class="schematic-particle p-flow-6" stroke="url(#op-grad-cyan)" d="M 400,80 C 550,80 550,120 690,120" />
+            </g>
+
+            <!-- Connections & Label Overlays -->
+            <g>
+              <circle cx="400" cy="80" r="14" fill="#06080d" stroke="#f59e0b" stroke-width="2.5" />
+              <circle cx="400" cy="80" r="5" fill="#f59e0b" class="schematic-pulse-node" />
+              <circle cx="400" cy="80" r="22" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.4" class="schematic-radar-ping" />
+              <circle cx="400" cy="80" r="22" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.2" class="schematic-radar-ping-delay" />
+              <text x="400" y="52" text-anchor="middle" class="schematic-node-label" font-weight="900" fill="#f59e0b">Portal Engine</text>
+
+              <circle cx="110" cy="40" r="4.5" fill="#06080d" stroke="#06b6d4" stroke-width="2.5" />
+              <text x="95" y="43" text-anchor="end" class="schematic-node-label">Client Identity</text>
+
+              <circle cx="110" cy="80" r="4.5" fill="#06080d" stroke="#10b981" stroke-width="2.5" />
+              <text x="95" y="83" text-anchor="end" class="schematic-node-label">Packages</text>
+
+              <circle cx="110" cy="120" r="4.5" fill="#06080d" stroke="#a855f7" stroke-width="2.5" />
+              <text x="95" y="123" text-anchor="end" class="schematic-node-label">Signature</text>
+
+              <circle cx="690" cy="40" r="4.5" fill="#06080d" stroke="#6366f1" stroke-width="2.5" />
+              <text x="705" y="43" text-anchor="start" class="schematic-node-label">Stripe Milestones</text>
+
+              <circle cx="690" cy="80" r="4.5" fill="#06080d" stroke="#f59e0b" stroke-width="2.5" />
+              <text x="705" y="83" text-anchor="start" class="schematic-node-label">Live Roadmap</text>
+
+              <circle cx="690" cy="120" r="4.5" fill="#06080d" stroke="#0ea5e9" stroke-width="2.5" />
+              <text x="705" y="123" text-anchor="start" class="schematic-node-label">Agency Dashboard</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Dynamic Feature Bullet Points -->
+        <ul class="project-features-list">
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Micro-Commitment Intake:</strong> Optimized lead flows capturing identity, timeline goals, and project vision.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Milestone Paid Roadmaps:</strong> Divides project scopes into structural milestones with auto-locking progress gates.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Interactive Proposals:</strong> Integrated signature pads and package selectors supporting one-click PDF exports.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Agency Analytics:</strong> Direct cycle-time charts, conversion analytics, and private admin memo integration.</span>
+          </li>
+        </ul>
+
+        <!-- Tech Stack Tags -->
+        <div class="project-tags">
+          <span class="project-tag">WordPress Core</span>
+          <span class="project-tag">PHP 8+</span>
+          <span class="project-tag">Stripe SDK</span>
+          <span class="project-tag">HTML5 Canvas</span>
+          <span class="project-tag">PDF Automation</span>
+          <span class="project-tag">Vanilla JS</span>
+        </div>
+
+        <!-- Call-to-Action Link Button -->
+        <a href="https://github.com/rp42dev/wp-onboarding-plugin" class="project-action-btn dark-btn-text" target="_blank" rel="noopener noreferrer">
+          Explore Onboarding Repository
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  /* DEVELOPER GUIDANCE: TO ADD A THIRD DETAILED MODAL POPUP, COPY      */
+  /* ONE OF THE MODAL WRAPPERS ABOVE, ASSIGN IT THE TARGET ID YOU USED */
+  /* ON THE PREVIEW CARD, AND CUSTOMIZE VARIABLES & BRAND TEXTS!       */
+  <!-- ================================================================= -->
+
+  <!-- ==================================================== -->
+  <!-- DYNAMIC PORTFOLIO INTERACTION CONTROLLER SCRIPT     -->
+  <!-- ==================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Select all interactive project preview cards
+      const cards = document.querySelectorAll('[data-project-target]');
+      const closeBtns = document.querySelectorAll('.project-modal-close');
+      const overlays = document.querySelectorAll('.project-modal-overlay');
+
+      // 1. Dynamic Open Modal Flow
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          const targetId = card.getAttribute('data-project-target');
+          const targetModal = document.getElementById(targetId);
+          
+          if (targetModal) {
+            targetModal.classList.add('active');
+            document.body.classList.add('modal-open');
+          }
+        });
+      });
+
+      // 2. Dynamic Close Modal Flow (Close Button)
+      closeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation(); // Avoid triggering card click bubbling
+          const parentOverlay = btn.closest('.project-modal-overlay');
+          if (parentOverlay) {
+            closeModal(parentOverlay);
+          }
+        });
+      });
+
+      // 3. Dynamic Close Modal Flow (Click Outside of Modal Box)
+      overlays.forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) {
+            closeModal(overlay);
+          }
+        });
+      });
+
+      // 4. Escape Key Bindings
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const activeOverlay = document.querySelector('.project-modal-overlay.active');
+          if (activeOverlay) {
+            closeModal(activeOverlay);
+          }
+        }
+      });
+
+      // Helper function to cleanly dismiss modals and restore page scrolls
+      function closeModal(overlay) {
+        overlay.classList.remove('active');
+
+        // Check if any other overlay is still active before clearing body states
+        const anyActive = Array.from(overlays).some(m => m.classList.contains('active'));
+        if (!anyActive) {
+          document.body.classList.remove('modal-open');
+        }
+      }
+
+      // Add project alert placeholder connection
+      const addBtn = document.getElementById('add-project-btn');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          alert('To add another project:\n\n1. Open this portfolio.html file.\n2. Copy the HTML for one of the cards (e.g. Simple Booking or Onboarding Portal).\n3. Assign it a new "data-project-target" ID.\n4. Paste the matching modal overlay markup at the bottom of the page.\n5. Customize the inline style variables (theme colors, gradient, glow, etc.) and contents!\n\nNo Javascript changes required - the controller dynamically handles everything!');
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>
