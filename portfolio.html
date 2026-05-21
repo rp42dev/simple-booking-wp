@@ -653,7 +653,7 @@
     }
 
     /* ====================================================== */
-    /* SCHEMATIC SVG GENERIC ANIMATION KEYFRAMES & TRACKS     */
+    /* SCHEMATIC SVG STATIC STYLING (LIGHTWEIGHT BLUEPRINTS)  */
     /* ====================================================== */
     .schematic-track-lines path {
       stroke: rgba(255, 255, 255, 0.05);
@@ -662,21 +662,7 @@
     }
 
     .schematic-particle {
-      stroke-dasharray: 40, 400;
-      stroke-dashoffset: 400;
-      filter: drop-shadow(0 0 6px currentColor);
-    }
-
-    .project-modal-overlay.active .p-flow-1 { animation: schematic-flow-forward 4s linear infinite; }
-    .project-modal-overlay.active .p-flow-2 { animation: schematic-flow-forward 3.2s linear infinite 0.6s; }
-    .project-modal-overlay.active .p-flow-3 { animation: schematic-flow-forward 4.5s linear infinite 1.2s; }
-    .project-modal-overlay.active .p-flow-4 { animation: schematic-flow-forward 3.8s linear infinite 0.3s; }
-    .project-modal-overlay.active .p-flow-5 { animation: schematic-flow-forward 3s linear infinite 0.9s; }
-    .project-modal-overlay.active .p-flow-6 { animation: schematic-flow-forward 4.8s linear infinite 0.5s; }
-
-    @keyframes schematic-flow-forward {
-      0% { stroke-dashoffset: 400; }
-      100% { stroke-dashoffset: -400; }
+      display: none; /* Keep the drawing static and lightweight */
     }
 
     .schematic-node-label {
@@ -689,37 +675,12 @@
     }
 
     .schematic-pulse-node {
-      filter: drop-shadow(0 0 8px var(--project-color));
+      filter: drop-shadow(0 0 6px var(--project-color));
     }
 
-    .project-modal-overlay.active .schematic-pulse-node {
-      animation: schematic-pulse-node-scale 2s infinite alternate ease-in-out;
-    }
-
-    @keyframes schematic-pulse-node-scale {
-      0% { transform: scale(0.85); transform-origin: 400px 80px; }
-      100% { transform: scale(1.15); transform-origin: 400px 80px; }
-    }
-
-    .schematic-radar-ping {
-      transform-origin: 400px 80px;
-    }
-
+    .schematic-radar-ping,
     .schematic-radar-ping-delay {
-      transform-origin: 400px 80px;
-    }
-
-    .project-modal-overlay.active .schematic-radar-ping {
-      animation: schematic-radar-ping-anim 3s infinite ease-out;
-    }
-
-    .project-modal-overlay.active .schematic-radar-ping-delay {
-      animation: schematic-radar-ping-anim 3s infinite ease-out 1.5s;
-    }
-
-    @keyframes schematic-radar-ping-anim {
-      0% { transform: scale(0.6); opacity: 0.8; }
-      100% { transform: scale(2.4); opacity: 0; }
+      display: none; /* Hide animated radar ripples when static */
     }
 
     /* BENEFITS LIST */
