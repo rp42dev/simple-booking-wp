@@ -1090,6 +1090,52 @@
         </div>
       </div>
 
+      <!-- ITEM 5: NORD CRAFT SOLUTIONS CARD (Ice Blue/Slate Styled via CSS variables) -->
+      <div class="project-card" 
+           style="
+             --project-color: #0ea5e9; 
+             --project-color-rgb: 14, 165, 233; 
+             --project-gradient: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #06b6d4 100%);
+             --project-accent-color: #7dd3fc;
+             --project-accent-bg: rgba(14, 165, 233, 0.08);
+           "
+           data-project-target="nord-craft-solutions-modal">
+        <div class="project-card-blueprint"></div>
+        
+        <div class="project-card-header">
+          <div class="project-preview-logo">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9.5L12 4l9 5.5v5L12 20l-9-5.5v-5z" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/>
+              <path d="M12 4v16M3 9.5l18 5M3 14.5l18-5" stroke="currentColor" stroke-width="1.2" opacity="0.6" stroke-dasharray="2,2"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" fill="none"/>
+            </svg>
+          </div>
+          <span class="project-category-chip" style="--project-accent-color: #10b981; --project-accent-bg: rgba(16, 185, 129, 0.08);">Production Live</span>
+        </div>
+
+        <div>
+          <h4 class="project-title">Nord Craft Solutions</h4>
+          <p class="project-subtitle">A high-performance custom WordPress theme using Timber/Twig and Polylang, supporting bilingual content, structured ACF layouts, and perfect PageSpeed metrics.</p>
+        </div>
+
+        <div>
+          <div class="project-tech-row">
+            <span class="project-tech-badge">Timber/Twig</span>
+            <span class="project-tech-badge">ACF Pro</span>
+            <span class="project-tech-badge">Bilingual</span>
+            <span class="project-tech-badge">Core Vitals</span>
+          </div>
+
+          <span class="project-preview-cta">
+            Explore Project
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </div>
+      </div>
+
 
       <!-- ================================================================= -->
       /* DEVELOPER GUIDANCE: TO ADD A THIRD CARD, COPY ITEM 1 OR 2 ABOVE,   */
@@ -1855,6 +1901,192 @@
         <!-- Call-to-Action Link Button -->
         <a href="https://github.com/rp42dev/ai-content-engine" class="project-action-btn" target="_blank" rel="noopener noreferrer">
           Explore Enterprise Engine
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- MODAL 5: NORD CRAFT SOLUTIONS DETAIL MODAL           -->
+  <!-- ==================================================== -->
+  <div class="project-modal-overlay" id="nord-craft-solutions-modal">
+    <div class="project-modal-content">
+      
+      <button class="project-modal-close" aria-label="Close details">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      
+      <div class="project-modal-card"
+           style="
+             --project-color: #0ea5e9; 
+             --project-color-rgb: 14, 165, 233; 
+             --project-gradient: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #06b6d4 100%);
+             --project-accent-color: #7dd3fc;
+             --project-accent-bg: rgba(14, 165, 233, 0.1);
+             --project-glow: rgba(14, 165, 233, 0.18);
+           ">
+        <div class="project-modal-card-blueprint"></div>
+
+        <div class="project-card-header-inner">
+          <div class="project-logo-container">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9.5L12 4l9 5.5v5L12 20l-9-5.5v-5z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/>
+              <path d="M12 4v16M3 9.5l18 5M3 14.5l18-5" stroke="currentColor" stroke-width="1" opacity="0.6" stroke-dasharray="2,2"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            </svg>
+          </div>
+          <div class="project-card-badge">
+            <span class="project-status-dot" style="background-color: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+            <span>Production Live • v1.2.0</span>
+          </div>
+        </div>
+
+        <div class="project-title-group">
+          <h3 class="project-modal-title">Nord Craft Solutions</h3>
+          <p class="project-modal-subtitle">Bespoke Multi-Lingual Timber & Twig Engine</p>
+        </div>
+
+        <p class="project-description">
+          A high-performance custom WordPress theme built for a premier Scandinavian contracting and carpentry firm. Features a decoupled Timber/Twig MVC-inspired template layer, highly-structured ACF Pro page components, and a robust SEO-optimized bilingual translation scheme (English & Norwegian) with instant local switching.
+        </p>
+
+        <!-- HIGH-FIDELITY ANIMATION SCHEMATIC -->
+        <div class="project-schematic-container">
+          <svg viewBox="0 0 800 160" class="project-schematic-svg" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="ncs-grad-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0" />
+                <stop offset="50%" stop-color="#0ea5e9" />
+                <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="ncs-grad-green" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
+                <stop offset="50%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="ncs-grad-emerald" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#059669" stop-opacity="0" />
+                <stop offset="50%" stop-color="#059669" />
+                <stop offset="100%" stop-color="#059669" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="ncs-grad-sky" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0" />
+                <stop offset="50%" stop-color="#38bdf8" />
+                <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="ncs-grad-blue" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#0284c7" stop-opacity="0" />
+                <stop offset="50%" stop-color="#0284c7" />
+                <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+
+            <!-- Pathways -->
+            <g class="schematic-track-lines">
+              <path d="M 110,40 C 250,40 250,80 400,80" />
+              <path d="M 110,80 L 400,80" />
+              <path d="M 110,120 C 250,120 250,80 400,80" />
+              <path d="M 400,80 C 550,80 550,40 690,40" />
+              <path d="M 400,80 L 690,80" />
+              <path d="M 400,80 C 550,80 550,120 690,120" />
+            </g>
+
+            <!-- Dynamic Flowing Particles -->
+            <g fill="none" stroke-width="3" stroke-linecap="round">
+              <path class="schematic-particle p-flow-1" stroke="url(#ncs-grad-cyan)" d="M 110,40 C 250,40 250,80 400,80" />
+              <path class="schematic-particle p-flow-2" stroke="url(#ncs-grad-sky)" d="M 110,80 L 400,80" />
+              <path class="schematic-particle p-flow-3" stroke="url(#ncs-grad-blue)" d="M 110,120 C 250,120 250,80 400,80" />
+              <path class="schematic-particle p-flow-4" stroke="url(#ncs-grad-green)" d="M 400,80 C 550,80 550,40 690,40" />
+              <path class="schematic-particle p-flow-5" stroke="url(#ncs-grad-cyan)" d="M 400,80 L 690,80" />
+              <path class="schematic-particle p-flow-6" stroke="url(#ncs-grad-emerald)" d="M 400,80 C 550,80 550,120 690,120" />
+            </g>
+
+            <!-- Connections & Label Overlays -->
+            <g>
+              <circle cx="400" cy="80" r="14" fill="#06080d" stroke="#0ea5e9" stroke-width="2.5" />
+              <circle cx="400" cy="80" r="5" fill="#0ea5e9" class="schematic-pulse-node" />
+              <circle cx="400" cy="80" r="22" fill="none" stroke="#0ea5e9" stroke-width="1.5" opacity="0.4" class="schematic-radar-ping" />
+              <circle cx="400" cy="80" r="22" fill="none" stroke="#0ea5e9" stroke-width="1" opacity="0.2" class="schematic-radar-ping-delay" />
+              <text x="400" y="52" text-anchor="middle" class="schematic-node-label" font-weight="900" fill="#0ea5e9">Theme Core</text>
+
+              <circle cx="110" cy="40" r="4.5" fill="#06080d" stroke="#38bdf8" stroke-width="2.5" />
+              <text x="95" y="43" text-anchor="end" class="schematic-node-label">Timber & Twig</text>
+
+              <circle cx="110" cy="80" r="4.5" fill="#06080d" stroke="#0ea5e9" stroke-width="2.5" />
+              <text x="95" y="83" text-anchor="end" class="schematic-node-label">ACF Pro Layouts</text>
+
+              <circle cx="110" cy="120" r="4.5" fill="#06080d" stroke="#0284c7" stroke-width="2.5" />
+              <text x="95" y="123" text-anchor="end" class="schematic-node-label">Polylang Engine</text>
+
+              <circle cx="690" cy="40" r="4.5" fill="#06080d" stroke="#10b981" stroke-width="2.5" />
+              <text x="705" y="43" text-anchor="start" class="schematic-node-label">PageSpeed 95+</text>
+
+              <circle cx="690" cy="80" r="4.5" fill="#06080d" stroke="#0ea5e9" stroke-width="2.5" />
+              <text x="705" y="83" text-anchor="start" class="schematic-node-label">Gutenberg Blocks</text>
+
+              <circle cx="690" cy="120" r="4.5" fill="#06080d" stroke="#059669" stroke-width="2.5" />
+              <text x="705" y="123" text-anchor="start" class="schematic-node-label">nordcraftsolutions.no</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Dynamic Feature Bullet Points -->
+        <ul class="project-features-list">
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Clean MVC Twig Templates:</strong> Full decoupling of PHP controllers and Twig templates to ensure absolute presentation safety, readability, and zero spaghetti.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Bespoke Gutenberg Block Architecture:</strong> Modular layouts built with ACF Pro and custom rendering controllers, giving the team rich builder features with full layout safety.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>High-Speed Bilingual Routing:</strong> Seamless Norwegian and English locale mappings with optimized database queries, fast routing, and clean URL structure.</span>
+          </li>
+          <li class="project-feature-item">
+            <span class="project-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="project-feature-text"><strong>Perfect Performance Scoring:</strong> Under-second load times driven by critical CSS delivery, optimized asset pipelines, and modern web image standards.</span>
+          </li>
+        </ul>
+
+        <!-- Tech Stack Tags -->
+        <div class="project-tags">
+          <span class="project-tag">Timber (Twig)</span>
+          <span class="project-tag">ACF Pro</span>
+          <span class="project-tag">Polylang</span>
+          <span class="project-tag">PHP 8.2 MVC</span>
+          <span class="project-tag">Core Web Vitals</span>
+          <span class="project-tag">Tailored Webpack</span>
+        </div>
+
+        <!-- Call-to-Action Link Button -->
+        <a href="https://nordcraftsolutions.no/" class="project-action-btn" target="_blank" rel="noopener noreferrer">
+          Visit Live Website
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <polyline points="12 5 19 12 12 19"></polyline>
