@@ -203,6 +203,13 @@ Single-service form examples with custom titles and accents (Premium styling):
 [simple_booking_form service="consultation" title="Let's Talk"]
 ```
 
+## Portfolio Showcase Card
+
+If you are showcasing this project on your personal portfolio website, we have created a beautiful, responsive, glassmorphic portfolio card snippet for you. You can find the copy-pasteable HTML/CSS code in:
+- [portfolio-snippet.html](portfolio-snippet.html)
+
+This allows you to showcase the Simple Booking plugin on your website with sleek neon gradients, interactive hover effects, and built-in custom SVGs.
+
 ## How It Works
 
 1. Customer selects a service and date/time
