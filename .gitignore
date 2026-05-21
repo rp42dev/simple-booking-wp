@@ -89,4 +89,5 @@ temp-*.txt
 
 # Generated custom untracked snippets
 /wp-portfolio-snippet.html
-/understanding-snippet.html
+/understanding-snippet.html
+/scratch/
