@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simple Booking Portfolio Card</title>
+  <title>Simple Booking Portfolio Card - Modal Interactive</title>
   <!-- Import Outfit and Inter Google Fonts for high-end typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,40 +18,292 @@
     }
 
     body {
-      background-color: #080c14;
+      background-color: #06090f;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       padding: 2rem;
+      position: relative;
     }
 
-    /* THE PORTFOLIO CARD CONTAINER */
-    .sb-portfolio-card {
+    body.sb-modal-open {
+      overflow: hidden; /* Prevent background scroll when modal is active */
+    }
+
+    /* GRID OR WORKSPACE PLACEHOLDER FOR PREVIEW */
+    .sb-portfolio-grid {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    /* ====================================================== */
+    /* 1. COMPACT PREVIEW CARD STYLING                       */
+    /* ====================================================== */
+    .sb-portfolio-preview-card {
+      max-width: 350px;
+      width: 100%;
+      background: rgba(13, 18, 30, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 1.75rem;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 
+                  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      color: #e2e8f0;
+      z-index: 1;
+    }
+
+    .sb-portfolio-preview-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 25px 50px rgba(99, 102, 241, 0.1),
+                  0 0 30px rgba(99, 102, 241, 0.04),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    /* PREVIEW BLUEPRINT GRID DECORATOR */
+    .sb-preview-grid-blueprint {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 16px 16px;
+      z-index: 0;
+      pointer-events: none;
+      mask-image: radial-gradient(ellipse at center, black 50%, transparent 90%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 50%, transparent 90%);
+    }
+
+    /* PREVIEW CARD LOGO & BADGE */
+    .sb-preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sb-preview-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+    }
+
+    .sb-preview-logo svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+    }
+
+    .sb-preview-category {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #a855f7;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      background: rgba(168, 85, 247, 0.08);
+      border: 1px solid rgba(168, 85, 247, 0.15);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    /* PREVIEW TYPOGRAPHY */
+    .sb-preview-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 0.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sb-preview-subtitle {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-bottom: 1.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* PREVIEW MINI TECH BADGES */
+    .sb-preview-tech-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sb-preview-tech-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #94a3b8;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    /* PREVIEW INTERACTION LINK */
+    .sb-preview-cta {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #6366f1;
+      gap: 4px;
+      transition: color 0.3s ease;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sb-portfolio-preview-card:hover .sb-preview-cta {
+      color: #818cf8;
+    }
+
+    .sb-preview-cta svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.3s ease;
+    }
+
+    .sb-portfolio-preview-card:hover .sb-preview-cta svg {
+      transform: translateX(3px);
+    }
+
+    /* ====================================================== */
+    /* 2. MODAL OVERLAY & CONTAINER                          */
+    /* ====================================================== */
+    .sb-portfolio-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(3, 5, 10, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 9999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    .sb-portfolio-modal-overlay.sb-active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    .sb-portfolio-modal-content {
+      position: relative;
       max-width: 580px;
       width: 100%;
-      background: rgba(13, 18, 30, 0.75);
+      transform: scale(0.95) translateY(10px);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 90vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+      border-radius: 28px;
+    }
+
+    /* Custom scrollbar styling for webkit browser */
+    .sb-portfolio-modal-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sb-portfolio-modal-content::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.12);
+      border-radius: 99px;
+    }
+
+    .sb-portfolio-modal-overlay.sb-active .sb-portfolio-modal-content {
+      transform: scale(1) translateY(0);
+    }
+
+    /* MODAL CLOSE BUTTON */
+    .sb-modal-close-btn {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      color: #94a3b8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .sb-modal-close-btn:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      transform: rotate(90deg) scale(1.05);
+    }
+
+    .sb-modal-close-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ====================================================== */
+    /* 3. DETAILED EXPANDED CARD STYLING                     */
+    /* ====================================================== */
+    .sb-portfolio-card {
+      width: 100%;
+      background: rgba(13, 18, 30, 0.95);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 28px;
       padding: 2.5rem;
       position: relative;
       overflow: hidden;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), 
                   inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
       color: #e2e8f0;
-    }
-
-    /* CARD HOVER EFFECTS */
-    .sb-portfolio-card:hover {
-      transform: translateY(-8px);
-      border-color: rgba(99, 102, 241, 0.45);
-      box-shadow: 0 35px 70px rgba(99, 102, 241, 0.14),
-                  0 0 50px rgba(99, 102, 241, 0.06),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      text-align: left;
     }
 
     /* DOTTED BLUEPRINT GRID LAYER */
@@ -80,12 +332,6 @@
       right: -90px;
       z-index: 0;
       pointer-events: none;
-      transition: all 0.5s ease;
-    }
-
-    .sb-portfolio-card:hover::before {
-      transform: scale(1.3);
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.32) 0%, rgba(99, 102, 241, 0) 75%);
     }
 
     /* CARD HEADER & BADGE */
@@ -96,23 +342,7 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1.5rem;
-    }
-
-    .sb-logo-container {
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      border-radius: 12px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.3);
-    }
-
-    .sb-logo-container svg {
-      width: 22px;
-      height: 22px;
-      fill: #ffffff;
+      padding-right: 2.5rem; /* Ensure space for close button */
     }
 
     .sb-card-badge {
@@ -137,11 +367,6 @@
       border-radius: 50%;
       box-shadow: 0 0 8px #10b981;
       animation: sb-pulse-badge-green 1.5s infinite alternate ease-in-out;
-    }
-
-    @keyframes sb-pulse-badge-green {
-      0% { transform: scale(0.9); opacity: 0.6; }
-      100% { transform: scale(1.35); opacity: 1; }
     }
 
     /* PROJECT TITLE & SUBTITLE */
@@ -236,11 +461,6 @@
       fill: #64748b;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      transition: fill 0.3s ease;
-    }
-    
-    .sb-portfolio-card:hover .sb-node-label {
-      fill: #94a3b8;
     }
 
     /* Central Hub Pulse */
@@ -392,7 +612,7 @@
       transform: translateX(5px);
     }
 
-    /* RESPONSIVE */
+    /* RESPONSIVE FOR MODAL */
     @media (max-width: 640px) {
       .sb-portfolio-card {
         padding: 1.75rem;
@@ -404,186 +624,300 @@
         padding: 0.75rem 0.25rem;
         margin: 1.25rem auto 1.5rem;
       }
+      .sb-modal-close-btn {
+        top: 0.75rem;
+        right: 0.75rem;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- PORTFOLIO CARD SNIPPET START -->
-  <div class="sb-portfolio-card">
-    <!-- CAD Dotted Grid Decorator -->
-    <div class="sb-card-grid-blueprint"></div>
+  <!-- PORTFOLIO GRID CONTAINER -->
+  <div class="sb-portfolio-grid">
 
-    <div class="sb-card-header">
-      <div class="sb-logo-container">
-        <!-- Modern Calendar Booking SVG Icon -->
+    <!-- ========================================== -->
+    <!-- 1. COMPACT PREVIEW CARD SNIPPET START      -->
+    /* Placed in your main project portfolio grid */
+    <!-- ========================================== -->
+    <div class="sb-portfolio-preview-card" id="sb-booking-project-card">
+      <div class="sb-preview-grid-blueprint"></div>
+      
+      <div class="sb-preview-header">
+        <div class="sb-preview-logo">
+          <!-- Calendar Icon -->
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2.2" fill="none"/>
+            <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2.2"/>
+            <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2.2"/>
+            <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2.2"/>
+            <path d="M8 14h.01M12 14h.01M16 14h.01" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="sb-preview-category">WordPress</span>
+      </div>
+
+      <h4 class="sb-preview-title">Simple Booking</h4>
+      <p class="sb-preview-subtitle">Enterprise WordPress booking engine with Stripe, Google, and Microsoft Outlook calendar sync integrations.</p>
+
+      <div class="sb-preview-tech-row">
+        <span class="sb-preview-tech-badge">PHP 8</span>
+        <span class="sb-preview-tech-badge">Stripe API</span>
+        <span class="sb-preview-tech-badge">MS Graph</span>
+        <span class="sb-preview-tech-badge">OAuth 2.0</span>
+      </div>
+
+      <span class="sb-preview-cta">
+        View Project System
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
-          <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
-          <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/>
-          <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/>
-          <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
         </svg>
-      </div>
-      <div class="sb-card-badge">
-        <span class="sb-badge-status-dot"></span>
-        <span>WordPress Engine • v3.0.17</span>
-      </div>
+      </span>
     </div>
+    <!-- COMPACT PREVIEW CARD END -->
 
-    <div class="sb-card-title-group">
-      <h3 class="sb-card-title">Simple Booking</h3>
-      <p class="sb-card-subtitle">Automated Scheduling Ecosystem</p>
-    </div>
-
-    <p class="sb-card-desc">
-      A lightweight, highly resilient, and modular scheduling orchestrator for WordPress. Integrates secure payment gateways, dual-calendar syncing, and automated virtual meeting utilities natively with zero external platform lock-in.
-    </p>
-
-    <!-- INLINE BOOKING AUTOMATION FLOW SCHEMATIC -->
-    <div class="sb-sync-animation-inline">
-      <svg viewBox="0 0 800 160" class="sb-sync-svg" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <linearGradient id="sb-grad-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0" />
-            <stop offset="50%" stop-color="#06b6d4" />
-            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient id="sb-grad-green" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
-            <stop offset="50%" stop-color="#10b981" />
-            <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient id="sb-grad-purple" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#a855f7" stop-opacity="0" />
-            <stop offset="50%" stop-color="#a855f7" />
-            <stop offset="100%" stop-color="#a855f7" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient id="sb-grad-indigo" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#6366f1" stop-opacity="0" />
-            <stop offset="50%" stop-color="#6366f1" />
-            <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient id="sb-grad-red" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#ef4444" stop-opacity="0" />
-            <stop offset="50%" stop-color="#ef4444" />
-            <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
-          </linearGradient>
-        </defs>
-
-        <!-- Static Background Booking Pathways -->
-        <g class="sb-track-lines">
-          <!-- Left side incoming: Customer, Core WP, Staff Routing -->
-          <path d="M 110,40 C 250,40 250,80 400,80" />
-          <path d="M 110,80 L 400,80" />
-          <path d="M 110,120 C 250,120 250,80 400,80" />
-          <!-- Right side outgoing: Stripe, Google Cal, Outlook Cal -->
-          <path d="M 400,80 C 550,80 550,40 690,40" />
-          <path d="M 400,80 L 690,80" />
-          <path d="M 400,80 C 550,80 550,120 690,120" />
-        </g>
-
-        <!-- Animated Data Particles Flow -->
-        <g fill="none" stroke-width="3" stroke-linecap="round">
-          <!-- Left incoming flow -->
-          <path class="sb-particle sb-p1" stroke="url(#sb-grad-cyan)" d="M 110,40 C 250,40 250,80 400,80" />
-          <path class="sb-particle sb-p2" stroke="url(#sb-grad-green)" d="M 110,80 L 400,80" />
-          <path class="sb-particle sb-p3" stroke="url(#sb-grad-purple)" d="M 110,120 C 250,120 250,80 400,80" />
-          <!-- Right outgoing sync -->
-          <path class="sb-particle sb-p4" stroke="url(#sb-grad-indigo)" d="M 400,80 C 550,80 550,40 690,40" />
-          <path class="sb-particle sb-p5" stroke="url(#sb-grad-red)" d="M 400,80 L 690,80" />
-          <path class="sb-particle sb-p6" stroke="url(#sb-grad-cyan)" d="M 400,80 C 550,80 550,120 690,120" />
-        </g>
-
-        <!-- Connectivity & Node Labels -->
-        <g class="sb-sync-nodes">
-          <!-- Central API Hub (Engine) -->
-          <circle cx="400" cy="80" r="14" fill="#080c14" stroke="#10b981" stroke-width="2.5" />
-          <circle cx="400" cy="80" r="5" fill="#10b981" class="sb-pulse-node" />
-          <!-- Radial Radar Pings -->
-          <circle cx="400" cy="80" r="22" fill="none" stroke="#10b981" stroke-width="1.5" opacity="0.4" class="sb-radar-ping" />
-          <circle cx="400" cy="80" r="22" fill="none" stroke="#10b981" stroke-width="1" opacity="0.2" class="sb-radar-ping-delay" />
-          <text x="400" y="52" text-anchor="middle" class="sb-node-label" font-weight="900" fill="#10b981">Booking Engine</text>
-
-          <!-- Left Incoming Nodes -->
-          <circle cx="110" cy="40" r="4.5" fill="#080c14" stroke="#06b6d4" stroke-width="2.5" />
-          <text x="95" y="43" text-anchor="end" class="sb-node-label">Customer</text>
-
-          <circle cx="110" cy="80" r="4.5" fill="#080c14" stroke="#10b981" stroke-width="2.5" />
-          <text x="95" y="83" text-anchor="end" class="sb-node-label">WP Core</text>
-
-          <circle cx="110" cy="120" r="4.5" fill="#080c14" stroke="#a855f7" stroke-width="2.5" />
-          <text x="95" y="123" text-anchor="end" class="sb-node-label">Staff UI</text>
-
-          <!-- Right Outgoing Integration Targets -->
-          <circle cx="690" cy="40" r="4.5" fill="#080c14" stroke="#6366f1" stroke-width="2.5" />
-          <text x="705" y="43" text-anchor="start" class="sb-node-label">Stripe API</text>
-
-          <circle cx="690" cy="80" r="4.5" fill="#080c14" stroke="#ef4444" stroke-width="2.5" />
-          <text x="705" y="83" text-anchor="start" class="sb-node-label">Google Cal</text>
-
-          <circle cx="690" cy="120" r="4.5" fill="#080c14" stroke="#0ea5e9" stroke-width="2.5" />
-          <text x="705" y="123" text-anchor="start" class="sb-node-label">Outlook Cal</text>
-        </g>
-      </svg>
-    </div>
-
-    <!-- MAIN BENEFITS LIST -->
-    <ul class="sb-features-list">
-      <li class="sb-feature-item">
-        <span class="sb-feature-icon">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </span>
-        <span class="sb-feature-text"><strong>Smart Payments:</strong> Seamless Stripe Checkout integration supporting both paid reservations and instant free bookings.</span>
-      </li>
-      <li class="sb-feature-item">
-        <span class="sb-feature-icon">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </span>
-        <span class="sb-feature-text"><strong>Dual-Calendar Sync:</strong> Automated, real-time bi-directional synchronization via Google Calendar and Microsoft Graph APIs.</span>
-      </li>
-      <li class="sb-feature-item">
-        <span class="sb-feature-icon">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </span>
-        <span class="sb-feature-text"><strong>Fault-Tolerant Webhooks:</strong> An advanced background webhook retry queue guaranteeing data and booking integrity.</span>
-      </li>
-      <li class="sb-feature-item">
-        <span class="sb-feature-icon">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </span>
-        <span class="sb-feature-text"><strong>Secure Management:</strong> Clean Customer Dashboard with tokenized URL links for secure, code-free reschedules and cancellations.</span>
-      </li>
-    </ul>
-
-    <!-- TECH STACK TAGS -->
-    <div class="sb-tech-tags">
-      <span class="sb-tech-tag">WordPress Core</span>
-      <span class="sb-tech-tag">PHP 8+</span>
-      <span class="sb-tech-tag">Stripe API</span>
-      <span class="sb-tech-tag">MS Graph API</span>
-      <span class="sb-tech-tag">Google OAuth</span>
-      <span class="sb-tech-tag">Vanilla JS</span>
-    </div>
-
-    <!-- EXPLORE PROJECT BUTTON -->
-    <a href="https://github.com/rp42dev/simple-booking-wp" class="sb-card-action" target="_blank" rel="noopener noreferrer">
-      Explore Project
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-        <polyline points="12 5 19 12 12 19"></polyline>
-      </svg>
-    </a>
   </div>
-  <!-- PORTFOLIO CARD SNIPPET END -->
+
+  <!-- ========================================== -->
+  <!-- 2. DETAILED MODAL OVERLAY SNIPPET START   -->
+  /* Placed near the bottom of your body page   */
+  <!-- ========================================== -->
+  <div class="sb-portfolio-modal-overlay" id="sb-booking-modal-overlay">
+    <div class="sb-portfolio-modal-content">
+      
+      <!-- Close Button -->
+      <button class="sb-modal-close-btn" id="sb-booking-close-btn" aria-label="Close details">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      
+      <!-- FULL DETAILED DYNAMIC SCHEMATIC CARD -->
+      <div class="sb-portfolio-card">
+        <!-- CAD Dotted Grid Decorator -->
+        <div class="sb-card-grid-blueprint"></div>
+
+        <div class="sb-card-header">
+          <div class="sb-logo-container">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+              <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
+              <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/>
+              <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="sb-card-badge">
+            <span class="sb-badge-status-dot"></span>
+            <span>WordPress Engine • v3.0.17</span>
+          </div>
+        </div>
+
+        <div class="sb-card-title-group">
+          <h3 class="sb-card-title">Simple Booking</h3>
+          <p class="sb-card-subtitle">Automated Scheduling Ecosystem</p>
+        </div>
+
+        <p class="sb-card-desc">
+          A lightweight, highly resilient, and modular scheduling orchestrator for WordPress. Integrates secure payment gateways, dual-calendar syncing, and automated virtual meeting utilities natively with zero external platform lock-in.
+        </p>
+
+        <!-- INLINE BOOKING AUTOMATION FLOW SCHEMATIC -->
+        <div class="sb-sync-animation-inline">
+          <svg viewBox="0 0 800 160" class="sb-sync-svg" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="sb-grad-cyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0" />
+                <stop offset="50%" stop-color="#06b6d4" />
+                <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="sb-grad-green" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
+                <stop offset="50%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="sb-grad-purple" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#a855f7" stop-opacity="0" />
+                <stop offset="50%" stop-color="#a855f7" />
+                <stop offset="100%" stop-color="#a855f7" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="sb-grad-indigo" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#6366f1" stop-opacity="0" />
+                <stop offset="50%" stop-color="#6366f1" />
+                <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="sb-grad-red" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ef4444" stop-opacity="0" />
+                <stop offset="50%" stop-color="#ef4444" />
+                <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+
+            <!-- Static Background Booking Pathways -->
+            <g class="sb-track-lines">
+              <!-- Left side incoming: Customer, Core WP, Staff Routing -->
+              <path d="M 110,40 C 250,40 250,80 400,80" />
+              <path d="M 110,80 L 400,80" />
+              <path d="M 110,120 C 250,120 250,80 400,80" />
+              <!-- Right side outgoing: Stripe, Google Cal, Outlook Cal -->
+              <path d="M 400,80 C 550,80 550,40 690,40" />
+              <path d="M 400,80 L 690,80" />
+              <path d="M 400,80 C 550,80 550,120 690,120" />
+            </g>
+
+            <!-- Animated Data Particles Flow -->
+            <g fill="none" stroke-width="3" stroke-linecap="round">
+              <!-- Left incoming flow -->
+              <path class="sb-particle sb-p1" stroke="url(#sb-grad-cyan)" d="M 110,40 C 250,40 250,80 400,80" />
+              <path class="sb-particle sb-p2" stroke="url(#sb-grad-green)" d="M 110,80 L 400,80" />
+              <path class="sb-particle sb-p3" stroke="url(#sb-grad-purple)" d="M 110,120 C 250,120 250,80 400,80" />
+              <!-- Right outgoing sync -->
+              <path class="sb-particle sb-p4" stroke="url(#sb-grad-indigo)" d="M 400,80 C 550,80 550,40 690,40" />
+              <path class="sb-particle sb-p5" stroke="url(#sb-grad-red)" d="M 400,80 L 690,80" />
+              <path class="sb-particle sb-p6" stroke="url(#sb-grad-cyan)" d="M 400,80 C 550,80 550,120 690,120" />
+            </g>
+
+            <!-- Connectivity & Node Labels -->
+            <g class="sb-sync-nodes">
+              <!-- Central API Hub (Engine) -->
+              <circle cx="400" cy="80" r="14" fill="#080c14" stroke="#10b981" stroke-width="2.5" />
+              <circle cx="400" cy="80" r="5" fill="#10b981" class="sb-pulse-node" />
+              <!-- Radial Radar Pings -->
+              <circle cx="400" cy="80" r="22" fill="none" stroke="#10b981" stroke-width="1.5" opacity="0.4" class="sb-radar-ping" />
+              <circle cx="400" cy="80" r="22" fill="none" stroke="#10b981" stroke-width="1" opacity="0.2" class="sb-radar-ping-delay" />
+              <text x="400" y="52" text-anchor="middle" class="sb-node-label" font-weight="900" fill="#10b981">Booking Engine</text>
+
+              <!-- Left Incoming Nodes -->
+              <circle cx="110" cy="40" r="4.5" fill="#080c14" stroke="#06b6d4" stroke-width="2.5" />
+              <text x="95" y="43" text-anchor="end" class="sb-node-label">Customer</text>
+
+              <circle cx="110" cy="80" r="4.5" fill="#080c14" stroke="#10b981" stroke-width="2.5" />
+              <text x="95" y="83" text-anchor="end" class="sb-node-label">WP Core</text>
+
+              <circle cx="110" cy="120" r="4.5" fill="#080c14" stroke="#a855f7" stroke-width="2.5" />
+              <text x="95" y="123" text-anchor="end" class="sb-node-label">Staff UI</text>
+
+              <!-- Right Outgoing Integration Targets -->
+              <circle cx="690" cy="40" r="4.5" fill="#080c14" stroke="#6366f1" stroke-width="2.5" />
+              <text x="705" y="43" text-anchor="start" class="sb-node-label">Stripe API</text>
+
+              <circle cx="690" cy="80" r="4.5" fill="#080c14" stroke="#ef4444" stroke-width="2.5" />
+              <text x="705" y="83" text-anchor="start" class="sb-node-label">Google Cal</text>
+
+              <circle cx="690" cy="120" r="4.5" fill="#080c14" stroke="#0ea5e9" stroke-width="2.5" />
+              <text x="705" y="123" text-anchor="start" class="sb-node-label">Outlook Cal</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- MAIN BENEFITS LIST -->
+        <ul class="sb-features-list">
+          <li class="sb-feature-item">
+            <span class="sb-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="sb-feature-text"><strong>Smart Payments:</strong> Seamless Stripe Checkout integration supporting both paid reservations and instant free bookings.</span>
+          </li>
+          <li class="sb-feature-item">
+            <span class="sb-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="sb-feature-text"><strong>Dual-Calendar Sync:</strong> Automated, real-time bi-directional synchronization via Google Calendar and Microsoft Graph APIs.</span>
+          </li>
+          <li class="sb-feature-item">
+            <span class="sb-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="sb-feature-text"><strong>Fault-Tolerant Webhooks:</strong> An advanced background webhook retry queue guaranteeing data and booking integrity.</span>
+          </li>
+          <li class="sb-feature-item">
+            <span class="sb-feature-icon">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span class="sb-feature-text"><strong>Secure Management:</strong> Clean Customer Dashboard with tokenized URL links for secure, code-free reschedules and cancellations.</span>
+          </li>
+        </ul>
+
+        <!-- TECH STACK TAGS -->
+        <div class="sb-tech-tags">
+          <span class="sb-tech-tag">WordPress Core</span>
+          <span class="sb-tech-tag">PHP 8+</span>
+          <span class="sb-tech-tag">Stripe API</span>
+          <span class="sb-tech-tag">MS Graph API</span>
+          <span class="sb-tech-tag">Google OAuth</span>
+          <span class="sb-tech-tag">Vanilla JS</span>
+        </div>
+
+        <!-- EXPLORE PROJECT BUTTON -->
+        <a href="https://github.com/rp42dev/simple-booking-wp" class="sb-card-action" target="_blank" rel="noopener noreferrer">
+          Explore Project
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+      
+    </div>
+  </div>
+  <!-- DETAILED MODAL OVERLAY END -->
+
+  <!-- ========================================== -->
+  <!-- 3. INLINE INTERACTION CONTROLLER SCRIPT    -->
+  <!-- ========================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const previewCard = document.getElementById('sb-booking-project-card');
+      const modalOverlay = document.getElementById('sb-booking-modal-overlay');
+      const closeBtn = document.getElementById('sb-booking-close-btn');
+
+      // 1. Open Modal Flow
+      if (previewCard && modalOverlay) {
+        previewCard.addEventListener('click', () => {
+          modalOverlay.classList.add('sb-active');
+          document.body.classList.add('sb-modal-open');
+        });
+      }
+
+      // 2. Close Modal Flow (Close Button)
+      if (closeBtn && modalOverlay) {
+        closeBtn.addEventListener('click', (e) => {
+          e.stopPropagation(); // Avoid event bubble triggers
+          modalOverlay.classList.remove('sb-active');
+          document.body.classList.remove('sb-modal-open');
+        });
+      }
+
+      // 3. Close Modal Flow (Click Outside of Content)
+      if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+          // If clicked the overlay backdrop itself and not the content card
+          if (e.target === modalOverlay) {
+            modalOverlay.classList.remove('sb-active');
+            document.body.classList.remove('sb-modal-open');
+          }
+        });
+      }
+
+      // 4. Close on Escape Key Press
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('sb-active')) {
+          modalOverlay.classList.remove('sb-active');
+          document.body.classList.remove('sb-modal-open');
+        }
+      });
+    });
+  </script>
 
 </body>
 </html>
