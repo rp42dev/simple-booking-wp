@@ -829,6 +829,158 @@
         right: 0.75rem;
       }
     }
+
+    /* ====================================================== */
+    /* TESTIMONIALS SLIDER SECTION                           */
+    /* ====================================================== */
+    .testimonials-section {
+      margin-top: 6rem;
+      margin-bottom: 3rem;
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+    }
+
+    .testimonials-slider-container {
+      max-width: 800px;
+      width: 100%;
+      background: rgba(30, 41, 59, 0.2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .testimonials-section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 2rem;
+      background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    .testimonials-slider {
+      position: relative;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .testimonial-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(15px);
+      transition: opacity 0.6s ease, transform 0.6s ease, visibility 0.6s;
+    }
+
+    .testimonial-slide.active {
+      position: relative;
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .testimonial-quote {
+      color: rgba(168, 85, 247, 0.15);
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1.25rem;
+    }
+
+    .testimonial-quote svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .testimonial-text {
+      font-size: 1.15rem;
+      line-height: 1.65;
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+      font-style: italic;
+    }
+
+    .testimonial-author {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .author-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .author-role {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .testimonials-dots {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 2rem;
+    }
+
+    .testimonials-dots .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .testimonials-dots .dot:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.2);
+    }
+
+    .testimonials-dots .dot.active {
+      background: #a855f7;
+      transform: scale(1.2);
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+    }
+
+    /* Testimonial slider responsiveness */
+    @media (max-width: 768px) {
+      .testimonials-section {
+        margin-top: 4rem;
+        padding: 0 1rem;
+      }
+      .testimonials-slider-container {
+        padding: 2rem 1.5rem;
+      }
+      .testimonial-text {
+        font-size: 1rem;
+      }
+      .testimonials-slider {
+        min-height: 220px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1144,6 +1296,64 @@
       </div>
 
     </main>
+
+    <!-- TESTIMONIALS SLIDER -->
+    <section class="testimonials-section">
+      <div class="testimonials-slider-container">
+        <h3 class="testimonials-section-title">Client Success Stories</h3>
+        
+        <div class="testimonials-slider">
+          <!-- Slide 1 -->
+          <div class="testimonial-slide active" data-index="0">
+            <div class="testimonial-quote">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-10zm-12 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.999v10h-10z"/>
+              </svg>
+            </div>
+            <p class="testimonial-text">"Antigravity's booking system completely automated our scheduling. Clients love the speed, and it has cut our booking administration time by 90%."</p>
+            <div class="testimonial-author">
+              <span class="author-name">Sarah Jenkins</span>
+              <span class="author-role">CEO of HealthAlign</span>
+            </div>
+          </div>
+          
+          <!-- Slide 2 -->
+          <div class="testimonial-slide" data-index="1">
+            <div class="testimonial-quote">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-10zm-12 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.999v10h-10z"/>
+              </svg>
+            </div>
+            <p class="testimonial-text">"The bilingual WordPress theme is exceptionally fast and easy to manage. The Timber/Twig architecture makes custom design updates a breeze."</p>
+            <div class="testimonial-author">
+              <span class="author-name">Marcus Dahl</span>
+              <span class="author-role">Founder of Nord Craft</span>
+            </div>
+          </div>
+          
+          <!-- Slide 3 -->
+          <div class="testimonial-slide" data-index="2">
+            <div class="testimonial-quote">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-10zm-12 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.999v10h-10z"/>
+              </svg>
+            </div>
+            <p class="testimonial-text">"Stripe and Google Calendar integration worked flawlessly from day one. Our payment conversion rate increased by 25%."</p>
+            <div class="testimonial-author">
+              <span class="author-name">Dr. Elena Rostova</span>
+              <span class="author-role">Director at Understanding Institute</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Navigation Dots -->
+        <div class="testimonials-dots">
+          <span class="dot active" data-index="0"></span>
+          <span class="dot" data-index="1"></span>
+          <span class="dot" data-index="2"></span>
+        </div>
+      </div>
+    </section>
 
     <!-- FOOTER -->
     <footer class="portfolio-footer">
@@ -2339,6 +2549,58 @@
         const anyActive = Array.from(overlays).some(m => m.classList.contains('active'));
         if (!anyActive) {
           document.body.classList.remove('modal-open');
+        }
+      }
+
+      // 5. Testimonial Auto-Slider Logic
+      const slides = document.querySelectorAll('.testimonial-slide');
+      const dots = document.querySelectorAll('.testimonials-dots .dot');
+      let currentSlide = 0;
+      let slideInterval;
+
+      function showSlide(index) {
+        slides.forEach(slide => slide.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+        
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+        currentSlide = index;
+      }
+
+      function nextSlide() {
+        let next = (currentSlide + 1) % slides.length;
+        showSlide(next);
+      }
+
+      function startSlideShow() {
+        stopSlideShow();
+        slideInterval = setInterval(nextSlide, 5000);
+      }
+
+      function stopSlideShow() {
+        if (slideInterval) {
+          clearInterval(slideInterval);
+        }
+      }
+
+      // Initialize slideshow if elements exist
+      if (slides.length > 0) {
+        startSlideShow();
+        
+        // Manual dots click
+        dots.forEach(dot => {
+          dot.addEventListener('click', () => {
+            const index = parseInt(dot.getAttribute('data-index'));
+            showSlide(index);
+            startSlideShow(); // Reset interval
+          });
+        });
+
+        // Pause slideshow on hover
+        const sliderContainer = document.querySelector('.testimonials-slider-container');
+        if (sliderContainer) {
+          sliderContainer.addEventListener('mouseenter', stopSlideShow);
+          sliderContainer.addEventListener('mouseleave', startSlideShow);
         }
       }
 
