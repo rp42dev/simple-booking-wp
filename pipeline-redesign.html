@@ -345,7 +345,7 @@
   }
 }
 
-/* Dynamic Chevron Arrow Flow wave keyframe (Horizontal) */
+/* Dynamic Chevron Arrow Flow wave keyframe (Horizontal - Right pointing) */
 @keyframes sequential-arrow-glow {
   0%, 6% {
     color: #61CE70;
@@ -362,6 +362,26 @@
     color: #61CE70;
     opacity: 0.25;
     transform: scale(1);
+  }
+}
+
+/* Dynamic Chevron Arrow Flow wave keyframe (Horizontal - Left pointing / Rotated 180deg) */
+@keyframes sequential-arrow-glow-left {
+  0%, 6% {
+    color: #61CE70;
+    opacity: 0.25;
+    transform: rotate(180deg) scale(1);
+  }
+  11% {
+    color: #FAC643;
+    opacity: 1;
+    transform: rotate(180deg) scale(1.3) translateX(3px);
+    filter: drop-shadow(0 0 8px #FAC643);
+  }
+  16%, 100% {
+    color: #61CE70;
+    opacity: 0.25;
+    transform: rotate(180deg) scale(1);
   }
 }
 
@@ -443,7 +463,11 @@
    📱 RESPONSIVE PIPELINE TRANSFORMATION (2 ROWS & 3 ROWS)
    ======================================================== */
 
-/* TABLET VERSION: 2 ROWS (3 Nodes per Row) */
+/* TABLET VERSION: 2 ROWS SERPENTINE (3 Nodes per Row)
+   Row 1: 1 -> 2 -> 3 (Right)
+                     | (Down)
+   Row 2: 6 <- 5 <- 4 (Left)
+*/
 @media (min-width: 601px) and (max-width: 900px) {
   .gso-steps-flow-wrapper {
     padding: 40px 20px;
@@ -462,14 +486,14 @@
     padding: 0;
   }
   
-  /* Row 1 Positioning */
+  /* ROW 1 POSITIONING (Left-to-Right: Steps 1, 2, 3) */
   .node-step-1 { grid-row: 1; grid-column: 1; }
   .arrow-1      { grid-row: 1; grid-column: 2; }
   .node-step-2 { grid-row: 1; grid-column: 3; }
   .arrow-2      { grid-row: 1; grid-column: 4; }
   .node-step-3 { grid-row: 1; grid-column: 5; }
   
-  /* CONNECTOR 3: Points DOWN under Step 3 to go to next row! */
+  /* CONNECTOR 3: Points DOWN under Step 3 to go to Step 4 on Row 2! */
   .arrow-3 { 
     grid-row: 2; 
     grid-column: 5; 
@@ -480,20 +504,50 @@
     animation-name: sequential-arrow-glow-vertical;
   }
   
-  /* Row 2 Positioning */
-  .node-step-4 { grid-row: 3; grid-column: 1; }
-  .arrow-4      { grid-row: 3; grid-column: 2; }
+  /* ROW 2 POSITIONING (Flipped Right-to-Left: Steps 4, 5, 6) */
+  .node-step-4 { grid-row: 3; grid-column: 5; }
+  
+  /* Connector 4 points Left! */
+  .arrow-4 { 
+    grid-row: 3; 
+    grid-column: 4; 
+    transform: rotate(180deg);
+    animation-name: sequential-arrow-glow-left;
+  }
   .node-step-5 { grid-row: 3; grid-column: 3; }
-  .arrow-5      { grid-row: 3; grid-column: 4; }
-  .node-step-6 { grid-row: 3; grid-column: 5; }
+  
+  /* Connector 5 points Left! */
+  .arrow-5 { 
+    grid-row: 3; 
+    grid-column: 2; 
+    transform: rotate(180deg);
+    animation-name: sequential-arrow-glow-left;
+  }
+  .node-step-6 { grid-row: 3; grid-column: 1; }
 
-  /* Hover overrides for rotated Arrow 3 */
+  /* Hover overrides for rotated Arrow 3 (vertical) */
   .node-step-3:hover + .arrow-3 {
     transform: rotate(90deg) scale(1.3) translateY(3px) !important;
   }
+
+  /* Hover overrides for rotated Arrow 4 (points left) */
+  .node-step-4:hover + .arrow-4 {
+    transform: rotate(180deg) scale(1.3) translateX(3px) !important;
+  }
+
+  /* Hover overrides for rotated Arrow 5 (points left) */
+  .node-step-5:hover + .arrow-5 {
+    transform: rotate(180deg) scale(1.3) translateX(3px) !important;
+  }
 }
 
-/* MOBILE VERSION: 3 ROWS (2 Nodes per Row) */
+/* MOBILE VERSION: 3 ROWS SERPENTINE (2 Nodes per Row)
+   Row 1: 1 -> 2 (Right)
+                | (Down)
+   Row 2: 4 <- 3 (Left)
+          | (Down)
+   Row 3: 5 -> 6 (Right)
+*/
 @media (max-width: 600px) {
   .gso-steps-flow-wrapper {
     padding: 30px 10px;
@@ -512,12 +566,12 @@
     padding: 0;
   }
   
-  /* Row 1 Positioning */
+  /* ROW 1 POSITIONING (Left-to-Right: Steps 1, 2) */
   .node-step-1 { grid-row: 1; grid-column: 1; }
   .arrow-1      { grid-row: 1; grid-column: 2; }
   .node-step-2 { grid-row: 1; grid-column: 3; }
   
-  /* CONNECTOR 2: Points DOWN under Step 2 to go to Row 2! */
+  /* CONNECTOR 2: Points DOWN under Step 2 to go to Step 3 on Row 2! */
   .arrow-2 { 
     grid-row: 2; 
     grid-column: 3; 
@@ -528,15 +582,22 @@
     animation-name: sequential-arrow-glow-vertical;
   }
   
-  /* Row 2 Positioning */
-  .node-step-3 { grid-row: 3; grid-column: 1; }
-  .arrow-3      { grid-row: 3; grid-column: 2; }
-  .node-step-4 { grid-row: 3; grid-column: 3; }
+  /* ROW 2 POSITIONING (Flipped Right-to-Left: Steps 3, 4) */
+  .node-step-3 { grid-row: 3; grid-column: 3; }
   
-  /* CONNECTOR 4: Points DOWN under Step 4 to go to Row 3! */
+  /* Connector 3 points Left! */
+  .arrow-3 { 
+    grid-row: 3; 
+    grid-column: 2; 
+    transform: rotate(180deg);
+    animation-name: sequential-arrow-glow-left;
+  }
+  .node-step-4 { grid-row: 3; grid-column: 1; }
+  
+  /* CONNECTOR 4: Points DOWN under Step 4 to go to Step 5 on Row 3! */
   .arrow-4 { 
     grid-row: 4; 
-    grid-column: 3; 
+    grid-column: 1; 
     justify-self: center; 
     height: auto;
     padding: 10px 0;
@@ -544,7 +605,7 @@
     animation-name: sequential-arrow-glow-vertical;
   }
   
-  /* Row 3 Positioning */
+  /* ROW 3 POSITIONING (Left-to-Right: Steps 5, 6) */
   .node-step-5 { grid-row: 5; grid-column: 1; }
   .arrow-5      { grid-row: 5; grid-column: 2; }
   .node-step-6 { grid-row: 5; grid-column: 3; }
@@ -570,11 +631,17 @@
     height: 95px; /* Aligns arrows to smaller circle slot heights */
   }
 
-  /* Hover overrides for rotated Arrow 2 and Arrow 4 */
+  /* Hover overrides for rotated Arrow 2 (points down) */
   .node-step-2:hover + .arrow-2 {
     transform: rotate(90deg) scale(1.3) translateY(3px) !important;
   }
   
+  /* Hover overrides for rotated Arrow 3 (points left) */
+  .node-step-3:hover + .arrow-3 {
+    transform: rotate(180deg) scale(1.3) translateX(3px) !important;
+  }
+  
+  /* Hover overrides for rotated Arrow 4 (points down) */
   .node-step-4:hover + .arrow-4 {
     transform: rotate(90deg) scale(1.3) translateY(3px) !important;
   }
