@@ -270,6 +270,22 @@ document.addEventListener("DOMContentLoaded", function() {
   color: #eeeeee;
 }
 
+/* Faint blueprint grid background matching portfolio cards */
+.gso-steps-flow-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+  z-index: 0;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, black 60%, transparent 95%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 60%, transparent 95%);
+}
+
 .gso-steps-flow-wrapper * {
   box-sizing: border-box;
 }
