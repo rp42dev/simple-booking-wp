@@ -2839,5 +2839,34 @@
     });
   </script>
 
+  <!-- ==================================================== -->
+  <!-- IFRAME AUTO-HEIGHT BROADCASTER                       -->
+  <!-- Sends real document height to parent via postMessage -->
+  <!-- Works cross-origin (WordPress embed, etc.)           -->
+  <!-- ==================================================== -->
+  <script>
+    (function () {
+      function sendHeight() {
+        // Use scrollHeight of the body to capture full rendered height
+        var h = document.body.scrollHeight;
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'portfolio-resize', height: h }, '*');
+        }
+      }
+
+      // Send on load
+      window.addEventListener('load', sendHeight);
+
+      // Watch for any layout changes (cards opening/closing, images loading, etc.)
+      if (window.ResizeObserver) {
+        var ro = new ResizeObserver(sendHeight);
+        ro.observe(document.body);
+      } else {
+        // Fallback: poll every 500ms for older browsers
+        setInterval(sendHeight, 500);
+      }
+    })();
+  </script>
+
 </body>
 </html>
